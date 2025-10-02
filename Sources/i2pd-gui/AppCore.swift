@@ -378,29 +378,28 @@ struct SettingsView: View {
                     SettingsSection(title: "🌐 Сетевая конфигурация", icon: "globe") {
                         VStack(spacing: 20) {
                             // Порт daemon
-                            HStack(alignment: .center) {
+                            HStack(spacing: 20) {
                                 Text("Порт daemon")
-                                    .frame(width: 160, alignment: .leading)
-                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 120, alignment: .leading)
                                 
-                                Spacer()
-                                
-                                TextField("", value: $daemonPort, format: .number)
+                                TextField("4444", value: $daemonPort, format: .number)
                                     .textFieldStyle(.roundedBorder)
-                                    .frame(width: 120)
+                                    .frame(width: 140)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
                             Divider()
                             
                             // Ограничение скорости
-                            VStack(alignment: .leading, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 8) {
                                 Text("Ограничение скорости")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                 
-                                Picker("", selection: $bandwidthLimit) {
+                                Picker("Ограничение скорости", selection: $bandwidthLimit) {
                                     Text("Без ограничений").tag("unlimited")
                                     Text("128 KB/s").tag("128")
                                     Text("512 KB/s").tag("512")
@@ -408,32 +407,39 @@ struct SettingsView: View {
                                     Text("5 MB/s").tag("5120")
                                 }
                                 .pickerStyle(.segmented)
+                                .frame(maxWidth: .infinity)
                             }
                         }
                     }
                     
                     // Автоматизация
                     SettingsSection(title: "💻 Автоматизация", icon: "laptop") {
-                        VStack(spacing: 16) {
-                            HStack(alignment: .center) {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 20) {
                                 Text("Автозапуск daemon")
-                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 140, alignment: .leading)
                                 
-                                Spacer ()
-                                
-                                Toggle("", isOn: $autoStart)
-                                    .labelsHidden()
+                                HStack {
+                                    Spacer()
+                                    Toggle("", isOn: $autoStart)
+                                        .labelsHidden()
+                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            HStack(alignment: .center) {
+                            HStack(spacing: 20) {
                                 Text("Отправлять уведомления")
-                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 140, alignment: .leading)
                                 
-                                Spacer()
-                                
-                                Toggle("", isOn: $notificationsEnabled)
-                                    .labelsHidden()
+                                HStack {
+                                    Spacer()
+                                    Toggle("", isOn: $notificationsEnabled)
+                                        .labelsHidden()
+                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -441,27 +447,31 @@ struct SettingsView: View {
                     
                     // Интерфейс
                     SettingsSection(title: "🎨 Интерфейс", icon: "paintpalette") {
-                        VStack(spacing: 16) {
+                        VStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Тема приложения")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                Picker("", selection: $darkMode) {
+                                Picker("Тема приложения", selection: $darkMode) {
                                     Text("Светлая").tag(false)
                                     Text("Тёмная").tag(true)
                                 }
                                 .pickerStyle(.segmented)
+                                .frame(maxWidth: .infinity)
                             }
                             
-                            HStack(alignment: .center) {
+                            HStack(spacing: 20) {
                                 Text("Компактный режим")
-                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 120, alignment: .leading)
                                 
-                                Spacer()
-                                
-                                Toggle("", isOn: $compactMode)
-                                    .labelsHidden()
+                                HStack {
+                                    Spacer()
+                                    Toggle("", isOn: $compactMode)
+                                        .labelsHidden()
+                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -469,26 +479,32 @@ struct SettingsView: View {
                     
                     // Мониторинг
                     SettingsSection(title: "📊 Мониторинг", icon: "chart.bar") {
-                        VStack(spacing: 16) {
-                            HStack(alignment: .center) {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 20) {
                                 Text("Обновление каждые 5 сек")
-                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 180, alignment: .leading)
                                 
-                                Spacer()
-                                
-                                Toggle("", isOn: $autoRefresh)
-                                    .labelsHidden()
+                                HStack {
+                                    Spacer()
+                                    Toggle("", isOn: $autoRefresh)
+                                        .labelsHidden()
+                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            HStack(alignment: .center) {
+                            HStack(spacing: 20) {
                                 Text("Автоматическая очистка логов")
-                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 180, alignment: .leading)
                                 
-                                Spacer()
-                                
-                                Toggle("", isOn: $autoLogCleanup)
-                                    .labelsHidden()
+                                HStack {
+                                    Spacer()
+                                    Toggle("", isOn: $autoLogCleanup)
+                                        .labelsHidden()
+                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -561,23 +577,25 @@ struct SettingsView: View {
                     // Действия
                     SettingsSection(title: "🔄 Действия", icon: "gear") {
                         VStack(spacing: 12) {
-                            HStack {
+                            HStack(spacing: 20) {
                                 Button("🔧 Сбросить настройки") {
                                     resetSettings()
                                 }
                                 .foregroundColor(.orange)
                                 .buttonStyle(.borderless)
+                                .frame(minWidth: 150, alignment: .leading)
                                 
                                 Spacer()
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            HStack {
+                            HStack(spacing: 20) {
                                 Button("📊 Тестовая статистика") {
                                     i2pdManager.getExtendedStats()
                                 }
                                 .disabled(!i2pdManager.isRunning)
                                 .buttonStyle(.borderless)
+                                .frame(minWidth: 150, alignment: .leading)
                                 
                                 Spacer()
                             }
@@ -589,7 +607,7 @@ struct SettingsView: View {
                 .padding(.vertical, 24)
             }
         }
-        .frame(minWidth: 600, maxWidth: .infinity, minHeight: 700, maxHeight: .infinity)
+        .frame(minWidth: 700, maxWidth: .infinity, minHeight: 700, maxHeight: .infinity)
     }
     
     private func saveSettings() {
@@ -721,6 +739,28 @@ struct SettingsSection<Content: View>: View {
                     )
             )
         }
+    }
+}
+
+// MARK: - Settings Row Helper
+struct SettingsRow: View {
+    let title: String
+    let action: AnyView
+    
+    var body: some View {
+        HStack(alignment: .center, spacing: 16) {
+            Text(title)
+                .font(.system(.body, design: .default, weight: .medium))
+                .foregroundColor(.primary)
+                .multilineTextAlignment(.leading)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            action
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
