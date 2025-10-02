@@ -48,8 +48,8 @@ mkdir -p ${RESOURCES_DIR}
 cp ${SWIFT_BUILD_DIR}/${EXECUTABLE_NAME} ${MACOS_DIR}/${APP_NAME}
 
 # Копируем бинарник i2pd
-if [ -f "i2pd-gui/i2pd" ]; then
-    cp "i2pd-gui/i2pd" ${RESOURCES_DIR}/i2pd
+if [ -f "i2pd" ]; then
+    cp "i2pd" ${RESOURCES_DIR}/i2pd
     echo "✅ Бинарник i2pd скопирован"
 else
     echo "⚠️  Бинарник i2pd не найден"
