@@ -378,16 +378,18 @@ struct SettingsView: View {
                     SettingsSection(title: "🌐 Сетевая конфигурация", icon: "globe") {
                         VStack(spacing: 20) {
                             // Порт daemon
-                            HStack {
+                            HStack(alignment: .center) {
                                 Text("Порт daemon")
-                                    .frame(width: 140, alignment: .leading)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
+                                    .frame(width: 160, alignment: .leading)
+                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                
+                                Spacer()
                                 
                                 TextField("", value: $daemonPort, format: .number)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 120)
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             
                             Divider()
                             
@@ -413,14 +415,27 @@ struct SettingsView: View {
                     // Автоматизация
                     SettingsSection(title: "💻 Автоматизация", icon: "laptop") {
                         VStack(spacing: 16) {
-                            HStack {
-                                Toggle("Автозапуск daemon", isOn: $autoStart)
-                                Spacer()
+                            HStack(alignment: .center) {
+                                Text("Автозапуск daemon")
+                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                
+                                Spacer ()
+                                
+                                Toggle("", isOn: $autoStart)
+                                    .labelsHidden()
                             }
-                            HStack {
-                                Toggle("Отправлять уведомления", isOn: $notificationsEnabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            HStack(alignment: .center) {
+                                Text("Отправлять уведомления")
+                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                
                                 Spacer()
+                                
+                                Toggle("", isOn: $notificationsEnabled)
+                                    .labelsHidden()
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                     
@@ -439,24 +454,43 @@ struct SettingsView: View {
                                 .pickerStyle(.segmented)
                             }
                             
-                            HStack {
-                                Toggle("Компактный режим", isOn: $compactMode)
+                            HStack(alignment: .center) {
+                                Text("Компактный режим")
+                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                
                                 Spacer()
+                                
+                                Toggle("", isOn: $compactMode)
+                                    .labelsHidden()
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                     
                     // Мониторинг
                     SettingsSection(title: "📊 Мониторинг", icon: "chart.bar") {
                         VStack(spacing: 16) {
-                            HStack {
-                                Toggle("Обновление каждые 5 сек", isOn: $autoRefresh)
+                            HStack(alignment: .center) {
+                                Text("Обновление каждые 5 сек")
+                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                
                                 Spacer()
+                                
+                                Toggle("", isOn: $autoRefresh)
+                                    .labelsHidden()
                             }
-                            HStack {
-                                Toggle("Автоматическая очистка логов", isOn: $autoLogCleanup)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            HStack(alignment: .center) {
+                                Text("Автоматическая очистка логов")
+                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                
                                 Spacer()
+                                
+                                Toggle("", isOn: $autoLogCleanup)
+                                    .labelsHidden()
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                     
@@ -533,8 +567,10 @@ struct SettingsView: View {
                                 }
                                 .foregroundColor(.orange)
                                 .buttonStyle(.borderless)
+                                
                                 Spacer()
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             
                             HStack {
                                 Button("📊 Тестовая статистика") {
@@ -542,8 +578,10 @@ struct SettingsView: View {
                                 }
                                 .disabled(!i2pdManager.isRunning)
                                 .buttonStyle(.borderless)
+                                
                                 Spacer()
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                 }
