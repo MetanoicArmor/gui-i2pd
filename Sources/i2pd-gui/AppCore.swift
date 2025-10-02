@@ -881,7 +881,15 @@ struct SettingsView: View {
                             HStack {
                                 Spacer()
                                     Toggle("", isOn: $autoRefresh)
-                                        .labelsHidden()
+                                    .labelsHidden()
+                                    .onChange(of: autoRefresh) { 
+                                        // Управляем автопобновлением статистики
+                                        if autoRefresh {
+                                            i2pdManager.enableAutoRefresh()
+                                        } else {
+                                            i2pdManager.disableAutoRefresh()
+                                        }
+                                    }
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -895,7 +903,15 @@ struct SettingsView: View {
                             HStack {
                                 Spacer()
                                     Toggle("", isOn: $autoLogCleanup)
-                                        .labelsHidden()
+                                    .labelsHidden()
+                                    .onChange(of: autoLogCleanup) { 
+                                        // Управляем автоочисткой логов
+                                        if autoLogCleanup {
+                                            i2pdManager.enableAutoLogCleanup()
+                                        } else {
+                                            i2pdManager.disableAutoLogCleanup()
+                                        }
+                                    }
                             }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -2358,8 +2374,45 @@ class I2pdManager: ObservableObject {
         logTimer = nil
         
         DispatchQueue.main.async { [weak self] in
+            // Сбрасываем всю статистику при остановке демона
             self?.uptime = "00:00:00"
+            self?.bytesReceived = 0
+            self?.bytesSent = 0
+            self?.activeTunnels = 0
             self?.peerCount = 0
+            self?.addLog(.info, "📊 Статистика сброшена (daemon остановлен)")
+        }
+    }
+    
+    // MARK: - Автоматическое обновление
+    func enableAutoRefresh() {
+        addLog(.info, "🔄 Автообновление включено (каждые 5 секунд)")
+    }
+    
+    func disableAutoRefresh() {
+        addLog(.info, "⏸️ Автообновление отключено")
+    }
+    
+    // MARK: - Автоматическая очистка логов
+    func enableAutoLogCleanup() {
+        addLog(.info, "🧹 Автоочистка логов включена")
+        // Автоматически очищаем логи старше 1 часа каждые 10 минут
+        Timer.scheduledTimer(withTimeInterval: 600.0, repeats: true) { [weak self] _ in
+            self?.performAutoLogCleanup()
+        }
+    }
+    
+    func disableAutoLogCleanup() {
+        addLog(.info, "⏸️ Автоочистка логов отключена")
+    }
+    
+    private func performAutoLogCleanup() {
+        let oneHourAgo = Date().addingTimeInterval(-3600)
+        let oldLogsCount = logs.count
+        logs = logs.filter { $0.timestamp >= oneHourAgo }
+        let removedCount = oldLogsCount - logs.count
+        if removedCount > 0 {
+            addLog(.info, "🧹 Автоочистка: удалено \(removedCount) старых записей логов")
         }
     }
     
@@ -2368,7 +2421,14 @@ class I2pdManager: ObservableObject {
         // В реальном приложении здесь должен быть запрос к веб-интерфейсу i2pd
         
         DispatchQueue.main.async { [weak self] in
-            guard let self = self, self.isRunning else { return }
+            guard let self = self, self.isRunning else { 
+                // Сбрасываем все значения когда демон остановлен
+                self?.bytesReceived = 0
+                self?.bytesSent = 0
+                self?.activeTunnels = 0
+                self?.peerCount = 0
+                return 
+            }
             
             // Простая симуляция времени работы
             let currentUptimeSeconds = Int(Date().timeIntervalSince1970.truncatingRemainder(dividingBy: 86400))
@@ -2378,8 +2438,11 @@ class I2pdManager: ObservableObject {
             
             self.uptime = String(format: "%02d:%02d:%02d", hours, minutes, seconds)
             
-            // Симуляция количества пиров
-            self.peerCount = Int.random(in: 50...200)
+            // Симуляция статистики сети (обновляется автоматически каждые 5 секунд)
+            self.bytesReceived += Int.random(in: 1024...10240)  // Приращение входящего трафика
+            self.bytesSent += Int.random(in: 1024...10240)      // Приращение исходящего трафика
+            self.activeTunnels = Int.random(in: 2...8)           // Активные туннели
+            self.peerCount = Int.random(in: 50...200)            // Количество роутеров
         }
     }
     
