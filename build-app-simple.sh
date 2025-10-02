@@ -5,7 +5,7 @@ echo "================================================"
 
 # Переменные
 APP_NAME="I2P-GUI"
-APP_VERSION="1.0" 
+APP_VERSION="2.58.0" 
 BUNDLE_ID="com.example.i2pd-gui"
 
 echo "📦 Используем Swift Package Manager..."
@@ -87,7 +87,7 @@ cat > ${CONTENTS_DIR}/Info.plist << EOF
     <key>CFBundleShortVersionString</key>
     <string>${APP_VERSION}</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2580</string>
     <key>CFBundleSignature</key>
     <string>I2PD</string>
     <key>LSMinimumSystemVersion</key>
