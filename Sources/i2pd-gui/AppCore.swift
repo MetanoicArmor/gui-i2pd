@@ -382,7 +382,7 @@ struct SettingsView: View {
                                 Text("Порт daemon")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
-                                    .frame(minWidth: 120, alignment: .leading)
+                                    .frame(minWidth: 180, alignment: .leading)
                                 
                                 TextField("4444", value: $daemonPort, format: .number)
                                     .textFieldStyle(.roundedBorder)
@@ -419,7 +419,7 @@ struct SettingsView: View {
                                 Text("Автозапуск daemon")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
-                                    .frame(minWidth: 140, alignment: .leading)
+                                    .frame(minWidth: 160, alignment: .leading)
                                 
                                 HStack {
                                     Spacer()
@@ -433,7 +433,7 @@ struct SettingsView: View {
                                 Text("Отправлять уведомления")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
-                                    .frame(minWidth: 140, alignment: .leading)
+                                    .frame(minWidth: 160, alignment: .leading)
                                 
                                 HStack {
                                     Spacer()
@@ -465,7 +465,7 @@ struct SettingsView: View {
                                 Text("Компактный режим")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
-                                    .frame(minWidth: 120, alignment: .leading)
+                                    .frame(minWidth: 180, alignment: .leading)
                                 
                                 HStack {
                                     Spacer()
@@ -484,7 +484,7 @@ struct SettingsView: View {
                                 Text("Обновление каждые 5 сек")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
-                                    .frame(minWidth: 180, alignment: .leading)
+                                    .frame(minWidth: 200, alignment: .leading)
                                 
                                 HStack {
                                     Spacer()
@@ -498,7 +498,7 @@ struct SettingsView: View {
                                 Text("Автоматическая очистка логов")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
-                                    .frame(minWidth: 180, alignment: .leading)
+                                    .frame(minWidth: 200, alignment: .leading)
                                 
                                 HStack {
                                     Spacer()
@@ -583,7 +583,7 @@ struct SettingsView: View {
                                 }
                                 .foregroundColor(.orange)
                                 .buttonStyle(.borderless)
-                                .frame(minWidth: 150, alignment: .leading)
+                                .frame(minWidth: 180, alignment: .leading)
                                 
                                 Spacer()
                             }
@@ -595,7 +595,7 @@ struct SettingsView: View {
                                 }
                                 .disabled(!i2pdManager.isRunning)
                                 .buttonStyle(.borderless)
-                                .frame(minWidth: 150, alignment: .leading)
+                                .frame(minWidth: 180, alignment: .leading)
                                 
                                 Spacer()
                             }
@@ -607,7 +607,7 @@ struct SettingsView: View {
             .padding(.vertical, 16)
             }
         }
-        .frame(minWidth: 550, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
+        .frame(minWidth: 650, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
     }
     
     private func saveSettings() {
@@ -728,8 +728,8 @@ struct SettingsSection<Content: View>: View {
             VStack(spacing: 12) {
                 content
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(NSColor.windowBackgroundColor))
