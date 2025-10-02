@@ -367,18 +367,18 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.bordered)
             }
-            .padding(20)
+            .padding(16)
             .background(Color(NSColor.windowBackgroundColor))
             
             Divider()
             
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 12) {
                     // Сетевая конфигурация
                     SettingsSection(title: "🌐 Сетевая конфигурация", icon: "globe") {
-                        VStack(spacing: 20) {
+                        VStack(spacing: 12) {
                             // Порт daemon
-                            HStack(spacing: 20) {
+                            HStack(spacing: 12) {
                                 Text("Порт daemon")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
@@ -415,7 +415,7 @@ struct SettingsView: View {
                     // Автоматизация
                     SettingsSection(title: "💻 Автоматизация", icon: "laptop") {
                         VStack(spacing: 12) {
-                            HStack(spacing: 20) {
+                            HStack(spacing: 12) {
                                 Text("Автозапуск daemon")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
@@ -429,7 +429,7 @@ struct SettingsView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            HStack(spacing: 20) {
+                            HStack(spacing: 12) {
                                 Text("Отправлять уведомления")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
@@ -461,7 +461,7 @@ struct SettingsView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             
-                            HStack(spacing: 20) {
+                            HStack(spacing: 12) {
                                 Text("Компактный режим")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
@@ -480,7 +480,7 @@ struct SettingsView: View {
                     // Мониторинг
                     SettingsSection(title: "📊 Мониторинг", icon: "chart.bar") {
                         VStack(spacing: 12) {
-                            HStack(spacing: 20) {
+                            HStack(spacing: 12) {
                                 Text("Обновление каждые 5 сек")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
@@ -494,7 +494,7 @@ struct SettingsView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            HStack(spacing: 20) {
+                            HStack(spacing: 12) {
                                 Text("Автоматическая очистка логов")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
@@ -512,7 +512,7 @@ struct SettingsView: View {
                     
                     // Данные
                     SettingsSection(title: "📁 Данные", icon: "folder") {
-                        VStack(spacing: 16) {
+                        VStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Путь к данным")
                                     .font(.subheadline)
@@ -577,7 +577,7 @@ struct SettingsView: View {
                     // Действия
                     SettingsSection(title: "🔄 Действия", icon: "gear") {
                         VStack(spacing: 12) {
-                            HStack(spacing: 20) {
+                            HStack(spacing: 12) {
                                 Button("🔧 Сбросить настройки") {
                                     resetSettings()
                                 }
@@ -589,7 +589,7 @@ struct SettingsView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            HStack(spacing: 20) {
+                            HStack(spacing: 12) {
                                 Button("📊 Тестовая статистика") {
                                     i2pdManager.getExtendedStats()
                                 }
@@ -602,12 +602,12 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 24)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
             }
         }
-        .frame(minWidth: 700, maxWidth: .infinity, minHeight: 700, maxHeight: .infinity)
+        .frame(minWidth: 550, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
     }
     
     private func saveSettings() {
@@ -719,17 +719,17 @@ struct SettingsSection<Content: View>: View {
                     .minimumScaleFactor(0.9)
                 Spacer()
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
             .background(Color(NSColor.controlBackgroundColor))
             .cornerRadius(12)
             
             // Содержимое секции
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 content
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(NSColor.windowBackgroundColor))
