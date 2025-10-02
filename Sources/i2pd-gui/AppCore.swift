@@ -349,195 +349,211 @@ struct SettingsView: View {
     @AppStorage("autoLogCleanup") private var autoLogCleanup = false
     
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("🌐 Сетевая конфигурация").font(.headline)) {
-                    VStack(spacing: 20) {
-                        // Порт daemon
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Порт daemon")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            TextField("", value: $daemonPort, format: .number)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 120)
-                        }
-                        
-                        Divider()
-                        
-                        // Ограничение скорости
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Ограничение скорости")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            
-                            Picker("", selection: $bandwidthLimit) {
-                                Text("Без ограничений").tag("unlimited")
-                                Text("128 KB/s").tag("128")
-                                Text("512 KB/s").tag("512")
-                                Text("1 MB/s").tag("1024")
-                                Text("5 MB/s").tag("5120")
-                            }
-                            .pickerStyle(.segmented)
-                        }
-                    }
-                    .padding(.vertical, 16)
-                    .padding(.horizontal, 8)
-                }
+        VStack(spacing: 0) {
+            // Заголовок
+            HStack {
+                Text("⚙️ Настройки")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
                 
-                Section(header: Text("💻 Автоматизация").font(.headline)) {
-                    VStack(spacing: 12) {
-                        HStack {
-                            Toggle("Автозапуск daemon", isOn: $autoStart)
-                            Spacer()
-                        }
-                        HStack {
-                            Toggle("Отправлять уведомления", isOn: $notificationsEnabled)
-                            Spacer()
-                        }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 8)
-                }
+                Spacer()
                 
-                Section(header: Text("🎨 Интерфейс").font(.headline)) {
-                    VStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Тема приложения")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            Picker("", selection: $darkMode) {
-                                Text("Светлая").tag(false)
-                                Text("Тёмная").tag(true)
-                            }
-                            .pickerStyle(.segmented)
-                        }
-                        
-                        HStack {
-                            Toggle("Компактный режим", isOn: $compactMode)
-                            Spacer()
-                        }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 8)
+                Button("Готово") {
+                    saveSettings()
+                    dismiss()
                 }
+                .buttonStyle(.borderedProminent)
                 
-                Section(header: Text("📊 Мониторинг").font(.headline)) {
-                    VStack(spacing: 12) {
-                        HStack {
-                            Toggle("Обновление каждые 5 сек", isOn: $autoRefresh)
-                            Spacer()
-                        }
-                        HStack {
-                            Toggle("Автоматическая очистка логов", isOn: $autoLogCleanup)
-                            Spacer()
-                        }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 8)
+                Button("Отмена") {
+                    dismiss()
                 }
-                
-                Section(header: Text("📁 Данные").font(.headline)) {
-                    VStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Путь к данным")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            HStack {
-                                Text("~/.i2pd")
-                                    .foregroundColor(.secondary)
-                                    .font(.system(.caption, design: .monospaced))
-                                Spacer()
-                                Button("Изменить") {
-                                    selectDataDirectory()
-                                }
-                                .buttonStyle(.borderless)
-                                .controlSize(.small)
-                            }
-                        }
-                        
-                        Divider()
-                        
-                        VStack(spacing: 8) {
-                            Button("🗑️ Очистить кэш") {
-                                clearDataCache()
-                            }
-                            .foregroundColor(.red)
-                            .buttonStyle(.borderless)
-                            
-                            Button("📊 Экспорт логов") {
-                                exportLogs()
-                            }
-                            .foregroundColor(.blue)
-                            .buttonStyle(.borderless)
-                        }
-                    }
-                    .padding(.vertical, 16)
-                    .padding(.horizontal, 8)
-                }
-                
-                Section(header: Text("ℹ️ О программе").font(.headline)) {
-                    VStack(spacing: 12) {
-                        HStack {
-                            Text("Версия:")
-                                .frame(width: 100, alignment: .leading)
-                            Text("2.4")
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
-                        
-                        HStack {
-                            Text("Разработчик:")
-                                .frame(width: 100, alignment: .leading)
-                            Text("GUI Team")
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 8)
-                }
-                
-                Section(header: Text("🔄 Действия").font(.headline)) {
-                    VStack(spacing: 12) {
-                        HStack {
-                            Button("🔧 Сбросить настройки") {
-                                resetSettings()
-                            }
-                            .foregroundColor(.orange)
-                            Spacer()
-                        }
-                        
-                        HStack {
-                            Button("📊 Тестовая статистика") {
-                                i2pdManager.getExtendedStats()
-                            }
-                            .disabled(!i2pdManager.isRunning)
-                            Spacer()
-                    }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 8)
-                }
+                .buttonStyle(.bordered)
             }
-            .navigationTitle("Настройки")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Сохранить") {
-                        saveSettings()
-                        dismiss()
+            .padding(20)
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Сетевая конфигурация
+                    SettingsSection(title: "🌐 Сетевая конфигурация", icon: "globe") {
+                        VStack(spacing: 20) {
+                            // Порт daemon
+                            HStack {
+                                Text("Порт daemon")
+                                    .frame(width: 140, alignment: .leading)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                
+                                TextField("", value: $daemonPort, format: .number)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 120)
+                            }
+                            
+                            Divider()
+                            
+                            // Ограничение скорости
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Ограничение скорости")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                Picker("", selection: $bandwidthLimit) {
+                                    Text("Без ограничений").tag("unlimited")
+                                    Text("128 KB/s").tag("128")
+                                    Text("512 KB/s").tag("512")
+                                    Text("1 MB/s").tag("1024")
+                                    Text("5 MB/s").tag("5120")
+                                }
+                                .pickerStyle(.segmented)
+                            }
+                        }
                     }
-                    .buttonStyle(.borderedProminent)
-                }
-                
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") {
-                        dismiss()
+                    
+                    // Автоматизация
+                    SettingsSection(title: "💻 Автоматизация", icon: "laptop") {
+                        VStack(spacing: 16) {
+                            HStack {
+                                Toggle("Автозапуск daemon", isOn: $autoStart)
+                                Spacer()
+                            }
+                            HStack {
+                                Toggle("Отправлять уведомления", isOn: $notificationsEnabled)
+                                Spacer()
+                            }
+                        }
+                    }
+                    
+                    // Интерфейс
+                    SettingsSection(title: "🎨 Интерфейс", icon: "paintpalette") {
+                        VStack(spacing: 16) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Тема приложения")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Picker("", selection: $darkMode) {
+                                    Text("Светлая").tag(false)
+                                    Text("Тёмная").tag(true)
+                                }
+                                .pickerStyle(.segmented)
+                            }
+                            
+                            HStack {
+                                Toggle("Компактный режим", isOn: $compactMode)
+                                Spacer()
+                            }
+                        }
+                    }
+                    
+                    // Мониторинг
+                    SettingsSection(title: "📊 Мониторинг", icon: "chart.bar") {
+                        VStack(spacing: 16) {
+                            HStack {
+                                Toggle("Обновление каждые 5 сек", isOn: $autoRefresh)
+                                Spacer()
+                            }
+                            HStack {
+                                Toggle("Автоматическая очистка логов", isOn: $autoLogCleanup)
+                                Spacer()
+                            }
+                        }
+                    }
+                    
+                    // Данные
+                    SettingsSection(title: "📁 Данные", icon: "folder") {
+                        VStack(spacing: 16) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Путь к данным")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                HStack {
+                                    Text("~/.i2pd")
+                                        .foregroundColor(.secondary)
+                                        .font(.system(.caption, design: .monospaced))
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Button("Изменить") {
+                                        selectDataDirectory()
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .controlSize(.small)
+                                }
+                            }
+                            
+                            Divider()
+                            
+                            VStack(spacing: 12) {
+                                Button("🗑️ Очистить кэш") {
+                                    clearDataCache()
+                                }
+                                .foregroundColor(.red)
+                                .buttonStyle(.borderless)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                Button("📊 Экспорт логов") {
+                                    exportLogs()
+                                }
+                                .foregroundColor(.blue)
+                                .buttonStyle(.borderless)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                    }
+                    
+                    // О программе
+                    SettingsSection(title: "ℹ️ О программе", icon: "info.circle") {
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("Версия:")
+                                    .frame(width: 100, alignment: .leading)
+                                Text("2.5")
+                                    .foregroundColor(.secondary)
+                                    .fontWeight(.medium)
+                                Spacer()
+                            }
+                            
+                            HStack {
+                                Text("Разработчик:")
+                                    .frame(width: 100, alignment: .leading)
+                                Text("GUI Team")
+                                    .foregroundColor(.secondary)
+                                    .fontWeight(.medium)
+                                Spacer()
+                            }
+                        }
+                    }
+                    
+                    // Действия
+                    SettingsSection(title: "🔄 Действия", icon: "gear") {
+                        VStack(spacing: 12) {
+                            HStack {
+                                Button("🔧 Сбросить настройки") {
+                                    resetSettings()
+                                }
+                                .foregroundColor(.orange)
+                                .buttonStyle(.borderless)
+                                Spacer()
+                            }
+                            
+                            HStack {
+                                Button("📊 Тестовая статистика") {
+                                    i2pdManager.getExtendedStats()
+                                }
+                                .disabled(!i2pdManager.isRunning)
+                                .buttonStyle(.borderless)
+                                Spacer()
+                            }
+                        }
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 24)
             }
         }
-        .frame(minWidth: 500, minHeight: 600)
+        .frame(minWidth: 600, maxWidth: .infinity, minHeight: 700, maxHeight: .infinity)
     }
     
     private func saveSettings() {
@@ -619,6 +635,53 @@ struct SettingsView: View {
             }
             
             i2pdManager.logExportComplete("🔄 Настройки сброшены к значениям по умолчанию")
+        }
+    }
+}
+
+// MARK: - Settings Section
+struct SettingsSection<Content: View>: View {
+    let title: String
+    let icon: String
+    let content: Content
+    
+    init(title: String, icon: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.icon = icon
+        self.content = content()
+    }
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // Заголовок секции
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.blue)
+                Text(title)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(12)
+            
+            // Содержимое секции
+            VStack(spacing: 16) {
+                content
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(NSColor.windowBackgroundColor))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+                    )
+            )
         }
     }
 }
