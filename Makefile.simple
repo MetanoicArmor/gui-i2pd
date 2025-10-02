@@ -1,0 +1,44 @@
+# Простой Makefile для сборки I2PD GUI
+
+TARGET = i2pd-gui
+SRCDIR = i2pd-gui
+BUILDDIR = build
+
+.PHONY: build clean run
+
+build:
+	@echo "🔨 Сборка Swift приложения..."
+	@mkdir -p $(BUILDDIR)
+	@swiftc \
+		-o $(BUILDDIR)/$(TARGET) \
+		$(SRCDIR)/App.swift \
+		$(SRCDIR)/contentView.swift \
+		$(SRCDIR)/I2pdManager.swift \
+		-framework SwiftUI \
+		-framework Cocoa \
+		-target arm64-apple-macos14.0
+	@echo "✅ Сборка завершена!"
+
+clean:
+	@echo "🧹 Очистка..."
+	@rm -rf $(BUILDDIR)
+
+run: build
+	@echo "🚀 Запуск..."
+	@$(BUILDDIR)/$(TARGET)
+
+test:
+	@echo "🧪 Проверка синтаксиса Swift файлов..."
+	@swiftc -parse $(SRCDIR)/*.swift
+	@echo "✅ Синтаксис корректен"
+
+info:
+	@echo "📋 Информация о проекте:"
+	@echo "   Назначение: GUI для управления I2P daemon"
+	@echo "   Swift версия: $(shell swift --version | head -1)"
+	@echo ""
+	@echo "💡 Команды:"
+	@echo "   make build  - Собрать приложение"
+	@echo "   make clean  - Очистить сборку"
+	@echo "   make run    - Собрать и запустить"
+	@echo "   make test   - Проверить синтаксис"

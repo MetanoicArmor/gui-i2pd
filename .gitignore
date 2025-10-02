@@ -1,0 +1,39 @@
+# Xcode
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Swift
+.build/
+.swiftpm/
+Package.resolved
+
+# App bundle
+*.app/
+I2P-GUI-Fresh.app/
+
+# Temporary files
+*.swp
+*.swo
+*~
+.DS_Store
+.swp
+
+# Debugging
+lsof.txt
+*.dSYM/
+
+# Binary
+i2pd
+
+# Logs
+logs/
+*.log
+
+# User specific
+.vscode/
+.idea/
