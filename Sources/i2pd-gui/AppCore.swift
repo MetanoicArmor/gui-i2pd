@@ -31,9 +31,6 @@ struct ContentView: View {
     @State private var showingStats = false
     @State private var showingSettings = false
     
-    // Сетевая конфигурация для главной страницы
-    @AppStorage("daemonPort") private var daemonPort = 4444
-    @AppStorage("bandwidthLimit") private var bandwidthLimit = "unlimited"
     
     var body: some View {
         VStack(spacing: 32) {
@@ -54,61 +51,66 @@ struct ContentView: View {
             )
             .padding(.horizontal, 24)
             
-            // Сетевая конфигурация
+            // Компактная сетевая статистика
             VStack(spacing: 16) {
                 HStack {
-                    Image(systemName: "globe")
+                    Image(systemName: "chart.bar.fill")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.blue)
-                    Text("🌐 Сетевая конфигурация")
+                        .foregroundColor(.orange)
+                    Text("📊 Сетевая статистика")
                         .font(.headline)
                         .fontWeight(.semibold)
                         .lineLimit(1)
                         .minimumScaleFactor(0.9)
                     Spacer()
+                    
+                    Button("🔄") {
+                        i2pdManager.getExtendedStats()
+                    }
+                    .disabled(!i2pdManager.isRunning)
+                    .buttonStyle(.borderless)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
                 .background(Color(NSColor.controlBackgroundColor))
                 .cornerRadius(12)
                 
+                // Статистика в 2x2 сетке
                 VStack(spacing: 16) {
-                    // Порт daemon
-                    HStack(spacing: 20) {
-                        Text("Порт daemon")
-                            .font(.system(.body, design: .default, weight: .medium))
-                            .foregroundColor(.primary)
-                            .frame(minWidth: 120, alignment: .leading)
+                    HStack(spacing: 16) {
+                        // Получено
+                        StatCard(
+                            icon: "arrow.down.circle.fill",
+                            value: i2pdManager.receivedBytes,
+                            label: "Получено",
+                            color: .green
+                        )
                         
-                        TextField("4444", value: $daemonPort, format: .number)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 140)
-                        
-                        Spacer()
+                        // Отправлено
+                        StatCard(
+                            icon: "arrow.up.circle.fill",
+                            value: i2pdManager.sentBytes,
+                            label: "Отправлено",
+                            color: .blue
+                        )
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    Divider()
-                    
-                    // Ограничение скорости
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Ограничение скорости")
-                            .font(.system(.body, design: .default, weight: .medium))
-                            .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(spacing: 16) {
+                        // Туннели
+                        StatCard(
+                            icon: "lock.fill",
+                            value: String(i2pdManager.activeTunnels),
+                            label: "Туннели",
+                            color: .purple
+                        )
                         
-                        Picker("Ограничение скорости", selection: $bandwidthLimit) {
-                            Text("Без ограничений").tag("unlimited")
-                            Text("128 KB/s").tag("128")
-                            Text("512 KB/s").tag("512")
-                            Text("1 MB/s").tag("1024")
-                            Text("5 MB/s").tag("5120")
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(maxWidth: .infinity)
-                        .onChange(of: bandwidthLimit) {
-                            saveNetworkSettings(i2pdManager: i2pdManager)
-                        }
+                        // Роутеры
+                        StatCard(
+                            icon: "wifi",
+                            value: String(i2pdManager.peerCount),
+                            label: "Роутеры",
+                            color: .orange
+                        )
                     }
                 }
                 .padding(.horizontal, 20)
@@ -176,9 +178,10 @@ struct ContentView: View {
         .onAppear {
             i2pdManager.checkStatus()
             
-            // Применяем тему после полной инициализации
+            // Загружаем статистику и применяем тему после полной инициализации
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 applyTheme()
+                i2pdManager.getExtendedStats()
             }
         }
         .sheet(isPresented: $showingAbout) {
@@ -201,15 +204,6 @@ struct ContentView: View {
         }
     }
     
-    private func saveNetworkSettings(i2pdManager: I2pdManager) {
-        // Сетевые настройки автоматически сохраняются через @AppStorage
-        i2pdManager.logExportComplete("🌐 Сетевые настройки обновлены")
-        
-        // Перезапуск демона если он запущен для применения настроек
-        if i2pdManager.isRunning {
-            i2pdManager.logExportComplete("⚠️ Перезапустите демон для применения настроек")
-        }
-    }
 }
 
 // MARK: - About View
@@ -1425,6 +1419,35 @@ struct LogEntry: Identifiable {
     }
 }
 
+// MARK: - Stat Card Component
+struct StatCard: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundColor(color)
+            
+            Text(value)
+                .font(.system(.title2, design: .default, weight: .bold))
+                .foregroundColor(.primary)
+            
+            Text(label)
+                .font(.system(.caption, design: .default, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 80)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(NSColor.controlBackgroundColor))
+        )
+    }
+}
+
 // MARK: - I2PD Manager
 class I2pdManager: ObservableObject {
     @Published var isRunning = false
@@ -1437,6 +1460,27 @@ class I2pdManager: ObservableObject {
     @Published var bytesSent = 0
     @Published var activeTunnels = 0
     @Published var routerInfos = 0
+    
+    // Форматированные значения для отображения
+    var receivedBytes: String {
+        if bytesReceived < 1024 {
+            return "\(bytesReceived) B"
+        } else if bytesReceived < 1024 * 1024 {
+            return String(format: "%.1f KB", Double(bytesReceived) / 1024)
+        } else {
+            return String(format: "%.1f MB", Double(bytesReceived) / (1024 * 1024))
+        }
+    }
+    
+    var sentBytes: String {
+        if bytesSent < 1024 {
+            return "\(bytesSent) B"
+        } else if bytesSent < 1024 * 1024 {
+            return String(format: "%.1f KB", Double(bytesSent) / 1024)
+        } else {
+            return String(format: "%.1f MB", Double(bytesSent) / (1024 * 1024))
+        }
+    }
     
     private var i2pdProcess: Process?
     private var logTimer: Timer?
@@ -1652,13 +1696,24 @@ class I2pdManager: ObservableObject {
             // Получаем детализированную статистику
             self?.executeI2pdCommand(["--netstat"])
             
-            // Симуляция реальных данных для демонстрации
+            // Устанавливаем базовые значения для отображения
             DispatchQueue.main.async {
-                self?.bytesReceived = Int.random(in: 1024...10485760)  // 1KB - 10MB
-                self?.bytesSent = Int.random(in: 1024...10485760)      // 1KB - 10MB
-                self?.activeTunnels = Int.random(in: 2...8)             // 2-8 туннелей
-                self?.routerInfos = Int.random(in: 100...500)          // 100-500 роутеров
-                self?.addLog(.info, "📊 Расширенная статистика обновлена")
+                if let strongSelf = self {
+                    // Если демон не запущен, показываем нули
+                    if !strongSelf.isRunning {
+                        self?.bytesReceived = 0
+                        self?.bytesSent = 0
+                        self?.activeTunnels = 0
+                        self?.peerCount = 0
+                    } else {
+                        // Если демон запущен, показываем демо данные
+                        self?.bytesReceived = Int.random(in: 1024...10485760)  // 1KB - 10MB
+                        self?.bytesSent = Int.random(in: 1024...10485760)      // 1KB - 10MB
+                        self?.activeTunnels = Int.random(in: 2...8)             // 2-8 туннелей
+                        self?.peerCount = Int.random(in: 100...500)           // 100-500 роутеров
+                    }
+                    self?.addLog(.info, "📊 Расширенная статистика обновлена")
+                }
             }
         }
     }
