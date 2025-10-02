@@ -16,7 +16,7 @@ if [ $? -eq 0 ]; then
     echo "📍 Executable: .build/release/i2pd-gui"
     echo "📦 Size: $(du -sh .build/release/i2pd-gui | cut -f1)"
     echo ""
-    echo "🔨 Create .app bundle: ./create-fresh-app.sh"
+    echo "🔨 Create .app bundle: ./build-app-simple.sh"
 else
     echo "❌ Build failed!"
     exit 1
