@@ -19,7 +19,7 @@ class TrayManager: NSObject, ObservableObject {
             // Используем кастомную иконку трея или системную как fallback
             var image: NSImage?
             
-            // Загружаем только Retina иконки трея для современных дисплеев
+            // Загружаем оптимизированные Retina иконки трея (без автоувеличения macOS)
             if let bundlePath = Bundle.main.bundlePath as NSString? {
                 var trayIconPath: String
                 
@@ -27,18 +27,18 @@ class TrayManager: NSObject, ObservableObject {
                 let isDarkMode = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
                 
                 if isDarkMode {
-                    // Для темной темы используем Retina версию светлой иконки
-                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon-dark@2x.png")
-                    print("🌙 Темная тема - используем tray-icon-dark@2x.png (Retina)")
+                    // Для темной темы используем светлую иконку без @2x суффикса
+                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon-dark.png")
+                    print("🌙 Темная тема - используем tray-icon-dark.png (прямая Retina)")
                 } else {
-                    // Для светлой темы используем основную Retina версию
-                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon@2x.png")
-                    print("☀️ Светлая тема - используем tray-icon@2x.png (Retina)")
+                    // Для светлой темы используем основную иконку без @2x суффикса
+                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon.png")
+                    print("☀️ Светлая тема - используем tray-icon.png (прямая Retina)")
                 }
                 
                 if FileManager.default.fileExists(atPath: trayIconPath) {
                     image = NSImage(contentsOfFile: trayIconPath)
-                    print("✅ Загружена Retina иконка трея: \(trayIconPath)")
+                    print("✅ Загружена оптимизированная иконка трея: \(trayIconPath)")
                 }
             }
             
