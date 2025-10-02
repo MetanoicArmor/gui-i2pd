@@ -13,12 +13,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Дополнительная прямая остановка демона для надежности
         DispatchQueue.global(qos: .background).async {
             let stopCommand = """
-            # Быстрая остановка при выходе приложения
-            echo "🛑 Остановка демона при выходе приложения..." &&
+            # Агрессивная остановка при выходе приложения
+            echo "🛑 КРИТИЧЕСКАЯ остановка демона при выходе приложения..." &&
+            
+            # Показываем все процессы i2pd
+            ps aux | grep i2pd | grep -v grep &&
+            
+            # Применяем все методы остановки
+            pkill -TERM i2pd 2>/dev/null || true &&
+            sleep 2 &&
             pkill -INT i2pd 2>/dev/null || true &&
-            sleep 1 &&
+            sleep 2 &&
             pkill -KILL i2pd 2>/dev/null || true &&
-            echo "✅ Демон остановлен при выходе"
+            
+            # Дополнительный поиск через ps и kill по PID
+            ps aux | grep i2pd | grep -v grep | awk '{print \$2}' | xargs kill -TERM 2>/dev/null || true &&
+            sleep 1 &&
+            ps aux | grep i2pd | grep -v grep | awk '{print \$2}' | xargs kill -KILL 2>/dev/null || true &&
+            
+            # Финальная проверка и логирование
+            REMAINING=\$(ps aux | grep i2pd | grep -v grep | wc -l | tr -d ' ') &&
+            if [ "$REMAINING" -eq 0 ]; then
+                echo "✅ ДЕМОН ПОЛНОСТЬЮ ОСТАНОВЛЕН при выходе из приложения"
+            else
+                echo "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: остались процессы ($REMAINING):" &&
+                ps aux | grep i2pd | grep -v grep
+            fi
             """
             
             let killProcess = Process()
@@ -191,27 +211,52 @@ class TrayManager: NSObject, ObservableObject {
         print("⏹️ ОСТАНОВКА DAEMON из трея!")
         updateStatusText("⏹️ Остановка daemon...")
         
-        // ЭТАП 1: Мягкая остановка командой SIGINT
-        print("📤 Этап 1: Отправка SIGINT...")
-        let gentleStopCommand = "pkill -INT i2pd 2>/dev/null || true"
+        // Более агрессивная остановка всех процессов i2pd
+        let stopCommand = """
+        echo "🔍 Поиск процессов i2pd..." &&
+        ps aux | grep i2pd | grep -v grep &&
+        echo "🛑 Остановка всех процессов i2pd..." &&
         
-        let gentleProcess = Process()
-        gentleProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
-        gentleProcess.arguments = ["-c", gentleStopCommand]
+        # Останавливаем все процессы i2pd несколькими способами
+        pkill -TERM i2pd 2>/dev/null || true &&
+        sleep 2 &&
+        pkill -INT i2pd 2>/dev/null || true &&
+        sleep 2 &&
+        pkill -KILL i2pd 2>/dev/null || true &&
+        
+        # Дополнительно ищем процессы через ps
+        ps aux | grep i2pd | grep -v grep | awk '{print \$2}' | xargs kill -TERM 2>/dev/null || true &&
+        sleep 1 &&
+        ps aux | grep i2pd | grep -v grep | awk '{print \$2}' | xargs kill -KILL 2>/dev/null || true &&
+        
+        # Финальная проверка
+        echo "✅ Финальная проверка процессов..." &&
+        REMAINING=\$(ps aux | grep i2pd | grep -v grep | wc -l) &&
+        if [ "$REMAINING" -eq 0 ]; then
+            echo "✅ Все процессы i2pd остановлены"
+        else
+            echo "⚠️ Остались процессы: \$REMAINING"
+            ps aux | grep i2pd | grep -v grep
+        fi
+        """
+        
+        let stopProcess = Process()
+        stopProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+        stopProcess.arguments = ["-c", stopCommand]
         
         do {
-            try gentleProcess.run()
-            updateStatusText("⏳ Мягкая остановка...")
-            print("✅ SIGINT отправлен")
+            try stopProcess.run()
+            updateStatusText("💀 Принудительная остановка...")
+            print("✅ Команда остановки запущена")
             
-            // Ждем 3 секунды и проверяем
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            // Проверяем результат через 5 секунд
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                 self.checkIfStillRunning()
             }
             
         } catch {
-            updateStatusText("❌ Ошибка мягкой остановки")
-            print("❌ Ошибка SIGINT: \(error)")
+            updateStatusText("❌ Ошибка остановки демона")
+            print("❌ Ошибка остановки: \(error)")
             NotificationCenter.default.post(name: NSNotification.Name("DaemonError"), object: nil)
         }
     }
