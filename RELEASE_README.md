@@ -112,3 +112,4 @@ This v2.4 release represents a **production-ready milestone**:
 **🎊 Ready to revolutionize your I2P experience on macOS!**
 
 *Download I2P-Daemon-GUI-v2.4.zip and start your anonymous internet journey today!*
+
