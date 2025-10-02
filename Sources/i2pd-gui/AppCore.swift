@@ -602,9 +602,131 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 16)
+                    
+                    // Конфигурация и файлы
+                    SettingsSection(title: "📁 Конфигурация", icon: "doc.text") {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 12) {
+                                Text("Конфиг файл")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 200, alignment: .leading)
+                                
+                                Button("📁 Открыть") {
+                                    openConfigFile()
+                                }
+                                .buttonStyle(.borderless)
+                                
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            HStack(spacing: 12) {
+                                Text("Папка данных")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 200, alignment: .leading)
+                                
+                                Button("📂 Открыть") {
+                                    openLogsDirectory() // Используем логи как папку данных
+                                }
+                                .buttonStyle(.borderless)
+                                
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            HStack(spacing: 12) {
+                                Text("Журналы")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 200, alignment: .leading)
+                                
+                                Button("📋 Открыть") {
+                                    openLogsDirectory()
+                                }
+                                .buttonStyle(.borderless)
+                                
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    
+                    // Туннели
+                    SettingsSection(title: "🚇 Туннели", icon: "tunnel.fill") {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 12) {
+                                Text("Управление туннелями")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 200, alignment: .leading)
+                                
+                                Button("⚙️ Настроить") {
+                                    openTunnelManager()
+                                }
+                                .buttonStyle(.borderless)
+                                .disabled(!i2pdManager.isRunning)
+                                
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            HStack(spacing: 12) {
+                                Text("Пример туннелей")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 200, alignment: .leading)
+                                
+                                Button("📝 Показать") {
+                                    showTunnelExamples()
+                                }
+                                .buttonStyle(.borderless)
+                                
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    
+                    // Веб-консоль
+                    SettingsSection(title: "🌐 Веб-консоль", icon: "globe") {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 12) {
+                                Text("Веб-интерфейс")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 200, alignment: .leading)
+                                
+                                Button("🌐 Открыть") {
+                                    openWebConsole()
+                                }
+                                .buttonStyle(.borderless)
+                                .disabled(!i2pdManager.isRunning)
+                                
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            HStack(spacing: 12) {
+                                Text("Порт: 7070")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                    .frame(minWidth: 200, alignment: .leading)
+                                
+                                Button("🔗 Копировать URL") {
+                                    copyWebConsoleURL()
+                                }
+                                .buttonStyle(.borderless)
+                                
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 16)
             }
         }
         .frame(minWidth: 750, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
@@ -690,6 +812,198 @@ struct SettingsView: View {
             
             i2pdManager.logExportComplete("🔄 Настройки сброшены к значениям по умолчанию")
         }
+    }
+    
+    private func openConfigFile() {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        
+        if FileManager.default.fileExists(atPath: configPath.path) {
+            NSWorkspace.shared.open(configPath)
+        } else {
+            // Если файл не существует, создаем его с базовыми настройками
+            createDefaultConfigFile(at: configPath)
+        }
+        
+        i2pdManager.logExportComplete("📁 Открыт конфигурационный файл")
+    }
+    
+    private func createDefaultConfigFile(at path: URL) {
+        let defaultConfig = """
+## Configuration file for I2P Router
+## Generated by I2P-GUI
+
+[general]
+## Daemon mode
+daemon = true
+
+[http]
+## Web Console settings
+enabled = true
+address = 127.0.0.1
+port = 7070
+auth = false
+lang = english
+
+[httpproxy]
+## HTTP Proxy settings
+enabled = true
+address = 127.0.0.1
+port = 4444
+
+[socksproxy]
+## SOCKS Proxy settings
+enabled = true
+address = 127.0.0.1
+port = 4447
+
+[i2pcontrol]
+## I2PControl settings
+enabled = true
+address = 127.0.0.1
+port = 7650
+"""
+        
+        do {
+            try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try defaultConfig.write(to: path, atomically: true, encoding: .utf8)
+            NSWorkspace.shared.open(path)
+        } catch {
+            print("Ошибка создания конфига: \(error)")
+        }
+    }
+    
+    private func openLogsDirectory() {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let logsDir = homeDir.appendingPathComponent(".i2pd")
+        
+        if FileManager.default.fileExists(atPath: logsDir.path) {
+            NSWorkspace.shared.open(logsDir)
+        } else {
+            // Текущая директория логов
+            NSWorkspace.shared.open(homeDir)
+        }
+        
+        i2pdManager.logExportComplete("📋 Открыта директория логов")
+    }
+    
+    private func openTunnelManager() {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let tunnelsConf = homeDir.appendingPathComponent(".i2pd/tunnels.conf")
+        
+        if !FileManager.default.fileExists(atPath: tunnelsConf.path) {
+            // Создаем файл с примерами туннелей
+            createDefaultTunnelsFile(at: tunnelsConf)
+        }
+        
+        NSWorkspace.shared.open(tunnelsConf)
+        i2pdManager.logExportComplete("🚇 Открыт менеджер туннелей")
+    }
+    
+    private func createDefaultTunnelsFile(at path: URL) {
+        let defaultTunnels = """
+## Туннели I2P
+## Добавьте сюда ваши туннели
+
+[IRC-ILITA]
+type = client
+address = 127.0.0.1
+port = 6668
+destination = irc.ilita.i2p
+destinationport = 6667
+keys = irc-keys.dat
+
+#[SOCKS-Proxy]
+#type = server
+#address = 127.0.0.1
+#port = 7650
+#keys = server-keys.dat
+#inbound.length = 3
+#outbound.length = 3
+
+#[HTTP-Proxy]
+#type = server
+#address = 127.0.0.1
+#port = 8080
+#keys = http-keys.dat
+#inbound.length = 3
+#outbound.length = 3
+"""
+        
+        do {
+            try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try defaultTunnels.write(to: path, atomically: true, encoding: .utf8)
+        } catch {
+            print("Ошибка создания файла туннелей: \(error)")
+        }
+    }
+    
+    private func showTunnelExamples() {
+        let examplesText = """
+Примеры конфигурации туннелей:
+
+🏃‍♂️ CLIENT ТУННЕЛЬ (входящий):
+[IRC-ILITA]
+type = client
+address = 127.0.0.1
+port = 6668
+destination = irc.ilita.i2p
+destinationport = 6667
+keys = irc-keys.dat
+
+🏪 SERVER ТУННЕЛЬ (исходящий):
+[My-Server]
+type = server
+address = 127.0.0.1
+port = 8080
+keys = server-keys.dat
+inbound.length = 3
+outbound.length = 3
+
+🌐 HTTP ПРОКСИ:
+[HTTP-Proxy]
+type = server
+address = 127.0.0.1
+port = 8888
+keys = http-keys.dat
+inbound.length = 3
+outbound.length = 3
+
+🧦 SOCKS ПРОКСИ:
+[SOCKS-Proxy]
+type = server
+address = 127.0.0.1
+port = 9050
+keys = socks-keys.dat
+inbound.length = 3
+outbound.length = 3
+"""
+        
+        let alert = NSAlert()
+        alert.messageText = "Примеры туннелей"
+        alert.informativeText = examplesText
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+    
+    private func openWebConsole() {
+        guard i2pdManager.isRunning else { return }
+        
+        let url = "http://127.0.0.1:7070"
+        if let webURL = URL(string: url) {
+            NSWorkspace.shared.open(webURL)
+            i2pdManager.logExportComplete("🌐 Открыта веб-консоль")
+        }
+    }
+    
+    private func copyWebConsoleURL() {
+        let url = "http://127.0.0.1:7070"
+        
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(url, forType: .string)
+        
+        i2pdManager.logExportComplete("🔗 URL веб-консоли скопирован в буфер обмена")
     }
 }
 
