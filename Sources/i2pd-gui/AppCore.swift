@@ -31,7 +31,7 @@ struct ContentView: View {
     
     
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             // Заголовок
             Text("I2P Daemon GUI")
                 .font(.largeTitle)
@@ -39,7 +39,6 @@ struct ContentView: View {
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-                .padding(.top, 8)
             
             // Статус сервера
             StatusCard(
@@ -47,10 +46,10 @@ struct ContentView: View {
                 uptime: i2pdManager.uptime,
                 peers: i2pdManager.peerCount
             )
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             
             // Компактная сетевая статистика - всегда развернута
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 // Заголовок секции
                 HStack {
                     Image(systemName: "chart.bar.fill")
@@ -110,17 +109,17 @@ struct ContentView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 4)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             
             // Кнопки управления
             ControlButtons(
                 i2pdManager: i2pdManager,
                 showingSettings: $showingSettings,
             )
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             
             // Секция логов - всегда развернута
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 // Заголовок секции
                 HStack {
                     Image(systemName: "doc.text")
@@ -191,9 +190,9 @@ struct ContentView: View {
                 }
                 .frame(maxHeight: 250) // Компактная высота логов
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
         }
-        .frame(width: 1000, height: 800)
+        .frame(width: 1000, height: 700)
         .fixedSize()
         .onAppear {
             i2pdManager.checkStatus()
