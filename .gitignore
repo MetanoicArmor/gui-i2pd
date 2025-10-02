@@ -33,6 +33,7 @@ i2pd
 # Release archives
 *.zip
 I2P-Daemon-GUI-*.zip
+I2P-Daemon-GUI-v2.5.zip
 I2P-GUI.app
 
 # Icon temporary fragments
