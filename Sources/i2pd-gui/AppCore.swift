@@ -1559,10 +1559,8 @@ class I2pdManager: ObservableObject {
     
     func getExtendedStats() {
         DispatchQueue.global(qos: .background).async { [weak self] in
-            // Получаем детализированную статистику
-            self?.executeI2pdCommand(["--netstat"])
+            // Обновляем значения статистики без запуска некорректных команд
             
-            // Устанавливаем базовые значения для отображения
             DispatchQueue.main.async {
                 if let strongSelf = self {
                     // Если демон не запущен, показываем нули
@@ -1571,14 +1569,15 @@ class I2pdManager: ObservableObject {
                         self?.bytesSent = 0
                         self?.activeTunnels = 0
                         self?.peerCount = 0
+                        self?.addLog(.info, "📊 Статистика сброшена (daemon остановлен)")
                     } else {
                         // Если демон запущен, показываем демо данные
-                self?.bytesReceived = Int.random(in: 1024...10485760)  // 1KB - 10MB
-                self?.bytesSent = Int.random(in: 1024...10485760)      // 1KB - 10MB
-                self?.activeTunnels = Int.random(in: 2...8)             // 2-8 туннелей
-                        self?.peerCount = Int.random(in: 100...500)           // 100-500 роутеров
+                        self?.bytesReceived = Int.random(in: 1024...10485760)  // 1KB - 10MB
+                        self?.bytesSent = Int.random(in: 1024...10485760)      // 1KB - 10MB
+                        self?.activeTunnels = Int.random(in: 2...8)             // 2-8 туннелей
+                        self?.peerCount = Int.random(in: 100...500)             // 100-500 роутеров
+                        self?.addLog(.info, "📊 Расширенная статистика обновлена")
                     }
-                self?.addLog(.info, "📊 Расширенная статистика обновлена")
                 }
             }
         }
