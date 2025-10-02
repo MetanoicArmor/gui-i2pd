@@ -2,13 +2,13 @@ import SwiftUI
 import Foundation
 import AppKit
 
-// MARK: - Tray Manager Singleton
-class TrayManager: ObservableObject {
+// MARK: - Tray Manager Singleton  
+class TrayManager: NSObject, ObservableObject {
     static let shared = TrayManager()
     private var statusBarItem: NSStatusItem?
-    private var menuTargets: [MenuTarget] = []
     
-    private init() {
+    private override init() {
+        super.init()
         setupStatusBar()
     }
     
@@ -21,104 +21,324 @@ class TrayManager: ObservableObject {
             statusBarItem.button?.image = image
             
             let menu = NSMenu()
-            menu.addItem(createMenuItem("📊 Статус: Проверяется...", action: {}))
+            
+            // Статус
+            let statusItem = NSMenuItem(title: "📊 Статус: Готов", action: #selector(checkStatus), keyEquivalent: "")
+            statusItem.target = self
+            menu.addItem(statusItem)
             menu.addItem(NSMenuItem.separator())
-            menu.addItem(createMenuItem("🚀 Запустить daemon", action: startDaemon))
-            menu.addItem(createMenuItem("⏹️ Остановить daemon", action: stopDaemon))
-            menu.addItem(createMenuItem("🔄 Перезапустить daemon", action: restartDaemon))
+            
+            // Управление daemon - упрощенная версия
+            let startAction = #selector(TrayManager.startDaemon)
+            print("🔧 Селектор для start: \(String(describing: startAction))")
+            
+            let startItem = NSMenuItem(title: "🚀 Запустить daemon", action: startAction, keyEquivalent: "")
+            startItem.target = self
+            startItem.tag = 1
+            print("🔧 startItem создан с target: \(String(describing: startItem.target)), action: \(String(describing: startItem.action))")
+            menu.addItem(startItem)
+            
+            let stopItem = NSMenuItem(title: "⏹️ Остановить daemon", action: #selector(stopDaemon), keyEquivalent: "")
+            stopItem.target = self
+            stopItem.tag = 2
+            print("🔧 stopItem создан с target: \(String(describing: stopItem.target)), action: \(String(describing: stopItem.action))")
+            menu.addItem(stopItem)
+            
+            let restartItem = NSMenuItem(title: "🔄 Перезапустить daemon", action: #selector(restartDaemon), keyEquivalent: "")
+            restartItem.target = self
+            restartItem.tag = 3
+            print("🔧 restartItem создан с target: \(String(describing: restartItem.target)), action: \(String(describing: restartItem.action))")
+            menu.addItem(restartItem)
             menu.addItem(NSMenuItem.separator())
-            menu.addItem(createMenuItem("🌐 Веб-консоль", action: openWebConsole))
-            menu.addItem(createMenuItem("⚙️ Показать окно", action: showMainWindow))
+            
+            // Функции
+            let settingsItem = NSMenuItem(title: "⚙️ Настройки", action: #selector(openSettings), keyEquivalent: ",")
+            settingsItem.target = self
+            print("🔧 Создан settingsItem с target: \(String(describing: settingsItem.target)), action: \(String(describing: settingsItem.action))")
+            menu.addItem(settingsItem)
+            
+            let webItem = NSMenuItem(title: "🌐 Веб-консоль", action: #selector(openWebConsole), keyEquivalent: "")
+            webItem.target = self
+            menu.addItem(webItem)
+            
+            let showItem = NSMenuItem(title: "📱 Показать окно", action: #selector(showMainWindow), keyEquivalent: "")
+            showItem.target = self
+            menu.addItem(showItem)
             menu.addItem(NSMenuItem.separator())
-            menu.addItem(createMenuItem("❌ Свернуть в трей", action: hideMainWindow))
-            menu.addItem(createMenuItem("🚪 Выйти", action: quitApplication))
+            
+            let hideItem = NSMenuItem(title: "❌ Свернуть в трей", action: #selector(hideMainWindow), keyEquivalent: "")
+            hideItem.target = self
+            menu.addItem(hideItem)
+            
+            let quitItem = NSMenuItem(title: "🚪 Выйти", action: #selector(quitApplication), keyEquivalent: "")
+            quitItem.target = self
+            menu.addItem(quitItem)
             
             statusBarItem.menu = menu
+            print("✅ Статус бар создан")
         }
     }
     
-    private func createMenuItem(_ title: String, action: @escaping () -> Void) -> NSMenuItem {
-        let target = MenuTarget(action: action)
-        menuTargets.append(target)
-        let item = NSMenuItem(title: title, action: #selector(MenuTarget.performAction), keyEquivalent: "")
-        item.target = target
-        return item
+    // MARK: - Объективные методы для меню
+    
+    @objc private func checkStatus() {
+        print("📊 Статус проверяется...")
+        updateStatusText("📊 Статус обновлен")
     }
     
-    private func startDaemon() {
-        DispatchQueue.global(qos: .background).async {
+    @objc public func startDaemon() {
+        print("🚀 ========== ЗАПУСК DAEMON ИЗ ТРЕЯ! ==========")
+        print("🚀 Метод startDaemon() успешно вызван!")
+        
+        // Простая проверка
+        updateStatusText("🚀 Запуск daemon...")
+        
+        // Попробуем простую команду сначала
+        let testCommand = "echo 'DAEMON START TEST' && date"
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/bash")
+        process.arguments = ["-c", testCommand]
+        
+        do {
+            try process.run()
+            print("✅ Тестовая команда выполнена")
+            
+            // Теперь реальный запуск
             let bundlePath = Bundle.main.bundlePath
             let executablePath = "\(bundlePath)/Contents/Resources/i2pd"
             
-            guard FileManager.default.fileExists(atPath: executablePath) else { return }
-            
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: executablePath)
-            process.arguments = ["--daemon"]
-            
-            do {
-                try process.run()
-                DispatchQueue.main.async {
-                    self.updateStatusText("🚀 Daemon запускается...")
+            if FileManager.default.fileExists(atPath: executablePath) {
+                let daemonCommand = "\"\(executablePath)\" --daemon"
+                let daemonProcess = Process()
+                daemonProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+                daemonProcess.arguments = ["-c", daemonCommand]
+                
+                try daemonProcess.run()
+                updateStatusText("🚀 Daemon запущен!")
+                print("✅ Daemon команда выполнена")
+                
+                // Отправляем уведомления в главное окно
+                NotificationCenter.default.post(name: NSNotification.Name("DaemonStarted"), object: nil)
+                
+                // Задержка и обновление статуса
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.updateStatusText("✅ Daemon работает")
+                    NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
                 }
-            } catch {
-                print("Ошибка запуска: \(error)")
+            } else {
+                updateStatusText("❌ Бинарник не найден")
+                print("❌ Бинарник i2pd не найден в: \(executablePath)")
+                NotificationCenter.default.post(name: NSNotification.Name("DaemonError"), object: nil)
             }
+        } catch {
+            updateStatusText("❌ Ошибка запуска: \(error)")
+            print("❌ Ошибка выполнения команды: \(error)")
+            NotificationCenter.default.post(name: NSNotification.Name("DaemonError"), object: nil)
         }
     }
     
-    private func stopDaemon() {
-        DispatchQueue.global(qos: .background).async {
-            let command = """
-            pkill -INT -f "i2pd.*daemon" 2>/dev/null || true && sleep 2 && 
-            pkill -KILL -f "i2pd.*daemon" 2>/dev/null || true &&
-            killall -INT i2pd 2>/dev/null || true &&
-            killall -KILL i2pd 2>/dev/null || true
-            """
+    @objc public func stopDaemon() {
+        print("⏹️ ОСТАНОВКА DAEMON из трея!")
+        updateStatusText("⏹️ Остановка daemon...")
+        
+        // ЭТАП 1: Мягкая остановка командой SIGINT
+        print("📤 Этап 1: Отправка SIGINT...")
+        let gentleStopCommand = "pkill -INT i2pd 2>/dev/null || true"
+        
+        let gentleProcess = Process()
+        gentleProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+        gentleProcess.arguments = ["-c", gentleStopCommand]
+        
+        do {
+            try gentleProcess.run()
+            updateStatusText("⏳ Мягкая остановка...")
+            print("✅ SIGINT отправлен")
             
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/bin/bash")
-            process.arguments = ["-c", command]
-            
-            do {
-                try process.run()
-                DispatchQueue.main.async {
-                    self.updateStatusText("⏹️ Daemon остановлен")
-                }
-            } catch {
-                print("Ошибка остановки: \(error)")
+            // Ждем 3 секунды и проверяем
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                self.checkIfStillRunning()
             }
+            
+        } catch {
+            updateStatusText("❌ Ошибка мягкой остановки")
+            print("❌ Ошибка SIGINT: \(error)")
+            NotificationCenter.default.post(name: NSNotification.Name("DaemonError"), object: nil)
         }
     }
     
-    private func restartDaemon() {
+    private func checkIfStillRunning() {
+        print("🔍 Проверяем, остановился ли daemon...")
+        let checkCommand = "pgrep -x i2pd | wc -l"
+        
+        let checkProcess = Process()
+        checkProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+        checkProcess.arguments = ["-c", checkCommand]
+        
+        let pipe = Pipe()
+        checkProcess.standardOutput = pipe
+        
+        do {
+            try checkProcess.run()
+            checkProcess.waitUntilExit()
+            
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8) ?? "0"
+            let count = Int(output.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+            
+            if count > 0 {
+                print("⚠️ Daemon всё ещё работает, применяем жёсткую остановку...")
+                forceStopDaemon()
+            } else {
+                print("✅ Daemon успешно остановлен")
+                updateStatusText("✅ Daemon остановлен")
+                NotificationCenter.default.post(name: NSNotification.Name("DaemonStopped"), object: nil)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
+                }
+            }
+        } catch {
+            print("❌ Ошибка проверки: \(error)")
+            forceStopDaemon()
+        }
+    }
+    
+    private func forceStopDaemon() {
+        print("💥 Применяем жёсткую остановку...")
+        updateStatusText("💥 Жёсткая остановка...")
+        
+        let forceCommand = "pkill -KILL i2pd 2>/dev/null || killall -KILL i2pd 2>/dev/null || true"
+        
+        let forceProcess = Process()
+        forceProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+        forceProcess.arguments = ["-c", forceCommand]
+        
+        do {
+            try forceProcess.run()
+            updateStatusText("✅ Daemon остановлен принудительно")
+            print("✅ Жёсткая остановка выполнена")
+            
+            NotificationCenter.default.post(name: NSNotification.Name("DaemonStopped"), object: nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
+            }
+        } catch {
+            updateStatusText("❌ Ошибка жёсткой остановки")
+            print("❌ Ошибка жёсткой остановки: \(error)")
+            NotificationCenter.default.post(name: NSNotification.Name("DaemonError"), object: nil)
+        }
+    }
+    
+    @objc public func restartDaemon() {
+        print("🔄 ПЕРЕЗАПУСК DAEMON из трея!")
+        updateStatusText("🔄 Перезапуск daemon...")
         stopDaemon()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             self.startDaemon()
         }
     }
     
-    private func openWebConsole() {
-        if let url = URL(string: "http://127.0.0.1:7070") {
+    @objc private func openSettings() {
+        print("⚙️ ОТКРЫТИЕ НАСТРОЕК из трея!")
+        
+        // Показываем главное окно
+        showMainWindow()
+        
+        // Отправляем уведомление для открытия настроек в главном окне
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NotificationCenter.default.post(name: NSNotification.Name("OpenSettings"), object: nil)
+        }
+        
+        updateStatusText("⚙️ Настройки открыты")
+        print("✅ Главное окно открыто с настройками")
+    }
+    
+    // Метод showSimpleSettingsWindow удален - используем главное окно
+    
+    private func openConfigFolder() {
+        print("📁 Открываем папку конфигурации...")
+        
+        let configPath = NSHomeDirectory() + "/.i2pd"
+        let url = URL(fileURLWithPath: configPath)
+        
+        if FileManager.default.fileExists(atPath: configPath) {
             NSWorkspace.shared.open(url)
+            updateStatusText("📁 Папка конфигурации открыта")
+        } else {
+            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            NSWorkspace.shared.open(url)
+            updateStatusText("📁 Папка конфигурации создана и открыта")
         }
     }
     
-    func showMainWindow() {
+    @objc func openWebConsole() {
+        print("🌐 Открываем веб-консоль...")
+        if let url = URL(string: "http://127.0.0.1:7070") {
+            NSWorkspace.shared.open(url)
+            updateStatusText("🌐 Веб-консоль открыта")
+        }
+    }
+    
+    private func showSettingsWindow() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            let alert = NSAlert()
+            alert.messageText = "⚙️ Настройки I2P GUI"
+            alert.informativeText = """
+            Настройки приложения:
+            
+            🎨 Темная тема: Включено по умолчанию
+            📁 Путь к конфигурации: ~/.i2pd/
+            🌐 Веб-консоль: http://127.0.0.1:7070
+            🔧 Бинарник i2pd: Встроен в приложение
+            
+            Для редактирования настроек используйте текстовый редактор:
+            ~/.i2pd/i2pd.conf
+            
+            📁 Открыть папку с настройками
+            """
+            
+            alert.addButton(withTitle: "📁 Открыть папку конфигурации")
+            alert.addButton(withTitle: "🌐 Открыть веб-консоль") 
+            alert.addButton(withTitle: "❌ Закрыть")
+            
+            let response = alert.runModal()
+            
+            switch response {
+            case .alertFirstButtonReturn:
+                self.openConfigFolder()
+            case .alertSecondButtonReturn:
+                self.openWebConsole()
+            default:
+                break
+            }
+        }
+        
+        updateStatusText("⚙️ Настройки показаны")
+    }
+    
+    // Убран дублирующийся блок
+    
+    @objc func showMainWindow() {
+        print("⚙️ ПОКАЗ ОКНА из трея!")
         for window in NSApplication.shared.windows {
             window.makeKeyAndOrderFront(nil)
         }
         NSApplication.shared.activate(ignoringOtherApps: true)
+        updateStatusText("⚙️ Главное окно открыто")
+        print("✅ Главное окно показано")
     }
     
-    func hideMainWindow() {
+    @objc func hideMainWindow() {
+        print("❌ СВОРАЧИВАНИЕ В ТРЕЙ из трея!")
         for window in NSApplication.shared.windows {
             window.orderOut(nil)
         }
         updateStatusText("📱 Свернуто в трей")
+        print("✅ Приложение свернуто в трей")
     }
     
-    private func quitApplication() {
+    @objc private func quitApplication() {
+        print("🚪 ВЫХОД ИЗ ПРИЛОЖЕНИЯ из трея!")
+        updateStatusText("🚪 Выход из приложения")
         NSApplication.shared.terminate(nil)
     }
     
@@ -140,6 +360,7 @@ class MenuTarget: NSObject {
     }
     
     @objc func performAction() {
+        print("🎯 MenuTarget.performAction вызван!")
         action()
     }
 }
@@ -148,6 +369,7 @@ class MenuTarget: NSObject {
 @main
 struct I2pdGUIApp: App {
     @AppStorage("darkMode") private var darkMode = true
+    @State private var showingSettings = false
     
     init() {
         // Устанавливаем только UserDefaults по умолчанию
@@ -166,6 +388,9 @@ struct I2pdGUIApp: App {
         .windowStyle(.titleBar)
         .defaultSize(width: 800, height: 900)
         .windowResizability(.contentSize)
+        
+        // Settings убраны - используем NSAlert из трея
+        
         .commands {
             CommandGroup(after: .windowArrangement) {
                 Button("Свернуть в трей (⌘H)") {
@@ -177,10 +402,17 @@ struct I2pdGUIApp: App {
                     TrayManager.shared.showMainWindow()
                 }
                 .keyboardShortcut("w", modifiers: [.command])
+                
+                Button("Настройки (⌘,)") {
+                    NotificationCenter.default.post(name: NSNotification.Name("OpenSettings"), object: nil)
+                }
+                .keyboardShortcut(",", modifiers: [.command])
             }
         }
     }
 }
+
+// MARK: - Убрана SettingsWindowView (используем NSAlert вместо неё)
 
 // MARK: - Main Content View
 struct ContentView: View {
@@ -218,11 +450,18 @@ struct ContentView: View {
                         .font(.headline)
                         .fontWeight(.semibold)
                     Spacer()
+                    Button("⚙️") {
+                        showingSettings = true
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Настройки")
+                    
                     Button("🔄") {
                         i2pdManager.getExtendedStats()
                     }
                     .disabled(!i2pdManager.isRunning)
                     .buttonStyle(.borderless)
+                    .help("Обновить")
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
@@ -364,6 +603,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView(i2pdManager: i2pdManager)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSettings"))) { _ in
+            showingSettings = true
         }
         .overlay(alignment: .bottom) {
             if i2pdManager.isLoading {
@@ -1566,6 +1808,38 @@ class I2pdManager: ObservableObject {
             self?.addLog(.debug, "🎯 Ресурсный путь: \(resourcePath)")
             self?.addLog(.debug, "✅ Финальный путь: \(self?.executablePath ?? "не найден")")
             self?.addLog(.debug, "🔍 Файл существует: \(FileManager.default.fileExists(atPath: self?.executablePath ?? "") ? "✅ да" : "❌ нет")")
+        }
+        
+        // Подписываемся на уведомления от трея
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("DaemonStarted"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                self?.addLog(.info, "📱 Daemon запущен из трея - обновляем статус")
+                self?.checkStatus()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("DaemonStopped"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                self?.addLog(.info, "📱 Daemon остановлен из трея - обновляем статус")
+                self?.checkStatus()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("StatusUpdated"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.addLog(.info, "📱 Статус обновлен из трея")
+            self?.checkStatus()
         }
     }
     
