@@ -31,7 +31,7 @@ struct ContentView: View {
     
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 12) {
             // Заголовок
             Text("I2P Daemon GUI")
                 .font(.largeTitle)
@@ -39,7 +39,7 @@ struct ContentView: View {
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-                .padding(.top, 24)
+                .padding(.top, 8)
             
             // Статус сервера
             StatusCard(
@@ -206,6 +206,23 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView(i2pdManager: i2pdManager)
+        }
+        .overlay(alignment: .bottom) {
+            if i2pdManager.isLoading {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                    Text("Загрузка...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color(NSColor.windowBackgroundColor))
+                .cornerRadius(8)
+                .shadow(radius: 2)
+                .padding(.bottom, 20)
+            }
         }
     }
     
@@ -1173,12 +1190,6 @@ struct ControlButtons: View {
                 .frame(height: 36)
                 .frame(maxWidth: .infinity)
             }
-        }
-        
-        if i2pdManager.isLoading {
-            ProgressView()
-                .scaleEffect(0.8)
-                .padding(.top, 5)
         }
     }
 }
