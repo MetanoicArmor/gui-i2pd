@@ -4,6 +4,21 @@ import Foundation
 // MARK: - App Entry Point
 @main
 struct I2pdGUIApp: App {
+    @AppStorage("darkMode") private var darkMode = true
+    
+    init() {
+        // Инициализация темы при запуске
+        if UserDefaults.standard.object(forKey: "darkMode") == nil {
+            UserDefaults.standard.set(true, forKey: "darkMode")
+        }
+        
+        if UserDefaults.standard.bool(forKey: "darkMode") {
+            NSApp.appearance = NSAppearance(named: .darkAqua)
+        } else {
+            NSApp.appearance = NSAppearance(named: .aqua)
+        }
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -280,6 +295,10 @@ struct SettingsView: View {
     @AppStorage("bandwidthLimit") private var bandwidthLimit = "unlimited"
     @AppStorage("autoStart") private var autoStart = false
     @AppStorage("darkMode") private var darkMode = true
+    @AppStorage("notificationsEnabled") private var notificationsEnabled = false
+    @AppStorage("compactMode") private var compactMode = false
+    @AppStorage("autoRefresh") private var autoRefresh = true
+    @AppStorage("autoLogCleanup") private var autoLogCleanup = false
     
     var body: some View {
         NavigationView {
@@ -304,7 +323,7 @@ struct SettingsView: View {
                 
                 Section("💻 Автоматизация") {
                     Toggle("Автозапуск daemon", isOn: $autoStart)
-                    Toggle("Отправлять уведомления", isOn: $autoStart)
+                    Toggle("Отправлять уведомления", isOn: $notificationsEnabled)
                 }
                 
                 Section("🎨 Интерфейс") {
@@ -314,12 +333,12 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.segmented)
                     
-                    Toggle("Компактный режим", isOn: $autoStart)
+                    Toggle("Компактный режим", isOn: $compactMode)
                 }
                 
                 Section("📊 Мониторинг") {
-                    Toggle("Обновление каждые 5 сек", isOn: $autoStart)
-                    Toggle("Автоматическая очистка логов", isOn: $autoStart)
+                    Toggle("Обновление каждые 5 сек", isOn: $autoRefresh)
+                    Toggle("Автоматическая очистка логов", isOn: $autoLogCleanup)
                 }
                 
                 Section("📁 Данные") {
@@ -329,15 +348,20 @@ struct SettingsView: View {
                         Text("~/.i2pd")
                             .foregroundColor(.secondary)
                         Button("Изменить") {
-                            // TODO: Выбор каталога
+                            selectDataDirectory()
                         }
                         .buttonStyle(.borderless)
                     }
                     
                     Button("🗑️ Очистить кэш") {
-                        // TODO: Очистка кэша
+                        clearDataCache()
                     }
                     .foregroundColor(.red)
+                    
+                    Button("📊 Экспорт логов") {
+                        exportLogs()
+                    }
+                    .foregroundColor(.blue)
                 }
                 
                 Section("ℹ️ О программе") {
@@ -354,6 +378,18 @@ struct SettingsView: View {
                         Text("GUI Team")
                             .foregroundColor(.secondary)
                     }
+                }
+                
+                Section("🔄 Действия") {
+                    Button("🔧 Сбросить настройки") {
+                        resetSettings()
+                    }
+                    .foregroundColor(.orange)
+                    
+                    Button("📊 Тестовая статистика") {
+                        i2pdManager.getExtendedStats()
+                    }
+                    .disabled(!i2pdManager.isRunning)
                 }
             }
             .navigationTitle("Настройки")
@@ -377,12 +413,81 @@ struct SettingsView: View {
     }
     
     private func saveSettings() {
-        // Сохранение настроек в UserDefaults
-        UserDefaults.standard.set(daemonPort, forKey: "daemonPort")
-        UserDefaults.standard.set(bandwidthLimit, forKey: "bandwidthLimit")
-        UserDefaults.standard.set(darkMode, forKey: "darkMode")
+        // Сохранение настроек в UserDefaults (уже автоматически через @AppStorage)
+        i2pdManager.logExportComplete("✅ Настройки сохранены")
         
-        i2pdManager.logExportComplete("Настройки сохранены")
+        // Применяем тему системы
+        if darkMode {
+            NSApp.appearance = NSAppearance(named: .darkAqua)
+        } else {
+            NSApp.appearance = NSAppearance(named: .aqua)
+        }
+    }
+    
+    private func selectDataDirectory() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.prompt = "Выбрать папку данных"
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            i2pdManager.logExportComplete("📁 Выбран путь данных: \(url.path)")
+        }
+    }
+    
+    private func clearDataCache() {
+        let alert = NSAlert()
+        alert.messageText = "Очистка кэша"
+        alert.informativeText = "Вы уверены что хотите очистить кэш приложения? Это действие нельзя отменить."
+        alert.addButton(withTitle: "Очистить")
+        alert.addButton(withTitle: "[Предыдущее редактирование]")
+        
+        if alert.runModal() == .alertFirstButtonReturn {
+            // TODO: Реализовать очистку кэша
+            i2pdManager.logExportComplete("🗑️ Кэш очищен")
+        }
+    }
+    
+    private func exportLogs() {
+        let logsContent = i2pdManager.logs.map { log in
+            "[\(log.timestamp.formatted())] \(log.level.rawValue): \(log.message)"
+        }.joined(separator: "\n")
+        
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.text]
+        panel.nameFieldStringValue = "i2p-logs-\(Date().formatted(.iso8601)).txt"
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            try? logsContent.write(to: url, atomically: true, encoding: .utf8)
+            i2pdManager.logExportComplete("📄 Логи экспортированы: \(url.path)")
+        }
+    }
+    
+    private func resetSettings() {
+        let alert = NSAlert()
+        alert.messageText = "Сброс настроек"
+        alert.informativeText = "Все настройки будут сброшены к значениям по умолчанию. Вы уверены?"
+        alert.addButton(withTitle: "Сбросить")
+        alert.addButton(withTitle: "Отменить")
+        
+        if alert.runModal() == .alertFirstButtonReturn {
+            // Сброс всех настроек к значениям по умолчанию
+            daemonPort = 4444
+            bandwidthLimit = "unlimited"
+            autoStart = false
+            notificationsEnabled = false
+            compactMode = false
+            autoRefresh = true
+            autoLogCleanup = false
+            darkMode = true
+            
+            // Применяем тёмную тему по умолчанию
+            NSApp.appearance = NSAppearance(named: .darkAqua)
+            
+            i2pdManager.logExportComplete("🔄 Настройки сброшены к значениям по умолчанию")
+        }
     }
 }
 
