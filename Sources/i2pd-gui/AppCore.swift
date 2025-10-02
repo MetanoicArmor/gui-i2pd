@@ -2393,116 +2393,67 @@ class I2pdManager: ObservableObject {
         try? FileManager.default.createDirectory(at: i2pdDir, withIntermediateDirectories: true)
         
         let bundle = Bundle.main
-        let resourcesPath = "Contents/Resources"
         
-        // Копируем subscriptions.txt
-        if let subscriptionsURL = bundle.url(forResource: "subscriptions", withExtension: "txt", subdirectory: resourcesPath) {
+        // Копируем subscriptions.txt - используем прямой путь к файлу
+        let subscriptionsBundlePath = "\(bundle.bundlePath)/Contents/Resources/subscriptions.txt"
+        
+        if FileManager.default.fileExists(atPath: subscriptionsBundlePath) {
+            let subscriptionsURL = URL(fileURLWithPath: subscriptionsBundlePath)
             let destPath = i2pdDir.appendingPathComponent("subscriptions.txt")
             
-            // Проверяем существует ли файл, и если да - проверяем его размер
-            var shouldCopy = true
-            if FileManager.default.fileExists(atPath: destPath.path) {
-                do {
-                    let existingSize = try FileManager.default.attributesOfItem(atPath: destPath.path)[.size] as? Int ?? 0
-                    let bundleSize = try FileManager.default.attributesOfItem(atPath: subscriptionsURL.path)[.size] as? Int ?? 0
-                    
-                    // Если существующий файл намного меньше чем в bundle - заменяем его
-                    if existingSize < bundleSize - 100 {
-                        addLog(.info, "🔄 Найден неполный subscriptions.txt (\(existingSize) байт), заменяем полным (\(bundleSize) байт)")
-                    } else {
-                        shouldCopy = false
-                        addLog(.debug, "✅ subscriptions.txt уже актуален (\(existingSize) байт)")
-                    }
-                } catch {
-                    addLog(.error, "⚠️ Ошибка проверки размера файла: \(error)")
+            do {
+                // ФОРСИРУЕМ перезапись - удаляем старый если есть
+                if FileManager.default.fileExists(atPath: destPath.path) {
+                    try FileManager.default.removeItem(at: destPath)
+                    addLog(.info, "🔄 Удален старый subscriptions.txt для замены полным")
                 }
-            }
-            
-            if shouldCopy {
-                do {
-                    // Удаляем существующий файл если нужно
-                    if FileManager.default.fileExists(atPath: destPath.path) {
-                        try FileManager.default.removeItem(at: destPath)
-                    }
-                    try FileManager.default.copyItem(at: subscriptionsURL, to: destPath)
-                    addLog(.info, "✅ subscriptions.txt скопирован из бандла")
-                } catch {
-                    addLog(.error, "❌ Ошибка копирования subscriptions.txt: \(error)")
-                }
+                
+                try FileManager.default.copyItem(at: subscriptionsURL, to: destPath)
+                addLog(.info, "✅ subscriptions.txt скопирован из бандла")
+            } catch {
+                addLog(.error, "❌ Ошибка копирования subscriptions.txt: \(error)")
             }
         }
         
         // Копируем i2pd.conf
-        if let configURL = bundle.url(forResource: "i2pd", withExtension: "conf", subdirectory: resourcesPath) {
+        let i2pdConfBundlePath = "\(bundle.bundlePath)/Contents/Resources/i2pd.conf"
+        
+        if FileManager.default.fileExists(atPath: i2pdConfBundlePath) {
+            let configURL = URL(fileURLWithPath: i2pdConfBundlePath)
             let destPath = i2pdDir.appendingPathComponent("i2pd.conf")
             
-            // Проверяем существует ли файл, и если да - проверяем его размер
-            var shouldCopy = true
-            if FileManager.default.fileExists(atPath: destPath.path) {
-                do {
-                    let existingSize = try FileManager.default.attributesOfItem(atPath: destPath.path)[.size] as? Int ?? 0
-                    let bundleSize = try FileManager.default.attributesOfItem(atPath: configURL.path)[.size] as? Int ?? 0
-                    
-                    // Если существующий файл меньше чем в bundle на 8KB или больше - заменяем его
-                    if existingSize < bundleSize - 8192 {
-                        addLog(.info, "🔄 Найден неполный i2pd.conf (\(existingSize) байт), заменяем полным (\(bundleSize) байт)")
-                    } else {
-                        shouldCopy = false
-                        addLog(.debug, "✅ i2pd.conf уже актуален (\(existingSize) байт)")
-                    }
-                } catch {
-                    addLog(.error, "⚠️ Ошибка проверки размера файла: \(error)")
+            do {
+                // ФОРСИРУЕМ перезапись - удаляем старый если есть
+                if FileManager.default.fileExists(atPath: destPath.path) {
+                    try FileManager.default.removeItem(at: destPath)
+                    addLog(.info, "🔄 Удалён старый i2pd.conf для замены полным")
                 }
-            }
-            
-            if shouldCopy {
-                do {
-                    // Удаляем существующий файл если нужно
-                    if FileManager.default.fileExists(atPath: destPath.path) {
-                        try FileManager.default.removeItem(at: destPath)
-                    }
-                    try FileManager.default.copyItem(at: configURL, to: destPath)
-                    addLog(.info, "✅ i2pd.conf скопирован из бандла")
-                } catch {
-                    addLog(.error, "❌ Ошибка копирования i2pd.conf: \(error)")
-                }
+                
+                try FileManager.default.copyItem(at: configURL, to: destPath)
+                addLog(.info, "✅ i2pd.conf скопирован из бандла")
+            } catch {
+                addLog(.error, "❌ Ошибка копирования i2pd.conf: \(error)")
             }
         }
         
         // Копируем tunnels.conf
-        if let tunnelsURL = bundle.url(forResource: "tunnels", withExtension: "conf", subdirectory: resourcesPath) {
+        let tunnelsConfBundlePath = "\(bundle.bundlePath)/Contents/Resources/tunnels.conf"
+        
+        if FileManager.default.fileExists(atPath: tunnelsConfBundlePath) {
+            let tunnelsURL = URL(fileURLWithPath: tunnelsConfBundlePath)
             let destPath = i2pdDir.appendingPathComponent("tunnels.conf")
             
-            // Проверяем существует ли файл, и если да - проверяем его размер
-            var shouldCopy = true
-            if FileManager.default.fileExists(atPath: destPath.path) {
-                do {
-                    let existingSize = try FileManager.default.attributesOfItem(atPath: destPath.path)[.size] as? Int ?? 0
-                    let bundleSize = try FileManager.default.attributesOfItem(atPath: tunnelsURL.path)[.size] as? Int ?? 0
-                    
-                    // Если существующий файл меньше чем в bundle на 2KB или больше - заменяем его
-                    if existingSize < bundleSize - 2048 {
-                        addLog(.info, "🔄 Найден неполный tunnels.conf (\(existingSize) байт), заменяем полным (\(bundleSize) байт)")
-                    } else {
-                        shouldCopy = false
-                        addLog(.debug, "✅ tunnels.conf уже актуален (\(existingSize) байт)")
-                    }
-                } catch {
-                    addLog(.error, "⚠️ Ошибка проверки размера файла: \(error)")
+            do {
+                // ФОРСИРУЕМ перезапись - удаляем старый если есть
+                if FileManager.default.fileExists(atPath: destPath.path) {
+                    try FileManager.default.removeItem(at: destPath)
+                    addLog(.info, "🔄 Удалён старый tunnels.conf для замены полным")
                 }
-            }
-            
-            if shouldCopy {
-                do {
-                    // Удаляем существующий файл если нужно
-                    if FileManager.default.fileExists(atPath: destPath.path) {
-                        try FileManager.default.removeItem(at: destPath)
-                    }
-                    try FileManager.default.copyItem(at: tunnelsURL, to: destPath)
-                    addLog(.info, "✅ tunnels.conf скопирован из бандла")
-                } catch {
-                    addLog(.error, "❌ Ошибка копирования tunnels.conf: \(error)")
-                }
+                
+                try FileManager.default.copyItem(at: tunnelsURL, to: destPath)
+                addLog(.info, "✅ tunnels.conf скопирован из бандла")
+            } catch {
+                addLog(.error, "❌ Ошибка копирования tunnels.conf: \(error)")
             }
         }
     }
