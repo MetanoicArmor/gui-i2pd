@@ -712,6 +712,8 @@ struct SettingsView: View {
     @AppStorage("compactMode") private var compactMode = false
     @AppStorage("autoRefresh") private var autoRefresh = true
     @AppStorage("autoLogCleanup") private var autoLogCleanup = false
+    @AppStorage("addressBookAutoUpdate") private var addressBookAutoUpdate = true
+    @AppStorage("addressBookInterval") private var addressBookInterval = 720 // минуты
     
     // Добавляем состояние для предотвращения множественных нажатий
     @State private var isResetting = false
@@ -1077,6 +1079,81 @@ struct SettingsView: View {
                         }
                     }
                     
+                    // Address Book
+                    SettingsSection(title: "📖 Address Book", icon: "book.fill") {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 12) {
+                                Text("Подписки adressbook")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 220, alignment: .leading)
+                                
+                                Button("📝 Редактировать") {
+                                    openAddressBookSubscriptions()
+                                }
+                                .buttonStyle(.borderless)
+                                
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            HStack(spacing: 12) {
+                                Text("Автообновление:")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 180, alignment: .leading)
+                                
+                                Toggle("", isOn: $addressBookAutoUpdate)
+                                    .labelsHidden()
+                                
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            HStack(spacing: 12) {
+                                Text("Интервал обновления:")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 200, alignment: .leading)
+                                
+                                Picker("Интервал обновления", selection: $addressBookInterval) {
+                                    Text("Каждые 6 часов").tag(360)
+                                    Text("Ежедневно").tag(720)
+                                    Text("Каждые 3 дня").tag(2160)
+                                    Text("Еженедельно").tag(5040)
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 200)
+                                
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .disabled(!addressBookAutoUpdate)
+                            
+                            Divider()
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Текущие подписки:")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                
+                                Text("• reg.i2p - Основной реестр адресов")
+                                    .font(.system(.caption, design: .default))
+                                    .foregroundColor(.secondary)
+                                Text("• identiguy.i2p - Альтернативный источник")
+                                    .font(.system(.caption, design: .default))
+                                    .foregroundColor(.secondary)
+                                Text("• stats.i2p - Статистика сети")
+                                    .font(.system(.caption, design: .default))
+                                    .foregroundColor(.secondary)
+                                Text("• i2p-projekt.i2p - Проектный источник")
+                                    .font(.system(.caption, design: .default))
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    
                     // Веб-консоль
                     SettingsSection(title: "🌐 Веб-консоль", icon: "globe") {
                         VStack(spacing: 12) {
@@ -1190,6 +1267,8 @@ struct SettingsView: View {
             autoRefresh = true
             autoLogCleanup = false
             darkMode = true
+            addressBookAutoUpdate = true
+            addressBookInterval = 720
             
             // Применяем тёмную тему по умолчанию безопасно
             NSApp.appearance = NSAppearance(named: .darkAqua)
@@ -1444,6 +1523,61 @@ outbound.length = 3
         pasteboard.setString(url, forType: .string)
         
         i2pdManager.logExportComplete("🔗 URL веб-консоли скопирован в буфер обмена")
+    }
+    
+    private func openAddressBookSubscriptions() {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let subscriptionsPath = homeDir.appendingPathComponent(".i2pd/subscriptions.txt")
+        
+        if FileManager.default.fileExists(atPath: subscriptionsPath.path) {
+            NSWorkspace.shared.open(subscriptionsPath)
+        } else {
+            // Если файл не существует, создаем его из bundle
+            createDefaultSubscriptionsFile(at: subscriptionsPath)
+        }
+        
+        i2pdManager.logExportComplete("📖 Открыт файл подписок address book")
+    }
+    
+    private func createDefaultSubscriptionsFile(at path: URL) {
+        // Используем полный subscriptions.txt из bundle вместо пустого
+        let bundle = Bundle.main
+        let resourcesPath = "Contents/Resources"
+        
+        if let subscriptionsURL = bundle.url(forResource: "subscriptions", withExtension: "txt", subdirectory: resourcesPath) {
+            do {
+                try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try FileManager.default.copyItem(at: subscriptionsURL, to: path)
+                NSWorkspace.shared.open(path)
+                i2pdManager.logExportComplete("✅ Полный subscriptions.txt скопирован из бандла")
+            } catch {
+                print("Ошибка копирования полного subscriptions.txt: \(error)")
+                // Fallback к созданию пустого файла
+                createEmptySubscriptionsFile(at: path)
+            }
+        } else {
+            // Fallback к созданию пустого файла если полный не найден
+            createEmptySubscriptionsFile(at: path)
+        }
+    }
+    
+    private func createEmptySubscriptionsFile(at path: URL) {
+        let defaultSubscriptions = """
+http://reg.i2p/hosts.txt
+http://identiguy.i2p/hosts.txt
+http://stats.i2p/cgi-bin/newhosts.txt
+http://i2p-projekt.i2p/hosts.txt
+
+"""
+        
+        do {
+            try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try defaultSubscriptions.write(to: path, atomically: true, encoding: .utf8)
+            NSWorkspace.shared.open(path)
+            i2pdManager.logExportComplete("⚠️ Создан базовый subscriptions.txt")
+        } catch {
+            print("Ошибка создания файла подписок: \(error)")
+        }
     }
 }
 
@@ -2264,8 +2398,32 @@ class I2pdManager: ObservableObject {
         // Копируем subscriptions.txt
         if let subscriptionsURL = bundle.url(forResource: "subscriptions", withExtension: "txt", subdirectory: resourcesPath) {
             let destPath = i2pdDir.appendingPathComponent("subscriptions.txt")
-            if !FileManager.default.fileExists(atPath: destPath.path) {
+            
+            // Проверяем существует ли файл, и если да - проверяем его размер
+            var shouldCopy = true
+            if FileManager.default.fileExists(atPath: destPath.path) {
                 do {
+                    let existingSize = try FileManager.default.attributesOfItem(atPath: destPath.path)[.size] as? Int ?? 0
+                    let bundleSize = try FileManager.default.attributesOfItem(atPath: subscriptionsURL.path)[.size] as? Int ?? 0
+                    
+                    // Если существующий файл намного меньше чем в bundle - заменяем его
+                    if existingSize < bundleSize - 100 {
+                        addLog(.info, "🔄 Найден неполный subscriptions.txt (\(existingSize) байт), заменяем полным (\(bundleSize) байт)")
+                    } else {
+                        shouldCopy = false
+                        addLog(.debug, "✅ subscriptions.txt уже актуален (\(existingSize) байт)")
+                    }
+                } catch {
+                    addLog(.error, "⚠️ Ошибка проверки размера файла: \(error)")
+                }
+            }
+            
+            if shouldCopy {
+                do {
+                    // Удаляем существующий файл если нужно
+                    if FileManager.default.fileExists(atPath: destPath.path) {
+                        try FileManager.default.removeItem(at: destPath)
+                    }
                     try FileManager.default.copyItem(at: subscriptionsURL, to: destPath)
                     addLog(.info, "✅ subscriptions.txt скопирован из бандла")
                 } catch {
