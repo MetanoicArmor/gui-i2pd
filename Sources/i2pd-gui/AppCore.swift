@@ -33,7 +33,7 @@ struct ContentView: View {
     
     
     var body: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 20) {
             // Заголовок
             Text("I2P Daemon GUI")
                 .font(.largeTitle)
@@ -52,79 +52,71 @@ struct ContentView: View {
             .padding(.horizontal, 24)
             
             // Компактная сетевая статистика
-            VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "chart.bar.fill")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.orange)
-                    Text("📊 Сетевая статистика")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.9)
-                    Spacer()
-                    
-                    Button("🔄") {
-                        i2pdManager.getExtendedStats()
-                    }
-                    .disabled(!i2pdManager.isRunning)
-                    .buttonStyle(.borderless)
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(12)
-                
-                // Статистика в 2x2 сетке
+            CollapsibleSection(title: "📊 Сетевая статистика", icon: "chart.bar.fill", color: .orange) {
                 VStack(spacing: 16) {
-                    HStack(spacing: 16) {
-                        // Получено
-                        StatCard(
-                            icon: "arrow.down.circle.fill",
-                            value: i2pdManager.receivedBytes,
-                            label: "Получено",
-                            color: .green
-                        )
-                        
-                        // Отправлено
-                        StatCard(
-                            icon: "arrow.up.circle.fill",
-                            value: i2pdManager.sentBytes,
-                            label: "Отправлено",
-                            color: .blue
-                        )
+                    // Кнопка обновления
+                    HStack {
+                        Spacer()
+                        Button("🔄 Обновить") {
+                            i2pdManager.getExtendedStats()
+                        }
+                        .disabled(!i2pdManager.isRunning)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
                     }
+                    .padding(.horizontal, 20)
                     
-                    HStack(spacing: 16) {
-                        // Туннели
-                        StatCard(
-                            icon: "lock.fill",
-                            value: String(i2pdManager.activeTunnels),
-                            label: "Туннели",
-                            color: .purple
-                        )
+                    // Статистика в 2x2 сетке
+                    VStack(spacing: 16) {
+                        HStack(spacing: 16) {
+                            // Получено
+                            StatCard(
+                                icon: "arrow.down.circle.fill",
+                                value: i2pdManager.receivedBytes,
+                                label: "Получено",
+                                color: .green
+                            )
+                            
+                            // Отправлено
+                            StatCard(
+                                icon: "arrow.up.circle.fill",
+                                value: i2pdManager.sentBytes,
+                                label: "Отправлено",
+                                color: .blue
+                            )
+                        }
                         
-                        // Роутеры
-                        StatCard(
-                            icon: "wifi",
-                            value: String(i2pdManager.peerCount),
-                            label: "Роутеры",
-                            color: .orange
-                        )
+                        HStack(spacing: 16) {
+                            // Туннели
+                            StatCard(
+                                icon: "lock.fill",
+                                value: String(i2pdManager.activeTunnels),
+                                label: "Туннели",
+                                color: .purple
+                            )
+                            
+                            // Роутеры
+                            StatCard(
+                                icon: "wifi",
+                                value: String(i2pdManager.peerCount),
+                                label: "Роутеры",
+                                color: .orange
+                            )
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(NSColor.windowBackgroundColor))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+                            )
+                    )
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(NSColor.windowBackgroundColor))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color(NSColor.separatorColor), lineWidth: 1)
-                        )
-                )
+                .padding(.horizontal, 24)
             }
-            .padding(.horizontal, 24)
             
             // Кнопки управления
             ControlButtons(
@@ -136,45 +128,50 @@ struct ContentView: View {
             .padding(.horizontal, 24)
             
             // Секция логов
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text("Логи")
-                        .font(.headline)
-                        .fontWeight(.medium)
-                    Spacer()
-                    if !i2pdManager.logs.isEmpty {
-                        Button("Очистить") {
-                            i2pdManager.clearLogs()
+            CollapsibleSection(title: "📋 Логи", icon: "doc.text", color: .blue) {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Заголовок с кнопкой очистки
+                    HStack {
+                        Text("События системы")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        if !i2pdManager.logs.isEmpty {
+                            Button("🗑️ Очистить") {
+                                i2pdManager.clearLogs()
+                            }
+                            .font(.caption)
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
                         }
-                        .font(.caption)
-                        .buttonStyle(.borderless)
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    // Логи с ограниченной высотой
+                    if !i2pdManager.logs.isEmpty {
+                        ScrollView {
+                            LogView(logs: i2pdManager.logs)
+                                .padding(.horizontal, 20)
+                        }
+                        .frame(maxHeight: 200) // Ограничиваем высоту логов
+                    } else {
+                        VStack(spacing: 8) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 24))
+                                .foregroundColor(.secondary)
+                            Text("Пока нет логов")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 16)
-                
-                if !i2pdManager.logs.isEmpty {
-                    LogView(logs: i2pdManager.logs)
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 24)
-                } else {
-                    VStack(spacing: 8) {
-                        Image(systemName: "doc.text")
-                            .font(.system(size: 32))
-                            .foregroundColor(.secondary)
-                        Text("Пока нет логов")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
-                    .padding(.bottom, 24)
-                }
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 24)
         }
-        .frame(minWidth: 700, minHeight: 700)
+        .frame(minWidth: 700, minHeight: 500)
         .onAppear {
             i2pdManager.checkStatus()
             
@@ -1445,6 +1442,56 @@ struct StatCard: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(NSColor.controlBackgroundColor))
         )
+    }
+}
+
+// MARK: - Collapsible Section Component
+struct CollapsibleSection<Content: View>: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let content: () -> Content
+    
+    @State private var isExpanded = false
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            // Заголовок с кнопкой сворачивания
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isExpanded.toggle()
+                }
+            }) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(color)
+                    
+                    Text(title)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+                    
+                    Spacer()
+                    
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+            
+            // Контент (показывается только при разворачивании)
+            if isExpanded {
+                content()
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
     }
 }
 
