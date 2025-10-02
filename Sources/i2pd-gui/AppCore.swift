@@ -42,38 +42,78 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                // Заголовок
-                Text("I2P Daemon GUI")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .padding(.top)
-                
-                // Статус сервера
-                StatusCard(
-                    isRunning: i2pdManager.isRunning,
-                    uptime: i2pdManager.uptime,
-                    peers: i2pdManager.peerCount
-                )
-                
-                // Кнопки управления
-                ControlButtons(
-                    i2pdManager: i2pdManager,
-                    showingStats: $showingStats,
-                    showingSettings: $showingSettings,
-                    showingAbout: $showingAbout
-                )
-                
-                // Логи
-                if !i2pdManager.logs.isEmpty {
-                    LogView(logs: i2pdManager.logs)
+            VStack(spacing: 0) {
+                // Заголовочная панель
+                VStack(spacing: 16) {
+                    // Заголовок
+                    Text("I2P Daemon GUI")
+                        .font(.largeTitle)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                        .padding(.top, 20)
+                    
+                    // Статус сервера
+                    StatusCard(
+                        isRunning: i2pdManager.isRunning,
+                        uptime: i2pdManager.uptime,
+                        peers: i2pdManager.peerCount
+                    )
+                    .padding(.horizontal, 24)
+                    
+                    // Кнопки управления
+                    ControlButtons(
+                        i2pdManager: i2pdManager,
+                        showingStats: $showingStats,
+                        showingSettings: $showingSettings,
+                        showingAbout: $showingAbout
+                    )
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
                 }
+                .background(Color(NSColor.windowBackgroundColor))
                 
-                Spacer()
+                Divider()
+                
+                // Секция логов
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Логи")
+                            .font(.headline)
+                            .fontWeight(.medium)
+                        Spacer()
+                        if !i2pdManager.logs.isEmpty {
+                            Button("Очистить") {
+                                i2pdManager.clearLogs()
+                            }
+                            .font(.caption)
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 16)
+                    
+                    if !i2pdManager.logs.isEmpty {
+                        LogView(logs: i2pdManager.logs)
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 24)
+                    } else {
+                        VStack(spacing: 8) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 32))
+                                .foregroundColor(.secondary)
+                            Text("Пока нет логов")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                        .padding(.bottom, 24)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(NSColor.controlBackgroundColor))
             }
-            .padding()
-            .frame(minWidth: 500, minHeight: 600)
-            .navigationTitle("I2P Control Panel")
+            .frame(minWidth: 600, minHeight: 700)
         }
         .onAppear {
             i2pdManager.checkStatus()
@@ -311,22 +351,30 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section("🌐 Сетевая конфигурация") {
-                    HStack {
-                        Text("Порт daemon:")
-                        Spacer()
-                        TextField("4444", value: $daemonPort, format: .number)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 80)
+                Section(header: Text("🌐 Сетевая конфигурация").font(.headline)) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Порт daemon")
+                                .frame(width: 140, alignment: .leading)
+                            TextField("", value: $daemonPort, format: .number)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 100)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Ограничение скорости")
+                                .font(.subheadline)
+                            Picker("", selection: $bandwidthLimit) {
+                                Text("Без ограничений").tag("unlimited")
+                                Text("128 KB/s").tag("128")
+                                Text("512 KB/s").tag("512")
+                                Text("1 MB/s").tag("1024")
+                                Text("5 MB/s").tag("5120")
+                            }
+                            .pickerStyle(.segmented)
+                        }
                     }
-                    
-                    Picker("Ограничение скорости:", selection: $bandwidthLimit) {
-                        Text("Без ограничений").tag("unlimited")
-                        Text("128 KB/s").tag("128")
-                        Text("512 KB/s").tag("512")
-                        Text("1 MB/s").tag("1024")
-                        Text("5 MB/s").tag("5120")
-                    }
+                    .padding(.vertical, 8)
                 }
                 
                 Section("💻 Автоматизация") {
@@ -510,36 +558,58 @@ struct StatusCard: View {
     let peers: Int
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Статус")
-                .font(.headline)
-            
-            HStack {
+        HStack(spacing: 32) {
+            // Статус индикатор
+            HStack(spacing: 12) {
                 Circle()
                     .fill(isRunning ? Color.green : Color.red)
                     .frame(width: 12, height: 12)
                 
-                Text(isRunning ? "Запущен" : "Остановлен")
-                    .fontWeight(.medium)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(isRunning ? "Запущен" : "Остановлен")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Text(isRunning ? "Статус: активен" : "Статус: неактивен")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             
-            if isRunning {
-                HStack {
-                    Image(systemName: "clock")
-                    Text("Время работы: \(uptime)")
-                }
-                .font(.caption)
-                
-                HStack {
-                    Image(systemName: "person.3")
-                    Text("Соединений с пирами: \(peers)")
-                }
-                .font(.caption)
+            // Время работы
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Время работы")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text(uptime)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
             }
+            
+            // Счётчик пиров
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Подключения")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("\(peers)")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+            }
+            
+            Spacer()
         }
-        .padding()
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(10)
+        .padding(.vertical, 20)
+        .padding(.horizontal, 32)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(NSColor.controlBackgroundColor))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+                )
+        )
+        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 }
 
@@ -551,66 +621,77 @@ struct ControlButtons: View {
     @Binding var showingAbout: Bool
     
     var body: some View {
-        HStack(spacing: 15) {
-            Button(action: {
-                if i2pdManager.isRunning {
-                    i2pdManager.stopDaemon()
-                } else {
-                    i2pdManager.startDaemon()
+        VStack(spacing: 16) {
+            // Основные кнопки
+            HStack(spacing: 16) {
+                Button(action: {
+                    if i2pdManager.isRunning {
+                        i2pdManager.stopDaemon()
+                    } else {
+                        i2pdManager.startDaemon()
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: i2pdManager.isRunning ? "stop.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 16))
+                        Text(i2pdManager.isRunning ? "Остановить" : "Запустить")
+                            .fontWeight(.medium)
+                    }
+                    .frame(height: 36)
+                    .frame(maxWidth: .infinity)
                 }
-            }) {
-                Label(
-                    i2pdManager.isRunning ? "Остановить" : "Запустить",
-                    systemImage: i2pdManager.isRunning ? "stop.circle.fill" : "play.circle.fill"
-                )
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(i2pdManager.isLoading || i2pdManager.operationInProgress)
-            
-            Button("Перезапустить") {
-                i2pdManager.restartDaemon()
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .disabled(i2pdManager.isLoading || !i2pdManager.isRunning)
-            
-            Button("Обновить статус") {
-                i2pdManager.checkStatus()
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .disabled(i2pdManager.isLoading)
-            
-            Button("Очистить логи") {
-                i2pdManager.clearLogs()
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            
-            Spacer()
-            
-            Menu {
-                Button("📊 Сетевая статистика") {
-                    showingStats = true
-                }
-                .disabled(!i2pdManager.isRunning)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(i2pdManager.isLoading || i2pdManager.operationInProgress)
                 
-                Button("⚙️ Настройки") {
-                    showingSettings = true
+                Button("Перезапустить") {
+                    i2pdManager.restartDaemon()
                 }
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
+                .disabled(i2pdManager.isLoading || !i2pdManager.isRunning)
                 
-                Divider()
-                
-                Button("О программе") {
-                    showingAbout = true
+                Button("Обновить статус") {
+                    i2pdManager.checkStatus()
                 }
-            } label: {
-                Label("Ещё", systemImage: "ellipsis.circle")
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
+                .disabled(i2pdManager.isLoading)
+            
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            
+            // Дополнительные кнопки
+            HStack(spacing: 12) {
+                Menu {
+                    Button("📊 Сетевая статистика") {
+                        showingStats = true
+                    }
+                    .disabled(!i2pdManager.isRunning)
+                    
+                    Button("⚙️ Настройки") {
+                        showingSettings = true
+                    }
+                    
+                    Divider()
+                    
+                    Button("О программе") {
+                        showingAbout = true
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "ellipsis.circle")
+                        Text("Ещё")
+                    }
+                    .frame(height: 36)
+                }
+                .frame(maxWidth: .infinity)
+                
+                Button("Очистить логи") {
+                    i2pdManager.clearLogs()
+                }
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
+            }
         }
         
         if i2pdManager.isLoading {
@@ -626,39 +707,54 @@ struct LogView: View {
     let logs: [LogEntry]
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text("Логи")
-                .font(.headline)
-            
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2) {
-                    ForEach(logs.prefix(50), id: \.id) { log in
-                        HStack {
-                            Text(log.timestamp, style: .date)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Text(log.timestamp, style: .time)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Text(log.message)
-                                .font(.system(.caption, design: .monospaced))
-                            
-                            Spacer()
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 1) {
+                ForEach(logs.prefix(50), id: \.id) { log in
+                    HStack(alignment: .top, spacing: 12) {
+                        Text(log.timestamp.formatted(.dateTime.hour().minute().second()))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .frame(width: 55, alignment: .leading)
+                        
+                        HStack(spacing: 4) {
+                            Text(log.level.rawValue)
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(logLevelColor(for: log.level))
+                                .foregroundColor(.white)
+                                .cornerRadius(3)
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(logLevelColor(for: log.level).opacity(0.1))
-                        .cornerRadius(3)
+                        .frame(width: 60)
+                        
+                        Text(log.message)
+                            .font(.caption)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                        
+                        Spacer()
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        Rectangle()
+                            .fill(log.level == .error ? Color.red.opacity(0.03) : 
+                                  log.level == .warn ? Color.orange.opacity(0.03) : 
+                                  Color.clear)
+                    )
                 }
-                .padding(.horizontal)
             }
-            .frame(maxHeight: 200)
-            .background(Color.gray.opacity(0.05))
-            .cornerRadius(8)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(NSColor.controlBackgroundColor))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+                    )
+            )
         }
+        .frame(maxHeight: 300)
     }
     
     private func logLevelColor(for level: LogLevel) -> Color {
