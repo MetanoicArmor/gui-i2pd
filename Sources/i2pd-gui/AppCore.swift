@@ -31,10 +31,10 @@ struct ContentView: View {
     
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 4) {
             // Заголовок
             Text("I2P Daemon GUI")
-                .font(.largeTitle)
+                .font(.title)
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
                 .lineLimit(1)
@@ -46,10 +46,10 @@ struct ContentView: View {
                 uptime: i2pdManager.uptime,
                 peers: i2pdManager.peerCount
             )
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 8)
             
             // Компактная сетевая статистика - всегда развернута
-            VStack(spacing: 8) {
+            VStack(spacing: 4) {
                 // Заголовок секции
                 HStack {
                     Image(systemName: "chart.bar.fill")
@@ -109,17 +109,17 @@ struct ContentView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 4)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 8)
             
             // Кнопки управления
             ControlButtons(
                 i2pdManager: i2pdManager,
                 showingSettings: $showingSettings,
             )
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 8)
             
             // Секция логов - всегда развернута
-            VStack(spacing: 8) {
+            VStack(spacing: 4) {
                 // Заголовок секции
                 HStack {
                     Image(systemName: "doc.text")
@@ -190,9 +190,9 @@ struct ContentView: View {
                 }
                 .frame(maxHeight: 250) // Компактная высота логов
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 8)
         }
-        .frame(width: 1000, height: 700)
+        .frame(width: 1000, height: 650)
         .fixedSize()
         .onAppear {
             i2pdManager.checkStatus()
@@ -693,7 +693,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 8)
                 .padding(.vertical, 16)
             }
         }
@@ -1001,7 +1001,7 @@ struct SettingsSection<Content: View>: View {
                     .minimumScaleFactor(0.9)
                 Spacer()
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 8)
             .padding(.vertical, 8)
             .background(Color(NSColor.controlBackgroundColor))
             .cornerRadius(12)
@@ -1040,7 +1040,7 @@ struct SettingsRow: View {
             
             action
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 8)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -1173,12 +1173,12 @@ struct ControlButtons: View {
             
             // Дополнительные кнопки
             HStack(spacing: 12) {
-                Button("⚙️ Настройки") {
-                    showingSettings = true
-                }
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-                .frame(height: 36)
+                    Button("⚙️ Настройки") {
+                        showingSettings = true
+                    }
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
+                    .frame(height: 36)
                 .frame(maxWidth: .infinity)
                 
                 Button("Очистить логи") {
@@ -1226,7 +1226,7 @@ struct LogView: View {
                         
                         Spacer()
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 8)
                     .padding(.vertical, 8)
                     .background(
                         Rectangle()
