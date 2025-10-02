@@ -836,7 +836,6 @@ enabled = true
 address = 127.0.0.1
 port = 7070
 auth = false
-lang = english
 
 [httpproxy]
 ## HTTP Proxy settings
