@@ -50,6 +50,8 @@ struct ContentView: View {
                         .font(.largeTitle)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .padding(.top, 20)
                     
                     // Статус сервера
@@ -156,16 +158,22 @@ struct AboutView: View {
             Text("I2P Daemon GUI")
                 .font(.largeTitle)
                 .fontWeight(.bold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             
-            Text("Версия 2.4")
+            Text("Версия 2.5")
                 .font(.headline)
                 .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
             
             VStack(spacing: 8) {
                 Text("Современный GUI для управления I2P Daemon")
+                    .multilineTextAlignment(.center)
                 Text("• Радикальная остановка daemon")
                 Text("• Мониторинг в реальном времени")
                 Text("• Встроенный бинарник i2pd 2.58.0")
+                Text("• Подвижное и масштабируемое окно")
                 Text("• Тёмный интерфейс")
             }
             .font(.body)
@@ -210,6 +218,8 @@ struct NetworkStatsView: View {
                 Text("🌐 Сетевая статистика")
                     .font(.largeTitle)
                     .fontWeight(.bold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 
                 // Статистические карточки
                 LazyVGrid(columns: [
@@ -320,13 +330,17 @@ struct StatsCard: View {
                 .font(.system(size: 24))
                 .foregroundColor(color)
             
-            Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
-            
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                    Text(value)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+                    
+                    Text(title)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
         }
         .padding()
         .background(Color(NSColor.windowBackgroundColor))
@@ -355,6 +369,8 @@ struct SettingsView: View {
                 Text("⚙️ Настройки")
                     .font(.largeTitle)
                     .fontWeight(.bold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 
                 Spacer()
                 
@@ -661,6 +677,8 @@ struct SettingsSection<Content: View>: View {
                 Text(title)
                     .font(.headline)
                     .fontWeight(.semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
                 Spacer()
             }
             .padding(.horizontal, 20)
@@ -704,9 +722,13 @@ struct StatusCard: View {
                     Text(isRunning ? "Запущен" : "Остановлен")
                         .font(.subheadline)
                         .fontWeight(.medium)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
                     Text(isRunning ? "Статус: активен" : "Статус: неактивен")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
                 }
             }
             
@@ -715,10 +737,14 @@ struct StatusCard: View {
                 Text("Время работы")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
                 Text(uptime)
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             
             // Счётчик пиров
@@ -726,10 +752,14 @@ struct StatusCard: View {
                 Text("Подключения")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
                 Text("\(peers)")
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             
             Spacer()
@@ -771,6 +801,8 @@ struct ControlButtons: View {
                             .font(.system(size: 16))
                         Text(i2pdManager.isRunning ? "Остановить" : "Запустить")
                             .fontWeight(.medium)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
                     }
                     .frame(height: 36)
                     .frame(maxWidth: .infinity)
@@ -782,6 +814,8 @@ struct ControlButtons: View {
                 Button("Перезапустить") {
                     i2pdManager.restartDaemon()
                 }
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
                 .frame(height: 36)
                 .frame(maxWidth: .infinity)
                 .disabled(i2pdManager.isLoading || !i2pdManager.isRunning)
@@ -789,6 +823,8 @@ struct ControlButtons: View {
                 Button("Обновить статус") {
                     i2pdManager.checkStatus()
                 }
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
                 .frame(height: 36)
                 .frame(maxWidth: .infinity)
                 .disabled(i2pdManager.isLoading)
@@ -816,6 +852,8 @@ struct ControlButtons: View {
                     HStack(spacing: 6) {
                         Image(systemName: "ellipsis.circle")
                         Text("Ещё")
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
                     }
                     .frame(height: 36)
                 }
@@ -824,6 +862,8 @@ struct ControlButtons: View {
                 Button("Очистить логи") {
                     i2pdManager.clearLogs()
                 }
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
                 .frame(height: 36)
                 .frame(maxWidth: .infinity)
             }
