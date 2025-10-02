@@ -93,7 +93,7 @@ RELEASE_NOTES="🎉 Релиз v$I2PD_VERSION
 
 Версия автоматически синхронизирована с i2pd v$I2PD_VERSION"
 
-gh release create v$I2PD_VERSION --title "🎉 v$I2PD_VERSION - Синхронизация с i2pd $I2PD_VERSION" --notes "$RELEASE_NOTES" --latest
+gh release create v$I2PD_VERSION --title "$APP_FILE" --notes "$RELEASE_NOTES" --latest
 
 # Загружаем файл
 echo "📎 Загрузка архива в релиз..."
