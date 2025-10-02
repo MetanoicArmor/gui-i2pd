@@ -31,7 +31,7 @@ struct ContentView: View {
     
     
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 2) {
             // Заголовок
             Text("I2P Daemon GUI")
                 .font(.title)
@@ -39,6 +39,7 @@ struct ContentView: View {
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+                .padding(.top, -10)
             
             // Статус сервера
             StatusCard(
@@ -49,7 +50,7 @@ struct ContentView: View {
             .padding(.horizontal, 8)
             
             // Компактная сетевая статистика - всегда развернута
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 // Заголовок секции
                 HStack {
                     Image(systemName: "chart.bar.fill")
@@ -119,7 +120,7 @@ struct ContentView: View {
             .padding(.horizontal, 8)
             
             // Секция логов - всегда развернута
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 // Заголовок секции
                 HStack {
                     Image(systemName: "doc.text")
@@ -273,7 +274,7 @@ struct AboutView: View {
             
             Divider()
             
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Text("Разработано на SwiftUI")
                     .font(.caption)
                 Text("Swift 5.7+ • macOS 14.0+")
