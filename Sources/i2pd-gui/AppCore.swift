@@ -254,7 +254,7 @@ struct AboutView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             
-            Text("Версия 2.5")
+            Text("Версия 2.58.0")
                 .font(.headline)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
@@ -305,6 +305,7 @@ struct SettingsView: View {
     @ObservedObject var i2pdManager: I2pdManager
     @Environment(\.dismiss) private var dismiss
     @AppStorage("daemonPort") private var daemonPort = 4444
+    @AppStorage("socksPort") private var socksPort = 4447
     @AppStorage("bandwidthLimit") private var bandwidthLimit = "unlimited"
     @AppStorage("autoStart") private var autoStart = false
     @AppStorage("darkMode") private var darkMode = true
@@ -346,16 +347,39 @@ struct SettingsView: View {
                     // Сетевая конфигурация
                     SettingsSection(title: "🌐 Сетевая конфигурация", icon: "globe") {
                         VStack(spacing: 12) {
-                            // Порт daemon
+                            // Порт HTTP прокси (фиксированный)
                             HStack(spacing: 12) {
-                                Text("Порт daemon")
+                                Text("Порт HTTP прокси")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                TextField("4444", value: $daemonPort, format: .number.grouping(.never))
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 180)
+                                Text("4444")
+                                    .font(.system(.body, design: .monospaced, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                    .frame(width: 180, alignment: .leading)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 12)
+                                    .background(Color(NSColor.controlBackgroundColor))
+                                    .cornerRadius(6)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            // Порт SOCKS5 прокси (фиксированный)
+                            HStack(spacing: 12) {
+                                Text("Порт SOCKS5 прокси")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 220, alignment: .leading)
+                                
+                                Text("4447")
+                                    .font(.system(.body, design: .monospaced, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                    .frame(width: 180, alignment: .leading)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 12)
+                                    .background(Color(NSColor.controlBackgroundColor))
+                                    .cornerRadius(6)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
@@ -526,7 +550,7 @@ struct SettingsView: View {
                             HStack {
                                 Text("Версия:")
                                     .frame(width: 100, alignment: .leading)
-                                Text("2.5")
+                                Text("2.58.0")
                                     .foregroundColor(.secondary)
                                     .fontWeight(.medium)
                                 Spacer()
@@ -535,7 +559,7 @@ struct SettingsView: View {
                             HStack {
                                 Text("Разработчик:")
                                     .frame(width: 100, alignment: .leading)
-                                Text("GUI Team")
+                                Text("Vade")
                                     .foregroundColor(.secondary)
                                     .fontWeight(.medium)
                                 Spacer()
@@ -691,6 +715,7 @@ struct SettingsView: View {
                                 Spacer()
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            
                         }
                     }
                 }
@@ -765,7 +790,6 @@ struct SettingsView: View {
         
         if alert.runModal() == .alertFirstButtonReturn {
             // Сброс всех настроек к значениям по умолчанию
-            daemonPort = 4444
             bandwidthLimit = "unlimited"
             autoStart = false
             notificationsEnabled = false
@@ -841,6 +865,7 @@ port = 7650
             print("Ошибка создания конфига: \(error)")
         }
     }
+    
     
     private func openLogsDirectory() {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
@@ -942,10 +967,17 @@ outbound.length = 3
 [SOCKS-Proxy]
 type = server
 address = 127.0.0.1
-port = 9050
+port = 4447
 keys = socks-keys.dat
 inbound.length = 3
 outbound.length = 3
+
+📡 Использование SOCKS5:
+Для подключения к I2P сети используйте:
+- Адрес прокси: 127.0.0.1:4447
+- Тип: SOCKS5
+- Имя пользователя: (оставить пустым)
+- Пароль: (оставить пустым)
 """
         
         let alert = NSAlert()
