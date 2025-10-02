@@ -306,7 +306,6 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("daemonPort") private var daemonPort = 4444
     @AppStorage("socksPort") private var socksPort = 4447
-    @AppStorage("bandwidthLimit") private var bandwidthLimit = "unlimited"
     @AppStorage("autoStart") private var autoStart = false
     @AppStorage("darkMode") private var darkMode = true
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
@@ -383,25 +382,6 @@ struct SettingsView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            Divider()
-                            
-                            // Ограничение скорости
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Ограничение скорости")
-                                    .font(.system(.body, design: .default, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                
-                                Picker("Ограничение скорости", selection: $bandwidthLimit) {
-                                    Text("Без ограничений").tag("unlimited")
-                                    Text("128 KB/s").tag("128")
-                                    Text("512 KB/s").tag("512")
-                                    Text("1 MB/s").tag("1024")
-                                    Text("5 MB/s").tag("5120")
-                                }
-                                .pickerStyle(.segmented)
-                                .frame(maxWidth: .infinity)
-                            }
                         }
                     }
                     
@@ -790,7 +770,6 @@ struct SettingsView: View {
         
         if alert.runModal() == .alertFirstButtonReturn {
             // Сброс всех настроек к значениям по умолчанию
-            bandwidthLimit = "unlimited"
             autoStart = false
             notificationsEnabled = false
             compactMode = false
