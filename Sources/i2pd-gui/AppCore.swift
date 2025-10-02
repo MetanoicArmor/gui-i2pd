@@ -27,7 +27,6 @@ struct I2pdGUIApp: App {
 // MARK: - Main Content View
 struct ContentView: View {
     @StateObject private var i2pdManager = I2pdManager()
-    @State private var showingAbout = false
     @State private var showingStats = false
     @State private var showingSettings = false
     
@@ -119,7 +118,6 @@ struct ContentView: View {
                 i2pdManager: i2pdManager,
                 showingStats: $showingStats,
                 showingSettings: $showingSettings,
-                showingAbout: $showingAbout
             )
             .padding(.horizontal, 24)
             
@@ -177,20 +175,20 @@ struct ContentView: View {
                         }
                         
                         if i2pdManager.logs.isEmpty {
-                            VStack(spacing: 8) {
-                                Image(systemName: "doc.text")
+                    VStack(spacing: 8) {
+                        Image(systemName: "doc.text")
                                     .font(.system(size: 24))
-                                    .foregroundColor(.secondary)
+                            .foregroundColor(.secondary)
                                 Text("Система готова к работе")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                                 Text("Логи появятся при запуске демона")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 40)
-                        }
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                }
                     }
                 }
                 .frame(maxHeight: 250) // Компактная высота логов
@@ -207,9 +205,6 @@ struct ContentView: View {
                 applyTheme()
                 i2pdManager.getExtendedStats()
             }
-        }
-        .sheet(isPresented: $showingAbout) {
-            AboutView()
         }
         .sheet(isPresented: $showingStats) {
             NetworkStatsView(i2pdManager: i2pdManager)
@@ -524,8 +519,8 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 250, alignment: .leading)
                                 
-                                HStack {
-                                    Spacer()
+                            HStack {
+                                Spacer()
                                     Toggle("", isOn: $autoStart)
                                         .labelsHidden()
                                 }
@@ -538,11 +533,11 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 250, alignment: .leading)
                                 
-                                HStack {
-                                    Spacer()
+                            HStack {
+                                Spacer()
                                     Toggle("", isOn: $notificationsEnabled)
                                         .labelsHidden()
-                                }
+                            }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -569,12 +564,12 @@ struct SettingsView: View {
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
-                                
-                                HStack {
-                                    Spacer()
+                            
+                            HStack {
+                                Spacer()
                                     Toggle("", isOn: $compactMode)
                                         .labelsHidden()
-                                }
+                            }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -589,8 +584,8 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 250, alignment: .leading)
                                 
-                                HStack {
-                                    Spacer()
+                            HStack {
+                                Spacer()
                                     Toggle("", isOn: $autoRefresh)
                                         .labelsHidden()
                                 }
@@ -603,11 +598,11 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 250, alignment: .leading)
                                 
-                                HStack {
-                                    Spacer()
+                            HStack {
+                                Spacer()
                                     Toggle("", isOn: $autoLogCleanup)
                                         .labelsHidden()
-                                }
+                            }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -1260,7 +1255,6 @@ struct ControlButtons: View {
     @ObservedObject var i2pdManager: I2pdManager
     @Binding var showingStats: Bool
     @Binding var showingSettings: Bool
-    @Binding var showingAbout: Bool
     
     var body: some View {
         VStack(spacing: 16) {
@@ -1310,30 +1304,21 @@ struct ControlButtons: View {
             
             // Дополнительные кнопки
             HStack(spacing: 12) {
-                Menu {
-                    Button("📊 Сетевая статистика") {
+                Button("📊 Статистика") {
                         showingStats = true
                     }
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
                     .disabled(!i2pdManager.isRunning)
                     
                     Button("⚙️ Настройки") {
                         showingSettings = true
                     }
-                    
-                    Divider()
-                    
-                    Button("О программе") {
-                        showingAbout = true
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "ellipsis.circle")
-                        Text("Ещё")
                             .lineLimit(1)
                             .minimumScaleFactor(0.9)
-                    }
                     .frame(height: 36)
-                }
                 .frame(maxWidth: .infinity)
                 
                 Button("Очистить логи") {
@@ -1733,12 +1718,12 @@ class I2pdManager: ObservableObject {
                         self?.peerCount = 0
                     } else {
                         // Если демон запущен, показываем демо данные
-                        self?.bytesReceived = Int.random(in: 1024...10485760)  // 1KB - 10MB
-                        self?.bytesSent = Int.random(in: 1024...10485760)      // 1KB - 10MB
-                        self?.activeTunnels = Int.random(in: 2...8)             // 2-8 туннелей
+                self?.bytesReceived = Int.random(in: 1024...10485760)  // 1KB - 10MB
+                self?.bytesSent = Int.random(in: 1024...10485760)      // 1KB - 10MB
+                self?.activeTunnels = Int.random(in: 2...8)             // 2-8 туннелей
                         self?.peerCount = Int.random(in: 100...500)           // 100-500 роутеров
                     }
-                    self?.addLog(.info, "📊 Расширенная статистика обновлена")
+                self?.addLog(.info, "📊 Расширенная статистика обновлена")
                 }
             }
         }
