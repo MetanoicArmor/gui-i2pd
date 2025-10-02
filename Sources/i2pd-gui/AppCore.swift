@@ -16,7 +16,44 @@ class TrayManager: NSObject, ObservableObject {
         statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         if let statusBarItem = statusBarItem {
-            let image = NSImage(systemSymbolName: "network", accessibilityDescription: "I2P Daemon")
+            // Используем кастомную иконку трея или системную как fallback
+            var image: NSImage?
+            
+            // Загружаем кастомную иконку трея в зависимости от темы системы
+            if let bundlePath = Bundle.main.bundlePath as NSString? {
+                var trayIconPath: String
+                
+                // Определяем какая тема используется
+                let isDarkMode = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                
+                if isDarkMode {
+                    // Для темной темы используем светлую иконку
+                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon-dark.png")
+                    print("🌙 Темная тема - используем tray-icon-dark.png")
+                } else {
+                    // Для светлой темы используем темную иконку или монохромную
+                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon-mono.png")
+                    print("☀️ Светлая тема - используем tray-icon-mono.png")
+                }
+                
+                // Fallback к основной иконке
+                if !FileManager.default.fileExists(atPath: trayIconPath) {
+                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon.png")
+                    print("🔄 Fallback к основной tray-icon.png")
+                }
+                
+                if FileManager.default.fileExists(atPath: trayIconPath) {
+                    image = NSImage(contentsOfFile: trayIconPath)
+                    print("✅ Загружена кастомная иконка трея: \(trayIconPath)")
+                }
+            }
+            
+            // Fallback к системной иконке
+            if image == nil {
+                image = NSImage(systemSymbolName: "network", accessibilityDescription: "I2P Daemon")
+                print("⚠️ Используется системная иконка трея")
+            }
+            
             image?.size = NSSize(width: 18, height: 18)
             statusBarItem.button?.image = image
             
