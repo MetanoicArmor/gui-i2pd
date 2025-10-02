@@ -1312,9 +1312,30 @@ port = 7650
     }
     
     private func createDefaultTunnelsFile(at path: URL) {
+        // Используем полный tunnels.conf из bundle вместо упрощенного
+        let bundle = Bundle.main
+        let resourcesPath = "Contents/Resources"
+        
+        if let tunnelsURL = bundle.url(forResource: "tunnels", withExtension: "conf", subdirectory: resourcesPath) {
+            do {
+                try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try FileManager.default.copyItem(at: tunnelsURL, to: path)
+                i2pdManager.logExportComplete("✅ Полный tunnels.conf скопирован из бандла")
+            } catch {
+                print("Ошибка копирования полного tunnels.conf: \(error)")
+                // Fallback к упрощенному файлу
+                createSimplifiedTunnelsFile(at: path)
+            }
+        } else {
+            // Fallback к упрощенному файлу если полный не найден
+            createSimplifiedTunnelsFile(at: path)
+        }
+    }
+    
+    private func createSimplifiedTunnelsFile(at path: URL) {
         let defaultTunnels = """
 ## Туннели I2P
-## Добавьте сюда ваши туннели
+## Добавьте сюда ваши туннели (simplified fallback)
 
 [IRC-ILITA]
 type = client
@@ -1344,8 +1365,9 @@ keys = irc-keys.dat
         do {
             try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
             try defaultTunnels.write(to: path, atomically: true, encoding: .utf8)
+            i2pdManager.logExportComplete("⚠️ Создан упрощенный tunnels.conf")
         } catch {
-            print("Ошибка создания файла туннелей: \(error)")
+            print("Ошибка создания упрощенного файла туннелей: \(error)")
         }
     }
     
@@ -2292,8 +2314,32 @@ class I2pdManager: ObservableObject {
         // Копируем tunnels.conf
         if let tunnelsURL = bundle.url(forResource: "tunnels", withExtension: "conf", subdirectory: resourcesPath) {
             let destPath = i2pdDir.appendingPathComponent("tunnels.conf")
-            if !FileManager.default.fileExists(atPath: destPath.path) {
+            
+            // Проверяем существует ли файл, и если да - проверяем его размер
+            var shouldCopy = true
+            if FileManager.default.fileExists(atPath: destPath.path) {
                 do {
+                    let existingSize = try FileManager.default.attributesOfItem(atPath: destPath.path)[.size] as? Int ?? 0
+                    let bundleSize = try FileManager.default.attributesOfItem(atPath: tunnelsURL.path)[.size] as? Int ?? 0
+                    
+                    // Если существующий файл меньше чем в bundle на 2KB или больше - заменяем его
+                    if existingSize < bundleSize - 2048 {
+                        addLog(.info, "🔄 Найден неполный tunnels.conf (\(existingSize) байт), заменяем полным (\(bundleSize) байт)")
+                    } else {
+                        shouldCopy = false
+                        addLog(.debug, "✅ tunnels.conf уже актуален (\(existingSize) байт)")
+                    }
+                } catch {
+                    addLog(.error, "⚠️ Ошибка проверки размера файла: \(error)")
+                }
+            }
+            
+            if shouldCopy {
+                do {
+                    // Удаляем существующий файл если нужно
+                    if FileManager.default.fileExists(atPath: destPath.path) {
+                        try FileManager.default.removeItem(at: destPath)
+                    }
                     try FileManager.default.copyItem(at: tunnelsURL, to: destPath)
                     addLog(.info, "✅ tunnels.conf скопирован из бандла")
                 } catch {
