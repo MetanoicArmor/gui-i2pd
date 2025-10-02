@@ -1130,6 +1130,15 @@ struct ControlButtons: View {
         VStack(spacing: 16) {
             // Основные кнопки
             HStack(spacing: 16) {
+                Button("Перезапустить") {
+                    i2pdManager.restartDaemon()
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
+                .disabled(i2pdManager.isLoading || !i2pdManager.isRunning)
+                
                 Button(action: {
                     if i2pdManager.isRunning {
                         i2pdManager.stopDaemon()
@@ -1151,15 +1160,6 @@ struct ControlButtons: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .disabled(i2pdManager.isLoading || i2pdManager.operationInProgress)
-                
-                Button("Перезапустить") {
-                    i2pdManager.restartDaemon()
-                }
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-                .frame(height: 36)
-                .frame(maxWidth: .infinity)
-                .disabled(i2pdManager.isLoading || !i2pdManager.isRunning)
                 
                 Button("Обновить статус") {
                     i2pdManager.checkStatus()
