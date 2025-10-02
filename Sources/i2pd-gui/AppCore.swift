@@ -19,7 +19,7 @@ class TrayManager: NSObject, ObservableObject {
             // Используем кастомную иконку трея или системную как fallback
             var image: NSImage?
             
-            // Загружаем кастомную иконку трея в зависимости от темы системы
+            // Загружаем только Retina иконки трея для современных дисплеев
             if let bundlePath = Bundle.main.bundlePath as NSString? {
                 var trayIconPath: String
                 
@@ -27,24 +27,18 @@ class TrayManager: NSObject, ObservableObject {
                 let isDarkMode = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
                 
                 if isDarkMode {
-                    // Для темной темы используем светлую иконку
-                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon-dark.png")
-                    print("🌙 Темная тема - используем tray-icon-dark.png")
+                    // Для темной темы используем Retina версию светлой иконки
+                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon-dark@2x.png")
+                    print("🌙 Темная тема - используем tray-icon-dark@2x.png (Retina)")
                 } else {
-                    // Для светлой темы используем темную иконку или монохромную
-                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon-mono.png")
-                    print("☀️ Светлая тема - используем tray-icon-mono.png")
-                }
-                
-                // Fallback к основной иконке
-                if !FileManager.default.fileExists(atPath: trayIconPath) {
-                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon.png")
-                    print("🔄 Fallback к основной tray-icon.png")
+                    // Для светлой темы используем основную Retina версию
+                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon@2x.png")
+                    print("☀️ Светлая тема - используем tray-icon@2x.png (Retina)")
                 }
                 
                 if FileManager.default.fileExists(atPath: trayIconPath) {
                     image = NSImage(contentsOfFile: trayIconPath)
-                    print("✅ Загружена кастомная иконка трея: \(trayIconPath)")
+                    print("✅ Загружена Retina иконка трея: \(trayIconPath)")
                 }
             }
             

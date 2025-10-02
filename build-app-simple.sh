@@ -111,44 +111,15 @@ else
     echo "⚠️  tunnels.conf не найден"
 fi
 
-# Иконки трея (включая Retina версии)
-echo "🎨 Копирование иконок трея..."
+# Только Retina иконки трея (современные macOS дисплеи все Retina)
+echo "🎨 Копирование Retina иконок трея..."
 
-# Основные иконки для обычных дисплеев
-if [ -f "iconset-work/tray-icon.png" ]; then
-    cp "iconset-work/tray-icon.png" ${RESOURCES_DIR}/tray-icon.png
-    echo "✅ tray-icon.png скопирован"
-else
-    echo "⚠️  tray-icon.png не найден"
-fi
-
-if [ -f "iconset-work/tray-icon-mono.png" ]; then
-    cp "iconset-work/tray-icon-mono.png" ${RESOURCES_DIR}/tray-icon-mono.png
-    echo "✅ tray-icon-mono.png скопирован"
-else
-    echo "⚠️  tray-icon-mono.png не найден"
-fi
-
-if [ -f "iconset-work/tray-icon-dark.png" ]; then
-    cp "iconset-work/tray-icon-dark.png" ${RESOURCES_DIR}/tray-icon-dark.png
-    echo "✅ tray-icon-dark.png скопирован"
-else
-    echo "⚠️  tray-icon-dark.png не найден"
-fi
-
-# Retina версии (@2x)
+# Retina версии (@2x) - только для современных дисплеев
 if [ -f "iconset-work/tray-icon@2x.png" ]; then
     cp "iconset-work/tray-icon@2x.png" ${RESOURCES_DIR}/tray-icon@2x.png
     echo "✅ tray-icon@2x.png скопирован (Retina)"
 else
     echo "⚠️  tray-icon@2x.png не найден"
-fi
-
-if [ -f "iconset-work/tray-icon-mono@2x.png" ]; then
-    cp "iconset-work/tray-icon-mono@2x.png" ${RESOURCES_DIR}/tray-icon-mono@2x.png
-    echo "✅ tray-icon-mono@2x.png скопирован (Retina)"
-else
-    echo "⚠️  tray-icon-mono@2x.png не найден"
 fi
 
 if [ -f "iconset-work/tray-icon-dark@2x.png" ]; then
@@ -157,6 +128,8 @@ if [ -f "iconset-work/tray-icon-dark@2x.png" ]; then
 else
     echo "⚠️  tray-icon-dark@2x.png не найден"
 fi
+
+echo "💡 Используются только Retina иконки - все современные macOS дисплеи поддерживают это!"
 
 # Создаем Info.plist
 echo "📋 Создание Info.plist..."
@@ -237,11 +210,8 @@ echo "   🔧 i2pd - основной демон"
 if [ -f "subscriptions.txt" ]; then echo "   📋 subscriptions.txt - подписки address book"; fi
 if [ -f "i2pd.conf" ]; then echo "   ⚙️ i2pd.conf - конфигурация демона"; fi
 if [ -f "tunnels.conf" ]; then echo "   🚇 tunnels.conf - конфигурация туннелей"; fi
-if [ -f "iconset-work/tray-icon.png" ]; then echo "   🎨 tray-icon.png - текстовая иконка трея"; fi
 if [ -f "iconset-work/tray-icon@2x.png" ]; then echo "   📱 tray-icon@2x.png - Retina иконка трея"; fi
-if [ -f "iconset-work/tray-icon-mono.png" ]; then echo "   🎨 tray-icon-mono.png - монохромная иконка трея"; fi
-if [ -f "iconset-work/tray-icon-dark.png" ]; then echo "   🌙 tray-icon-dark.png - темная иконка трея"; fi
-if [ -f "iconset-work/tray-icon-dark@2x.png" ]; then echo "   📱 tray-icon-dark@2x.png - темная Retina иконка трея"; fi
+if [ -f "iconset-work/tray-icon-dark@2x.png" ]; then echo "   🌙 tray-icon-dark@2x.png - темная Retina иконка трея"; fi
 echo ""
 echo "🚀 Способы запуска:"
 echo "   Двойной клик на: ${APP_DIR}"
