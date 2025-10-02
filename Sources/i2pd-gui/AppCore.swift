@@ -353,7 +353,7 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                TextField("4444", value: $daemonPort, format: .number)
+                                TextField("4444", value: $daemonPort, format: .number.grouping(.never))
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 180)
                             }
