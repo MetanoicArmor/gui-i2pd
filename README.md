@@ -85,28 +85,28 @@ Package.swift            # Swift Package Manager конфигурация
 
 1. **Клонируйте репозиторий:**
 ```bash
-git clone https://github.com/yourname/gui-i2pd.git
+git clone https://github.com/MetanoicArmor/gui-i2pd.git
 cd gui-i2pd
 ```
 
-2. **Соберите проект:**
+2. **Быстрая сборка проекта:**
 ```bash
-swift build -c release
+./build.sh
 ```
 
 3. **Создайте .app bundle:**
 ```bash
-./create-fresh-app.sh
+./build-app-simple.sh
 ```
 
 4. **Запустите приложение:**
 ```bash
-open I2P-GUI-Fresh.app
+open I2P-GUI.app
 ```
 
-### 📜 **Скрипты сборки:**
-- `create-fresh-app.sh` - создание .app bundle
-- `install-app.sh` - установка в Applications
+### 📜 **Доступные скрипты:**
+- `build.sh` - быстрая сборка проекта
+- `build-app-simple.sh` - создание .app bundle
 - `stop-i2pd-radical.sh` - радикальная остановка daemon
 
 ## 🐛 Устранение проблем
