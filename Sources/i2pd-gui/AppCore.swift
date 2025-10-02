@@ -713,6 +713,10 @@ struct SettingsView: View {
     @AppStorage("autoRefresh") private var autoRefresh = true
     @AppStorage("autoLogCleanup") private var autoLogCleanup = false
     
+    // Добавляем состояние для предотвращения множественных нажатий
+    @State private var isResetting = false
+    @State private var showingResetAlert = false
+    
     var body: some View {
         VStack(spacing: 0) {
             // Заголовок
@@ -730,11 +734,13 @@ struct SettingsView: View {
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.return, modifiers: [.command])
                 
                 Button("Отмена") {
                     dismiss()
                 }
                 .buttonStyle(.bordered)
+                .keyboardShortcut(.escape)
             }
             .padding(16)
             .background(Color(NSColor.windowBackgroundColor))
@@ -952,15 +958,24 @@ struct SettingsView: View {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
                                 Button("🔧 Сбросить настройки") {
-                                    resetSettings()
+                                    showingResetAlert = true
                                 }
                                 .foregroundColor(.orange)
                                 .buttonStyle(.borderless)
                                 .frame(minWidth: 180, alignment: .leading)
+                                .disabled(isResetting)
                                 
                                 Spacer()
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .alert("Сброс настроек", isPresented: $showingResetAlert) {
+                                Button("Сбросить", role: .destructive) {
+                                    resetSettings()
+                                }
+                                Button("Отменить", role: .cancel) {}
+                            } message: {
+                                Text("Все настройки будут сброшены к значениям по умолчанию. Вы уверены?")
+                            }
                             
                             HStack(spacing: 12) {
                                 Button("📊 Тестовая статистика") {
@@ -1104,6 +1119,9 @@ struct SettingsView: View {
             }
         }
         .frame(minWidth: 750, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
+        .onReceive(NotificationCenter.default.publisher(for: .init("NSWindowDidResignKey"))) { _ in
+            // Дополнительная обработка для лучшего закрытия окна
+        }
     }
     
     private func saveSettings() {
@@ -1162,13 +1180,9 @@ struct SettingsView: View {
     }
     
     private func resetSettings() {
-        let alert = NSAlert()
-        alert.messageText = "Сброс настроек"
-        alert.informativeText = "Все настройки будут сброшены к значениям по умолчанию. Вы уверены?"
-        alert.addButton(withTitle: "Сбросить")
-        alert.addButton(withTitle: "Отменить")
+        isResetting = true
         
-        if alert.runModal() == .alertFirstButtonReturn {
+        DispatchQueue.main.async {
             // Сброс всех настроек к значениям по умолчанию
             autoStart = false
             notificationsEnabled = false
@@ -1178,11 +1192,13 @@ struct SettingsView: View {
             darkMode = true
             
             // Применяем тёмную тему по умолчанию безопасно
-            DispatchQueue.main.async {
-                NSApp.appearance = NSAppearance(named: .darkAqua)
-            }
+            NSApp.appearance = NSAppearance(named: .darkAqua)
             
             i2pdManager.logExportComplete("🔄 Настройки сброшены к значениям по умолчанию")
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isResetting = false
+            }
         }
     }
     
