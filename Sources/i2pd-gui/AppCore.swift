@@ -27,7 +27,6 @@ struct I2pdGUIApp: App {
 // MARK: - Main Content View
 struct ContentView: View {
     @StateObject private var i2pdManager = I2pdManager()
-    @State private var showingStats = false
     @State private var showingSettings = false
     
     
@@ -116,7 +115,6 @@ struct ContentView: View {
             // Кнопки управления
             ControlButtons(
                 i2pdManager: i2pdManager,
-                showingStats: $showingStats,
                 showingSettings: $showingSettings,
             )
             .padding(.horizontal, 24)
@@ -206,9 +204,6 @@ struct ContentView: View {
                 i2pdManager.getExtendedStats()
             }
         }
-        .sheet(isPresented: $showingStats) {
-            NetworkStatsView(i2pdManager: i2pdManager)
-        }
         .sheet(isPresented: $showingSettings) {
             SettingsView(i2pdManager: i2pdManager)
         }
@@ -287,147 +282,6 @@ struct AboutView: View {
     }
 }
 
-// MARK: - Network Stats View
-struct NetworkStatsView: View {
-    @ObservedObject var i2pdManager: I2pdManager
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            // Заголовок
-            Text("🌐 Сетевая статистика")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .padding(.top, 8)
-            
-            // Статистические карточки
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 15) {
-                StatsCard(
-                    icon: "arrow.down.circle.fill",
-                    title: "Получено",
-                    value: formatBytes(i2pdManager.bytesReceived),
-                    color: .green
-                )
-                
-                StatsCard(
-                    icon: "arrow.up.circle.fill",
-                    title: "Отправлено",
-                    value: formatBytes(i2pdManager.bytesSent),
-                    color: .blue
-                )
-                
-                StatsCard(
-                    icon: "lock.shield",
-                    title: "Туннели",
-                    value: "\(i2pdManager.activeTunnels)",
-                    color: .purple
-                )
-                
-                StatsCard(
-                    icon: "antenna.radiowaves.left.and.right",
-                    title: "Роутеры",
-                    value: "\(i2pdManager.routerInfos)",
-                    color: .orange
-                )
-            }
-            .padding(.horizontal)
-            
-            // Кнопки управления
-            HStack(spacing: 15) {
-                Button("🔄 Обновить") {
-                    i2pdManager.getExtendedStats()
-                }
-                .buttonStyle(.borderedProminent)
-                
-                Button("Экспорт") {
-                    exportStats()
-                }
-                .buttonStyle(.bordered)
-                
-                Button("Закрыть") {
-                    dismiss()
-                }
-                .buttonStyle(.bordered)
-            }
-            
-            Spacer()
-        }
-        .padding()
-        .frame(width: 900, height: 700)
-        .fixedSize()
-        .onAppear {
-            i2pdManager.getExtendedStats()
-        }
-    }
-    
-    private func formatBytes(_ bytes: Int) -> String {
-        if bytes < 1024 {
-            return "\(bytes) B"
-        } else if bytes < 1024 * 1024 {
-            return String(format: "%.1f KB", Double(bytes) / 1024)
-        } else {
-            return String(format: "%.1f MB", Double(bytes) / (1024 * 1024))
-        }
-    }
-    
-    private func exportStats() {
-        let stats = """
-        I2P Network Statistics
-        ===================
-        Uptime: \(i2pdManager.uptime)
-        Peers: \(i2pdManager.peerCount)
-        Data Received: \(formatBytes(i2pdManager.bytesReceived))
-        Data Sent: \(formatBytes(i2pdManager.bytesSent))
-        Active Tunnels: \(i2pdManager.activeTunnels)
-        Router Infos: \(i2pdManager.routerInfos)
-        """
-        
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.text]
-        panel.nameFieldStringValue = "i2p-stats-\(Date().formatted(.iso8601)).txt"
-        
-        if panel.runModal() == .OK, let url = panel.url {
-            try? stats.write(to: url, atomically: true, encoding: String.Encoding.utf8)
-            i2pdManager.logExportComplete(url.path)
-        }
-    }
-}
-
-struct StatsCard: View {
-    let icon: String
-    let title: String
-    let value: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 24))
-                .foregroundColor(color)
-            
-            Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-            
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-        }
-        .padding()
-        .background(Color(NSColor.windowBackgroundColor))
-        .cornerRadius(10)
-        .shadow(radius: 2)
-    }
-}
 
 // MARK: - Settings View
 struct SettingsView: View {
@@ -1253,7 +1107,6 @@ struct StatusCard: View {
 // MARK: - Control Buttons
 struct ControlButtons: View {
     @ObservedObject var i2pdManager: I2pdManager
-    @Binding var showingStats: Bool
     @Binding var showingSettings: Bool
     
     var body: some View {
@@ -1304,21 +1157,12 @@ struct ControlButtons: View {
             
             // Дополнительные кнопки
             HStack(spacing: 12) {
-                Button("📊 Статистика") {
-                        showingStats = true
-                    }
+                Button("⚙️ Настройки") {
+                    showingSettings = true
+                }
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
                 .frame(height: 36)
-                .frame(maxWidth: .infinity)
-                    .disabled(!i2pdManager.isRunning)
-                    
-                    Button("⚙️ Настройки") {
-                        showingSettings = true
-                    }
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.9)
-                    .frame(height: 36)
                 .frame(maxWidth: .infinity)
                 
                 Button("Очистить логи") {
