@@ -30,6 +30,11 @@ lsof.txt
 # Binary
 i2pd
 
+# Release archives
+*.zip
+I2P-Daemon-GUI-*.zip
+I2P-GUI.app
+
 # Logs
 logs/
 *.log
