@@ -54,7 +54,12 @@ class TrayManager: NSObject, ObservableObject {
                 print("⚠️ Используется системная иконка трея")
             }
             
-            image?.size = NSSize(width: 18, height: 18)
+            // Устанавливаем размер иконки для оптимальной видимости в трее
+            if let image = image {
+                image.size = NSSize(width: 18, height: 18)
+                print("📏 Размер иконки установлен: 18x18 пикселей")
+            }
+            
             statusBarItem.button?.image = image
             
             let menu = NSMenu()
