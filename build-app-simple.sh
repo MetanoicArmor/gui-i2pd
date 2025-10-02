@@ -56,6 +56,14 @@ else
     touch ${RESOURCES_DIR}/i2pd
 fi
 
+# Копируем иконку приложения
+if [ -f "I2P-GUI.icns" ]; then
+    cp "I2P-GUI.icns" ${RESOURCES_DIR}/I2P-GUI.icns
+    echo "✅ Иконка приложения скопирована"
+else
+    echo "⚠️  Иконка I2P-GUI.icns не найдена"
+fi
+
 # Создаем Info.plist
 echo "📋 Создание Info.plist..."
 
@@ -92,6 +100,8 @@ cat > ${CONTENTS_DIR}/Info.plist << EOF
     <false/>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.networking</string>
+    <key>CFBundleIconFile</key>
+    <string>I2P-GUI</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

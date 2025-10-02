@@ -35,6 +35,10 @@ i2pd
 I2P-Daemon-GUI-*.zip
 I2P-GUI.app
 
+# Icon temporary fragments
+ico-*.png
+icon.iconset/
+
 # Logs
 logs/
 *.log
