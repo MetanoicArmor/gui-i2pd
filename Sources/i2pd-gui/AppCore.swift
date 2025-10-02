@@ -2,14 +2,53 @@ import SwiftUI
 import Foundation
 import AppKit
 
+// MARK: - App Delegate для обработки завершения приложения
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationWillTerminate(_ notification: Notification) {
+        print("🚪 Приложение завершается - останавливаем демон!")
+        
+        // Уведомляем View о завершении приложения для остановки демона
+        NotificationCenter.default.post(name: NSNotification.Name("NSApplicationWillTerminate"), object: nil)
+        
+        // Дополнительная прямая остановка демона для надежности
+        DispatchQueue.global(qos: .background).async {
+            let stopCommand = """
+            # Быстрая остановка при выходе приложения
+            echo "🛑 Остановка демона при выходе приложения..." &&
+            pkill -INT i2pd 2>/dev/null || true &&
+            sleep 1 &&
+            pkill -KILL i2pd 2>/dev/null || true &&
+            echo "✅ Демон остановлен при выходе"
+            """
+            
+            let killProcess = Process()
+            killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+            killProcess.arguments = ["-c", stopCommand]
+            
+            do {
+                try killProcess.run()
+                killProcess.waitUntilExit()
+                print("✅ Демон остановлен при завершении приложения")
+            } catch {
+                print("❌ Ошибка остановки демона при выходе: \(error)")
+            }
+        }
+    }
+}
+
 // MARK: - Tray Manager Singleton  
 class TrayManager: NSObject, ObservableObject {
     static let shared = TrayManager()
     private var statusBarItem: NSStatusItem?
+    private var appDelegate: AppDelegate?
     
     private override init() {
         super.init()
         setupStatusBar()
+        
+        // Создаем и сохраняем делегат для обработки завершения приложения
+        appDelegate = AppDelegate()
+        NSApp.delegate = appDelegate
     }
     
     private func setupStatusBar() {
@@ -349,8 +388,16 @@ class TrayManager: NSObject, ObservableObject {
     
     @objc private func quitApplication() {
         print("🚪 ВЫХОД ИЗ ПРИЛОЖЕНИЯ из трея!")
-        updateStatusText("🚪 Выход из приложения")
-        NSApplication.shared.terminate(nil)
+        updateStatusText("🚪 Остановка демона и выход...")
+        
+        // Останавливаем демон перед выходом
+        stopDaemon()
+        
+        // Даём время на остановку демона
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            NotificationCenter.default.post(name: NSNotification.Name("ApplicationShouldTerminate"), object: nil)
+            NSApplication.shared.terminate(nil)
+        }
     }
     
     private func updateStatusText(_ text: String) {
@@ -617,6 +664,10 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSettings"))) { _ in
             showingSettings = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NSApplicationWillTerminate"))) { _ in
+            // Останавливаем демон при закрытии приложения
+            TrayManager.shared.stopDaemon()
         }
         .overlay(alignment: .bottom) {
             if i2pdManager.isLoading {
