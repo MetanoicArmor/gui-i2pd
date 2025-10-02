@@ -19,34 +19,9 @@ class TrayManager: NSObject, ObservableObject {
             // Используем кастомную иконку трея или системную как fallback
             var image: NSImage?
             
-            // Загружаем оптимизированные Retina иконки трея (без автоувеличения macOS)
-            if let bundlePath = Bundle.main.bundlePath as NSString? {
-                var trayIconPath: String
-                
-                // Определяем какая тема используется
-                let isDarkMode = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-                
-                if isDarkMode {
-                    // Для темной темы используем светлую иконку без @2x суффикса
-                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon-dark.png")
-                    print("🌙 Темная тема - используем tray-icon-dark.png (прямая Retina)")
-                } else {
-                    // Для светлой темы используем основную иконку без @2x суффикса
-                    trayIconPath = bundlePath.appendingPathComponent("Contents/Resources/tray-icon.png")
-                    print("☀️ Светлая тема - используем tray-icon.png (прямая Retina)")
-                }
-                
-                if FileManager.default.fileExists(atPath: trayIconPath) {
-                    image = NSImage(contentsOfFile: trayIconPath)
-                    print("✅ Загружена оптимизированная иконка трея: \(trayIconPath)")
-                }
-            }
-            
-            // Fallback к системной иконке
-            if image == nil {
-                image = NSImage(systemSymbolName: "network", accessibilityDescription: "I2P Daemon")
-                print("⚠️ Используется системная иконка трея")
-            }
+            // Используем системную иконку по умолчанию - надежно и знакомо
+            image = NSImage(systemSymbolName: "network", accessibilityDescription: "I2P Daemon")
+            print("✅ Используется системная иконка трея")
             
             // Устанавливаем оптимальный размер иконки для сбалансированности
             if let image = image {
