@@ -31,6 +31,10 @@ struct ContentView: View {
     @State private var showingStats = false
     @State private var showingSettings = false
     
+    // Сетевая конфигурация для главной страницы
+    @AppStorage("daemonPort") private var daemonPort = 4444
+    @AppStorage("bandwidthLimit") private var bandwidthLimit = "unlimited"
+    
     var body: some View {
         VStack(spacing: 32) {
             // Заголовок
@@ -48,6 +52,76 @@ struct ContentView: View {
                 uptime: i2pdManager.uptime,
                 peers: i2pdManager.peerCount
             )
+            .padding(.horizontal, 24)
+            
+            // Сетевая конфигурация
+            VStack(spacing: 16) {
+                HStack {
+                    Image(systemName: "globe")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.blue)
+                    Text("🌐 Сетевая конфигурация")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(12)
+                
+                VStack(spacing: 16) {
+                    // Порт daemon
+                    HStack(spacing: 20) {
+                        Text("Порт daemon")
+                            .font(.system(.body, design: .default, weight: .medium))
+                            .foregroundColor(.primary)
+                            .frame(minWidth: 120, alignment: .leading)
+                        
+                        TextField("4444", value: $daemonPort, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 140)
+                        
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Divider()
+                    
+                    // Ограничение скорости
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Ограничение скорости")
+                            .font(.system(.body, design: .default, weight: .medium))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Picker("Ограничение скорости", selection: $bandwidthLimit) {
+                            Text("Без ограничений").tag("unlimited")
+                            Text("128 KB/s").tag("128")
+                            Text("512 KB/s").tag("512")
+                            Text("1 MB/s").tag("1024")
+                            Text("5 MB/s").tag("5120")
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(maxWidth: .infinity)
+                        .onChange(of: bandwidthLimit) {
+                            saveNetworkSettings(i2pdManager: i2pdManager)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(NSColor.windowBackgroundColor))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+                        )
+                )
+            }
             .padding(.horizontal, 24)
             
             // Кнопки управления
@@ -124,6 +198,16 @@ struct ContentView: View {
             NSApp.appearance = NSAppearance(named: .darkAqua)
         } else {
             NSApp.appearance = NSAppearance(named: .aqua)
+        }
+    }
+    
+    private func saveNetworkSettings(i2pdManager: I2pdManager) {
+        // Сетевые настройки автоматически сохраняются через @AppStorage
+        i2pdManager.logExportComplete("🌐 Сетевые настройки обновлены")
+        
+        // Перезапуск демона если он запущен для применения настроек
+        if i2pdManager.isRunning {
+            i2pdManager.logExportComplete("⚠️ Перезапустите демон для применения настроек")
         }
     }
 }
