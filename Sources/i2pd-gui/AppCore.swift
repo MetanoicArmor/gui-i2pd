@@ -1817,6 +1817,9 @@ class I2pdManager: ObservableObject {
             executablePath = validPaths.first ?? "./i2pd"
         }
         
+        // Инициализация конфигурационных файлов
+        setupConfigFiles()
+        
         // Дебаг вывод
         DispatchQueue.main.async { [weak self] in
             self?.addLog(.debug, "🔧 Инициализация I2pdManager")
@@ -2198,6 +2201,57 @@ class I2pdManager: ObservableObject {
             // Ограничиваем количество логов
             if self?.logs.count ?? 0 > 100 {
                 self?.logs.removeFirst((self?.logs.count ?? 0) - 100)
+            }
+        }
+    }
+    
+    private func setupConfigFiles() {
+        // Получаем путь к домашней директории пользователя
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let i2pdDir = homeDir.appendingPathComponent(".i2pd")
+        
+        // Создаем директорию .i2pd если ее нет
+        try? FileManager.default.createDirectory(at: i2pdDir, withIntermediateDirectories: true)
+        
+        let bundle = Bundle.main
+        let resourcesPath = "Contents/Resources"
+        
+        // Копируем subscriptions.txt
+        if let subscriptionsURL = bundle.url(forResource: "subscriptions", withExtension: "txt", subdirectory: resourcesPath) {
+            let destPath = i2pdDir.appendingPathComponent("subscriptions.txt")
+            if !FileManager.default.fileExists(atPath: destPath.path) {
+                do {
+                    try FileManager.default.copyItem(at: subscriptionsURL, to: destPath)
+                    addLog(.info, "✅ subscriptions.txt скопирован из бандла")
+                } catch {
+                    addLog(.error, "❌ Ошибка копирования subscriptions.txt: \(error)")
+                }
+            }
+        }
+        
+        // Копируем i2pd.conf
+        if let configURL = bundle.url(forResource: "i2pd", withExtension: "conf", subdirectory: resourcesPath) {
+            let destPath = i2pdDir.appendingPathComponent("i2pd.conf")
+            if !FileManager.default.fileExists(atPath: destPath.path) {
+                do {
+                    try FileManager.default.copyItem(at: configURL, to: destPath)
+                    addLog(.info, "✅ i2pd.conf скопирован из бандла")
+                } catch {
+                    addLog(.error, "❌ Ошибка копирования i2pd.conf: \(error)")
+                }
+            }
+        }
+        
+        // Копируем tunnels.conf
+        if let tunnelsURL = bundle.url(forResource: "tunnels", withExtension: "conf", subdirectory: resourcesPath) {
+            let destPath = i2pdDir.appendingPathComponent("tunnels.conf")
+            if !FileManager.default.fileExists(atPath: destPath.path) {
+                do {
+                    try FileManager.default.copyItem(at: tunnelsURL, to: destPath)
+                    addLog(.info, "✅ tunnels.conf скопирован из бандла")
+                } catch {
+                    addLog(.error, "❌ Ошибка копирования tunnels.conf: \(error)")
+                }
             }
         }
     }

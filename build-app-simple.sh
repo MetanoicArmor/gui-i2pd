@@ -84,6 +84,33 @@ else
     echo "⚠️  Иконка I2P-GUI.icns не найдена"
 fi
 
+# Копируем конфигурационные файлы
+echo "📋 Копирование конфигурационных файлов..."
+
+# subscriptions.txt
+if [ -f "subscriptions.txt" ]; then
+    cp "subscriptions.txt" ${RESOURCES_DIR}/subscriptions.txt
+    echo "✅ subscriptions.txt скопирован"
+else
+    echo "⚠️  subscriptions.txt не найден"
+fi
+
+# i2pd.conf
+if [ -f "i2pd.conf" ]; then
+    cp "i2pd.conf" ${RESOURCES_DIR}/i2pd.conf
+    echo "✅ i2pd.conf скопирован"
+else
+    echo "⚠️  i2pd.conf не найден"
+fi
+
+# tunnels.conf
+if [ -f "tunnels.conf" ]; then
+    cp "tunnels.conf" ${RESOURCES_DIR}/tunnels.conf
+    echo "✅ tunnels.conf скопирован"
+else
+    echo "⚠️  tunnels.conf не найден"
+fi
+
 # Создаем Info.plist
 echo "📋 Создание Info.plist..."
 
@@ -157,6 +184,12 @@ echo "   📦 Размер: $(du -sh ${APP_DIR} | cut -f1)"
 echo "   🔧 Исполняемый файл: $(du -sh ${MACOS_DIR}/${APP_NAME} | cut -f1)"
 echo "   📋 ID: ${BUNDLE_ID}"
 echo "   📱 Версия: ${APP_VERSION}"
+echo ""
+echo "📁 Включенные файлы:"
+echo "   🔧 i2pd - основной демон"
+if [ -f "subscriptions.txt" ]; then echo "   📋 subscriptions.txt - подписки address book"; fi
+if [ -f "i2pd.conf" ]; then echo "   ⚙️ i2pd.conf - конфигурация демона"; fi
+if [ -f "tunnels.conf" ]; then echo "   🚇 tunnels.conf - конфигурация туннелей"; fi
 echo ""
 echo "🚀 Способы запуска:"
 echo "   Двойной клик на: ${APP_DIR}"
