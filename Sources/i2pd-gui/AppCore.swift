@@ -34,28 +34,28 @@ class TrayManager: NSObject, ObservableObject {
             let menu = NSMenu()
             
             // Статус
-            let statusItem = NSMenuItem(title: "📊 Статус: Готов", action: #selector(checkStatus), keyEquivalent: "")
+            let statusItem = NSMenuItem(title: "Статус: Готов", action: #selector(checkStatus), keyEquivalent: "")
             statusItem.target = self
             menu.addItem(statusItem)
             menu.addItem(NSMenuItem.separator())
             
-            // Управление daemon - упрощенная версия
+            // Управление daemon - только текст
             let startAction = #selector(TrayManager.startDaemon)
             print("🔧 Селектор для start: \(String(describing: startAction))")
             
-            let startItem = NSMenuItem(title: "🚀 Запустить daemon", action: startAction, keyEquivalent: "")
+            let startItem = NSMenuItem(title: "Запустить daemon", action: startAction, keyEquivalent: "")
             startItem.target = self
             startItem.tag = 1
             print("🔧 startItem создан с target: \(String(describing: startItem.target)), action: \(String(describing: startItem.action))")
             menu.addItem(startItem)
             
-            let stopItem = NSMenuItem(title: "⏹️ Остановить daemon", action: #selector(stopDaemon), keyEquivalent: "")
+            let stopItem = NSMenuItem(title: "Остановить daemon", action: #selector(stopDaemon), keyEquivalent: "")
             stopItem.target = self
             stopItem.tag = 2
             print("🔧 stopItem создан с target: \(String(describing: stopItem.target)), action: \(String(describing: stopItem.action))")
             menu.addItem(stopItem)
             
-            let restartItem = NSMenuItem(title: "🔄 Перезапустить daemon", action: #selector(restartDaemon), keyEquivalent: "")
+            let restartItem = NSMenuItem(title: "Перезапустить daemon", action: #selector(restartDaemon), keyEquivalent: "")
             restartItem.target = self
             restartItem.tag = 3
             print("🔧 restartItem создан с target: \(String(describing: restartItem.target)), action: \(String(describing: restartItem.action))")
@@ -63,25 +63,25 @@ class TrayManager: NSObject, ObservableObject {
             menu.addItem(NSMenuItem.separator())
             
             // Функции
-            let settingsItem = NSMenuItem(title: "⚙️ Настройки", action: #selector(openSettings), keyEquivalent: ",")
+            let settingsItem = NSMenuItem(title: "Настройки", action: #selector(openSettings), keyEquivalent: ",")
             settingsItem.target = self
             print("🔧 Создан settingsItem с target: \(String(describing: settingsItem.target)), action: \(String(describing: settingsItem.action))")
             menu.addItem(settingsItem)
             
-            let webItem = NSMenuItem(title: "🌐 Веб-консоль", action: #selector(openWebConsole), keyEquivalent: "")
+            let webItem = NSMenuItem(title: "Веб-консоль", action: #selector(openWebConsole), keyEquivalent: "")
             webItem.target = self
             menu.addItem(webItem)
             
-            let showItem = NSMenuItem(title: "📱 Показать окно", action: #selector(showMainWindow), keyEquivalent: "")
+            let showItem = NSMenuItem(title: "Показать окно", action: #selector(showMainWindow), keyEquivalent: "")
             showItem.target = self
             menu.addItem(showItem)
             menu.addItem(NSMenuItem.separator())
             
-            let hideItem = NSMenuItem(title: "❌ Свернуть в трей", action: #selector(hideMainWindow), keyEquivalent: "")
+            let hideItem = NSMenuItem(title: "Свернуть в трей", action: #selector(hideMainWindow), keyEquivalent: "")
             hideItem.target = self
             menu.addItem(hideItem)
             
-            let quitItem = NSMenuItem(title: "🚪 Выйти", action: #selector(quitApplication), keyEquivalent: "")
+            let quitItem = NSMenuItem(title: "Выйти", action: #selector(quitApplication), keyEquivalent: "")
             quitItem.target = self
             menu.addItem(quitItem)
             
