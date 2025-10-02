@@ -6,6 +6,8 @@ import AppKit
 @main
 struct I2pdGUIApp: App {
     @AppStorage("darkMode") private var darkMode = true
+    @State private var statusBarItem: NSStatusItem?
+    @State private var appDelegate: AppDelegate?
     
     init() {
         // Устанавливаем только UserDefaults по умолчанию
@@ -17,10 +19,189 @@ struct I2pdGUIApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    setupStatusBar()
+                    // Настраиваем поведение закрытия окна
+                    if appDelegate == nil {
+                        appDelegate = AppDelegate()
+                        NSApp.delegate = appDelegate
+                    }
+                }
         }
         .windowStyle(.titleBar)
         .defaultSize(width: 800, height: 900)
         .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(after: .windowArrangement) {
+                Button("Свернуть в трей (⌘H)") {
+                    hideMainWindow()
+                }
+                .keyboardShortcut("h", modifiers: [.command])
+                
+                Button("Показать главное окно") {
+                    showMainWindow()
+                }
+                .keyboardShortcut("w", modifiers: [.command])
+            }
+        }
+        
+        // Команды для управления daemon из меню
+        Settings {
+            Text("Настройки") // Заглушка для меню
+        }
+    }
+    
+    private func setupStatusBar() {
+        guard statusBarItem == nil else { return }
+        
+        statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        
+        if let statusBarItem = statusBarItem {
+            let image = NSImage(systemSymbolName: "network", accessibilityDescription: "I2P Daemon")
+            image?.size = NSSize(width: 18, height: 18)
+            statusBarItem.button?.image = image
+            
+            // Создаем контекстное меню
+            let menu = NSMenu()
+            
+            // Статус и управление
+            menu.addItem(createMenuItem("📊 Статус: Проверяется...", action: {}))
+            menu.addItem(NSMenuItem.separator())
+            
+            // Кнопки управления
+            menu.addItem(createMenuItem("🚀 Запустить daemon", action: startDaemon))
+            menu.addItem(createMenuItem("⏹️ Остановить daemon", action: stopDaemon))
+            menu.addItem(createMenuItem("🔄 Перезапустить daemon", action: restartDaemon))
+            menu.addItem(NSMenuItem.separator())
+            
+            // Доступ к функциям
+            menu.addItem(createMenuItem("🌐 Открыть веб-консоль", action: openWebConsole))
+            menu.addItem(createMenuItem("⚙️ Показать главное окно", action: showMainWindow))
+            menu.addItem(createMenuItem("⚙️ Настройки", action: showSettings))
+            menu.addItem(NSMenuItem.separator())
+            
+            // Завершение работы
+            menu.addItem(createMenuItem("❌ Закрыть в трей", action: hideMainWindow))
+            menu.addItem(createMenuItem("🚪 Выйти из приложения", action: quitApplication))
+            
+            statusBarItem.menu = menu
+        }
+    }
+    
+    private func createMenuItem(_ title: String, action: @escaping () -> Void) -> NSMenuItem {
+        let target = MenuTarget(action: action)
+        let item = NSMenuItem(title: title, action: #selector(MenuTarget.performAction), keyEquivalent: "")
+        item.target = target
+        return item
+    }
+    
+    private func startDaemon() {
+        // Запускаем daemon через системный вызов
+        DispatchQueue.global(qos: .background).async {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/bash")
+            process.arguments = ["-c", "open -n I2P-GUI.app --args --hidden"]
+            
+            do {
+                try process.run()
+            } catch {
+                print("Ошибка запуска daemon: \(error)")
+            }
+        }
+    }
+    
+    private func stopDaemon() {
+        DispatchQueue.global(qos: .background).async {
+            let stopCommand = """
+            pkill -INT -f "i2pd.*daemon" 2>/dev/null || true &&
+            sleep 2 &&
+            pkill -KILL -f "i2pd.*daemon" 2>/dev/null || true &&
+            killall -INT i2pd 2>/dev/null || true &&
+            killall -KILL i2pd 2>/dev/null || true
+            """
+            
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/bash")
+            process.arguments = ["-c", stopCommand]
+            
+            do {
+                try process.run()
+            } catch {
+                print("Ошибка остановки daemon: \(error)")
+            }
+        }
+    }
+    
+    private func restartDaemon() {
+        stopDaemon()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            self.startDaemon()
+        }
+    }
+    
+    private func openWebConsole() {
+        if let url = URL(string: "http://127.0.0.1:7070") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+    
+    private func showMainWindow() {
+        for window in NSApplication.shared.windows {
+            window.makeKeyAndOrderFront(nil)
+        }
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+    
+    private func showSettings() {
+        // Открываем главное окно для доступа к настройкам
+        showMainWindow()
+    }
+    
+    private func hideMainWindow() {
+        for window in NSApplication.shared.windows {
+            window.orderOut(nil)
+        }
+    }
+    
+    private func quitApplication() {
+        NSApplication.shared.terminate(nil)
+    }
+}
+
+// MARK: - Menu Target Helper
+class MenuTarget: NSObject {
+    private let action: () -> Void
+    
+    init(action: @escaping () -> Void) {
+        self.action = action
+        super.init()
+    }
+    
+    @objc func performAction() {
+        action()
+    }
+}
+
+// MARK: - App Delegate для обработки закрытия окна
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        // Предотвращаем закрытие приложения при закрытии последнего окна
+        // Вместо этого сворачиваем в трей
+        DispatchQueue.main.async {
+            self.hideAllWindows()
+        }
+        return false
+    }
+    
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Устанавливаем политику активации приложения
+        NSApp.setActivationPolicy(.regular)
+    }
+    
+    private func hideAllWindows() {
+        for window in NSApplication.shared.windows {
+            window.orderOut(nil)
+        }
     }
 }
 
@@ -1184,13 +1365,22 @@ struct ControlButtons: View {
             
             // Дополнительные кнопки
             HStack(spacing: 12) {
-                    Button("⚙️ Настройки") {
-                        showingSettings = true
-                    }
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.9)
-                    .frame(height: 36)
+                Button("⚙️ Настройки") {
+                    showingSettings = true
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+                .frame(height: 36)
                 .frame(maxWidth: .infinity)
+                
+                Button("🔽 Свернуть в трей") {
+                    hideToTray()
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
+                .keyboardShortcut("h", modifiers: [.command])
                 
                 Button("Очистить логи") {
                     i2pdManager.clearLogs()
@@ -1200,6 +1390,19 @@ struct ControlButtons: View {
                 .frame(height: 36)
                 .frame(maxWidth: .infinity)
             }
+        }
+    }
+    
+    private func hideToTray() {
+        // Скрываем все окна приложения
+        for window in NSApplication.shared.windows {
+            window.orderOut(nil)
+        }
+        
+        // Показываем уведомление в логах
+        i2pdManager.operationInProgress = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.i2pdManager.logs.append(LogEntry(level: .info, message: "📱 Приложение свернуто в трей"))
         }
     }
 }
