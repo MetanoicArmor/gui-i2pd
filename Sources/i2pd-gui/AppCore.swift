@@ -148,13 +148,33 @@ struct ContentView: View {
                     }
                     .padding(.horizontal, 20)
                     
-                    // Логи с ограниченной высотой
+                    // Логи с ограниченной высотой - упрощаем для избежания crash
                     if !i2pdManager.logs.isEmpty {
-                        ScrollView {
-                            LogView(logs: i2pdManager.logs)
-                                .padding(.horizontal, 20)
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(i2pdManager.logs.prefix(10), id: \.id) { log in
+                                HStack(spacing: 8) {
+                                    Text(log.timestamp.formatted(.dateTime.hour().minute().second()))
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 50, alignment: .leading)
+                                    
+                                    Text(log.level.rawValue)
+                                        .font(.caption2)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(log.level == .error ? Color.red : (log.level == .warn ? Color.orange : Color.blue))
+                                        .foregroundColor(.white)
+                                        .cornerRadius(2)
+                                    
+                                    Text(log.message)
+                                        .font(.caption2)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                }
+                            }
                         }
-                        .frame(maxHeight: 200) // Ограничиваем высоту логов
+                        .padding(.horizontal, 20)
+                        .frame(maxHeight: 150) // Ограничиваем высоту логов
                     } else {
                         VStack(spacing: 8) {
                             Image(systemName: "doc.text")
@@ -171,7 +191,8 @@ struct ContentView: View {
                 .padding(.horizontal, 24)
             }
         }
-        .frame(minWidth: 700, minHeight: 500)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(minWidth: 700, maxWidth: 900, minHeight: 400, maxHeight: 800)
         .onAppear {
             i2pdManager.checkStatus()
             
@@ -1437,6 +1458,7 @@ struct StatCard: View {
                 .font(.system(.caption, design: .default, weight: .medium))
                 .foregroundColor(.secondary)
         }
+        .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, minHeight: 80)
         .background(
             RoundedRectangle(cornerRadius: 8)
@@ -1458,9 +1480,8 @@ struct CollapsibleSection<Content: View>: View {
         VStack(spacing: 8) {
             // Заголовок с кнопкой сворачивания
             Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    isExpanded.toggle()
-                }
+                // Убираем анимацию для избежания crash
+                isExpanded.toggle()
             }) {
                 HStack {
                     Image(systemName: icon)
@@ -1489,7 +1510,7 @@ struct CollapsibleSection<Content: View>: View {
             // Контент (показывается только при разворачивании)
             if isExpanded {
                 content()
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
