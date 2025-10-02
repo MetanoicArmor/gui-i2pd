@@ -1,5 +1,6 @@
 import SwiftUI
 import Foundation
+import AppKit
 
 // MARK: - App Entry Point
 @main
@@ -18,18 +19,8 @@ struct I2pdGUIApp: App {
             ContentView()
         }
         .windowStyle(.titleBar)
+        .defaultSize(width: 800, height: 900)
         .windowResizability(.contentSize)
-        .commands {
-            CommandGroup(replacing: .help) {
-                Button("О программе") {
-                    DispatchQueue.main.async {
-                        if let window = NSApplication.shared.windows.first {
-                            window.contentView?.window?.makeFirstResponder(nil)
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -41,82 +32,73 @@ struct ContentView: View {
     @State private var showingSettings = false
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Заголовочная панель
-                VStack(spacing: 16) {
-                    // Заголовок
-                    Text("I2P Daemon GUI")
-                        .font(.largeTitle)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .padding(.top, 20)
-                    
-                    // Статус сервера
-                    StatusCard(
-                        isRunning: i2pdManager.isRunning,
-                        uptime: i2pdManager.uptime,
-                        peers: i2pdManager.peerCount
-                    )
-                    .padding(.horizontal, 24)
-                    
-                    // Кнопки управления
-                    ControlButtons(
-                        i2pdManager: i2pdManager,
-                        showingStats: $showingStats,
-                        showingSettings: $showingSettings,
-                        showingAbout: $showingAbout
-                    )
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 16)
-                }
-                .background(Color(NSColor.windowBackgroundColor))
-                
-                Divider()
-                
-                // Секция логов
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Логи")
-                            .font(.headline)
-                            .fontWeight(.medium)
-                        Spacer()
-                        if !i2pdManager.logs.isEmpty {
-                            Button("Очистить") {
-                                i2pdManager.clearLogs()
-                            }
-                            .font(.caption)
-                            .buttonStyle(.borderless)
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 16)
-                    
+        VStack(spacing: 32) {
+            // Заголовок
+            Text("I2P Daemon GUI")
+                .font(.largeTitle)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .padding(.top, 24)
+            
+            // Статус сервера
+            StatusCard(
+                isRunning: i2pdManager.isRunning,
+                uptime: i2pdManager.uptime,
+                peers: i2pdManager.peerCount
+            )
+            .padding(.horizontal, 24)
+            
+            // Кнопки управления
+            ControlButtons(
+                i2pdManager: i2pdManager,
+                showingStats: $showingStats,
+                showingSettings: $showingSettings,
+                showingAbout: $showingAbout
+            )
+            .padding(.horizontal, 24)
+            
+            // Секция логов
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("Логи")
+                        .font(.headline)
+                        .fontWeight(.medium)
+                    Spacer()
                     if !i2pdManager.logs.isEmpty {
-                        LogView(logs: i2pdManager.logs)
-                            .padding(.horizontal, 24)
-                            .padding(.bottom, 24)
-                    } else {
-                        VStack(spacing: 8) {
-                            Image(systemName: "doc.text")
-                                .font(.system(size: 32))
-                                .foregroundColor(.secondary)
-                            Text("Пока нет логов")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                        Button("Очистить") {
+                            i2pdManager.clearLogs()
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
-                        .padding(.bottom, 24)
+                        .font(.caption)
+                        .buttonStyle(.borderless)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(NSColor.controlBackgroundColor))
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                
+                if !i2pdManager.logs.isEmpty {
+                    LogView(logs: i2pdManager.logs)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 24)
+                } else {
+                    VStack(spacing: 8) {
+                        Image(systemName: "doc.text")
+                            .font(.system(size: 32))
+                            .foregroundColor(.secondary)
+                        Text("Пока нет логов")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                    .padding(.bottom, 24)
+                }
             }
-            .frame(minWidth: 600, minHeight: 700)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
         }
+        .frame(minWidth: 600, minHeight: 700)
         .onAppear {
             i2pdManager.checkStatus()
             
@@ -148,6 +130,8 @@ struct ContentView: View {
 
 // MARK: - About View
 struct AboutView: View {
+    @Environment(\.dismiss) private var dismiss
+    
     var body: some View {
         VStack(spacing: 20) {
             // Иконка приложения
@@ -196,7 +180,7 @@ struct AboutView: View {
             .font(.caption)
             
             Button("Закрыть") {
-                // Будет закрыто автоматически через sheet
+                dismiss()
             }
             .buttonStyle(.bordered)
             .padding(.top)
@@ -212,77 +196,75 @@ struct NetworkStatsView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                // Заголовок
-                Text("🌐 Сетевая статистика")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+        VStack(spacing: 20) {
+            // Заголовок
+            Text("🌐 Сетевая статистика")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .padding(.top, 8)
+            
+            // Статистические карточки
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 15) {
+                StatsCard(
+                    icon: "arrow.down.circle.fill",
+                    title: "Получено",
+                    value: formatBytes(i2pdManager.bytesReceived),
+                    color: .green
+                )
                 
-                // Статистические карточки
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: 15) {
-                    StatsCard(
-                        icon: "arrow.down.circle.fill",
-                        title: "Получено",
-                        value: formatBytes(i2pdManager.bytesReceived),
-                        color: .green
-                    )
-                    
-                    StatsCard(
-                        icon: "arrow.up.circle.fill", 
-                        title: "Отправлено",
-                        value: formatBytes(i2pdManager.bytesSent),
-                        color: .blue
-                    )
-                    
-                    StatsCard(
-                        icon: "tunnel.fill",
-                        title: "Туннели",
-                        value: "\(i2pdManager.activeTunnels)",
-                        color: .purple
-                    )
-                    
-                    StatsCard(
-                        icon: "router.fill",
-                        title: "Роутеры",
-                        value: "\(i2pdManager.routerInfos)",
-                        color: .orange
-                    )
-                }
-                .padding(.horizontal)
+                StatsCard(
+                    icon: "arrow.up.circle.fill",
+                    title: "Отправлено",
+                    value: formatBytes(i2pdManager.bytesSent),
+                    color: .blue
+                )
                 
-                // Кнопки управления
-                HStack(spacing: 15) {
-                    Button("🔄 Обновить") {
-                        i2pdManager.getExtendedStats()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    
-                    Button("Экспорт") {
-                        exportStats()
-                    }
-                    .buttonStyle(.bordered)
-                    
-                    Button("Закрыть") {
-                        dismiss()
-                    }
-                    .buttonStyle(.bordered)
-                }
+                StatsCard(
+                    icon: "lock.shield",
+                    title: "Туннели",
+                    value: "\(i2pdManager.activeTunnels)",
+                    color: .purple
+                )
                 
-                Spacer()
+                StatsCard(
+                    icon: "antenna.radiowaves.left.and.right",
+                    title: "Роутеры",
+                    value: "\(i2pdManager.routerInfos)",
+                    color: .orange
+                )
             }
-            .padding()
-            .navigationTitle("Статистика сети")
-            .onAppear {
-                i2pdManager.getExtendedStats()
+            .padding(.horizontal)
+            
+            // Кнопки управления
+            HStack(spacing: 15) {
+                Button("🔄 Обновить") {
+                    i2pdManager.getExtendedStats()
+                }
+                .buttonStyle(.borderedProminent)
+                
+                Button("Экспорт") {
+                    exportStats()
+                }
+                .buttonStyle(.bordered)
+                
+                Button("Закрыть") {
+                    dismiss()
+                }
+                .buttonStyle(.bordered)
             }
+            
+            Spacer()
         }
+        .padding()
         .frame(minWidth: 600, minHeight: 500)
+        .onAppear {
+            i2pdManager.getExtendedStats()
+        }
     }
     
     private func formatBytes(_ bytes: Int) -> String {
@@ -320,7 +302,7 @@ struct NetworkStatsView: View {
 
 struct StatsCard: View {
     let icon: String
-    let title: String  
+    let title: String
     let value: String
     let color: Color
     
@@ -330,17 +312,17 @@ struct StatsCard: View {
                 .font(.system(size: 24))
                 .foregroundColor(color)
             
-                    Text(value)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.9)
-                    
-                    Text(title)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.9)
+            Text(value)
+                .font(.title2)
+                .fontWeight(.bold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
         }
         .padding()
         .background(Color(NSColor.windowBackgroundColor))
@@ -604,7 +586,7 @@ struct SettingsView: View {
         alert.messageText = "Очистка кэша"
         alert.informativeText = "Вы уверены что хотите очистить кэш приложения? Это действие нельзя отменить."
         alert.addButton(withTitle: "Очистить")
-        alert.addButton(withTitle: "[Предыдущее редактирование]")
+        alert.addButton(withTitle: "Отменить")
         
         if alert.runModal() == .alertFirstButtonReturn {
             // TODO: Реализовать очистку кэша
@@ -914,8 +896,8 @@ struct LogView: View {
                     .padding(.vertical, 8)
                     .background(
                         Rectangle()
-                            .fill(log.level == .error ? Color.red.opacity(0.03) : 
-                                  log.level == .warn ? Color.orange.opacity(0.03) : 
+                            .fill(log.level == .error ? Color.red.opacity(0.03) :
+                                  log.level == .warn ? Color.orange.opacity(0.03) :
                                   Color.clear)
                     )
                 }
@@ -1004,7 +986,7 @@ class I2pdManager: ObservableObject {
             
             fallbackPaths.append(contentsOf: [
                 "./i2pd",
-                "/usr/local/bin/i2pd", 
+                "/usr/local/bin/i2pd",
                 "/opt/homebrew/bin/i2pd",
                 "/usr/bin/i2pd"
             ])

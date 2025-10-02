@@ -1,0 +1,29 @@
+CXX = clang++
+CXXFLAGS := ${CXX_DEBUG} -Wall -std=c++17
+INCFLAGS = -I/opt/homebrew/opt/openssl@3/include -I/opt/homebrew/include
+DEFINES := -DMAC_OSX
+LDFLAGS := -Wl,-rpath,/opt/homebrew/opt/openssl@3/lib -L/opt/homebrew/opt/openssl@3/lib -L/opt/homebrew/opt/boost/lib
+LDFLAGS += -Wl,-dead_strip
+LDFLAGS += -Wl,-dead_strip_dylibs
+
+ifeq ($(USE_STATIC),yes)
+	LDLIBS = -lz /opt/homebrew/opt/openssl@3/lib/libssl.a /opt/homebrew/opt/openssl@3/lib/libcrypto.a /opt/homebrew/opt/boost/lib/libboost_filesystem.a /opt/homebrew/opt/boost/lib/libboost_program_options.a -lpthread
+else
+	LDLIBS = -lz -lssl -lcrypto -lboost_filesystem -lboost_program_options -lpthread
+endif
+
+ifeq ($(USE_UPNP),yes)
+	LDFLAGS += -ldl
+	DEFINES += -DUSE_UPNP
+	ifeq ($(USE_STATIC),yes)
+		LDLIBS += /opt/homebrew/lib/libminiupnpc.a
+	else
+		LDLIBS += -lminiupnpc
+	endif
+endif
+
+OSARCH = $(shell uname -p)
+
+ifeq ($(OSARCH),x86_64)
+	CXXFLAGS += -msse
+endif
