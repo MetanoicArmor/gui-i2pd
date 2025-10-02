@@ -7,15 +7,9 @@ struct I2pdGUIApp: App {
     @AppStorage("darkMode") private var darkMode = true
     
     init() {
-        // Инициализация темы при запуске
+        // Устанавливаем только UserDefaults по умолчанию
         if UserDefaults.standard.object(forKey: "darkMode") == nil {
             UserDefaults.standard.set(true, forKey: "darkMode")
-        }
-        
-        if UserDefaults.standard.bool(forKey: "darkMode") {
-            NSApp.appearance = NSAppearance(named: .darkAqua)
-        } else {
-            NSApp.appearance = NSAppearance(named: .aqua)
         }
     }
     
@@ -83,6 +77,11 @@ struct ContentView: View {
         }
         .onAppear {
             i2pdManager.checkStatus()
+            
+            // Применяем тему после полной инициализации
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                applyTheme()
+            }
         }
         .sheet(isPresented: $showingAbout) {
             AboutView()
@@ -92,6 +91,15 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView(i2pdManager: i2pdManager)
+        }
+    }
+    
+    private func applyTheme() {
+        let isDarkMode = UserDefaults.standard.bool(forKey: "darkMode")
+        if isDarkMode {
+            NSApp.appearance = NSAppearance(named: .darkAqua)
+        } else {
+            NSApp.appearance = NSAppearance(named: .aqua)
         }
     }
 }
@@ -416,11 +424,13 @@ struct SettingsView: View {
         // Сохранение настроек в UserDefaults (уже автоматически через @AppStorage)
         i2pdManager.logExportComplete("✅ Настройки сохранены")
         
-        // Применяем тему системы
-        if darkMode {
-            NSApp.appearance = NSAppearance(named: .darkAqua)
-        } else {
-            NSApp.appearance = NSAppearance(named: .aqua)
+        // Применяем тему системы безопасно
+        DispatchQueue.main.async {
+            if darkMode {
+                NSApp.appearance = NSAppearance(named: .darkAqua)
+            } else {
+                NSApp.appearance = NSAppearance(named: .aqua)
+            }
         }
     }
     
@@ -483,8 +493,10 @@ struct SettingsView: View {
             autoLogCleanup = false
             darkMode = true
             
-            // Применяем тёмную тему по умолчанию
-            NSApp.appearance = NSAppearance(named: .darkAqua)
+            // Применяем тёмную тему по умолчанию безопасно
+            DispatchQueue.main.async {
+                NSApp.appearance = NSAppearance(named: .darkAqua)
+            }
             
             i2pdManager.logExportComplete("🔄 Настройки сброшены к значениям по умолчанию")
         }
