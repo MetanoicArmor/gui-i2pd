@@ -10,7 +10,7 @@
 
 **Современный GUI для управления I2P daemon на macOS**
 
-[![Download](https://img.shields.io/badge/📥%20Скачать-I2P--GUI.app-brightgreen.svg)](https://github.com/MetanoicArmor/gui-i2pd/releases/latest/download/I2P-GUI.app.zip)
+[![Download](https://img.shields.io/badge/📥%20Скачать-I2P--GUI.app-brightgreen.svg)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-GUI-v2.58.0.app.zip)
 [![Build Status](https://img.shields.io/badge/🔧%20Сборка-Passing-success.svg)](https://github.com/MetanoicArmor/gui-i2pd/actions)
 
 </div>
@@ -39,12 +39,12 @@
 1. **📥 Скачайте готовое приложение:**
    ```bash
    # Прямая ссылка на .app ZIP архив
-   curl -L https://github.com/MetanoicArmor/gui-i2pd/releases/latest/download/I2P-GUI.app.zip -o I2P-GUI.app.zip
+   curl -L https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-GUI-v2.58.0.app.zip -o I2P-GUI-v2.58.0.app.zip
    ```
 
 2. **📁 Распакуйте и установите:**
    ```bash
-   unzip I2P-GUI.app.zip
+   unzip I2P-GUI-v2.58.0.app.zip
    mv I2P-GUI.app /Applications/
    ```
 
@@ -288,7 +288,7 @@ Info.plist              # Метаданные приложения
 <div align="center">
 
 ### 🚀 Прямое скачивание:
-[![Download I2P-GUI.app](https://img.shields.io/badge/📦%20Скачать-I2P--GUI.app-ff6b6b.svg?style=for-the-badge)](https://github.com/MetanoicArmor/gui-i2pd/releases/latest/download/I2P-GUI.app.zip)
+[![Download I2P-GUI.app](https://img.shields.io/badge/📦%20Скачать-I2P--GUI.app-ff6b6b.svg?style=for-the-badge)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-GUI-v2.58.0.app.zip)
 
 ---
 
