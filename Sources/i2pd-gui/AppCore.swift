@@ -39,7 +39,7 @@ struct ContentView: View {
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-                .padding(.top, -10)
+                .offset(y: -15)
             
             // Статус сервера
             StatusCard(
