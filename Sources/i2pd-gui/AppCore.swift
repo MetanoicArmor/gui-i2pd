@@ -151,7 +151,7 @@ struct ContentView: View {
                     // Логи с ограниченной высотой - упрощаем для избежания crash
                     if !i2pdManager.logs.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
-                            ForEach(i2pdManager.logs.prefix(10), id: \.id) { log in
+                            ForEach(i2pdManager.logs.prefix(20), id: \.id) { log in
                                 HStack(spacing: 8) {
                                     Text(log.timestamp.formatted(.dateTime.hour().minute().second()))
                                         .font(.caption2)
@@ -174,7 +174,7 @@ struct ContentView: View {
                             }
                         }
                         .padding(.horizontal, 20)
-                        .frame(maxHeight: 150) // Ограничиваем высоту логов
+                        .frame(maxHeight: 300) // Увеличиваем высоту логов
                     } else {
                         VStack(spacing: 8) {
                             Image(systemName: "doc.text")
@@ -191,8 +191,8 @@ struct ContentView: View {
                 .padding(.horizontal, 24)
             }
         }
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(minWidth: 700, maxWidth: 900, minHeight: 400, maxHeight: 800)
+        .frame(width: 1000, height: 800)
+        .fixedSize()
         .onAppear {
             i2pdManager.checkStatus()
             
@@ -357,7 +357,8 @@ struct NetworkStatsView: View {
             Spacer()
         }
         .padding()
-        .frame(minWidth: 700, minHeight: 500)
+        .frame(width: 900, height: 700)
+        .fixedSize()
         .onAppear {
             i2pdManager.getExtendedStats()
         }
