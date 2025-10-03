@@ -862,8 +862,8 @@ struct SettingsView: View {
                     currentSection = trimmedLine.lowercased()
                 }
                 
-                // Ищем порты в соответствующих секциях
-                if trimmedLine.contains("# port = ") {
+                // Ищем порты в соответствующих секциях (как раскомментированные, так и закомментированные)
+                if trimmedLine.contains(" port = ") || trimmedLine.contains("# port = ") {
                     if currentSection.contains("httpproxy") {
                         if let portValue = extractPortFromLine(trimmedLine) {
                             displayDaemonPort = portValue
@@ -883,12 +883,17 @@ struct SettingsView: View {
     }
     
     private func extractPortFromLine(_ line: String) -> Int? {
-        // Парсим строку вида "# port = 4444" или "port = 4444 #комментарий"
-        let cleanLine = line.replacingOccurrences(of: "#", with: "").trimmingCharacters(in: .whitespaces)
-        let components = cleanLine.components(separatedBy: "port =")
+        // Парсим строку вида "port = 4444" или "# port = 4444" или "port = 4444 #комментарий"
+        let cleanLine = line.trimmingCharacters(in: .whitespaces)
+        
+        // Убираем символ # из начала если есть
+        let processedLine = cleanLine.hasPrefix("#") ? String(cleanLine.dropFirst()).trimmingCharacters(in: .whitespaces) : cleanLine
+        
+        let components = processedLine.components(separatedBy: "port =")
         
         if components.count > 1 {
             let portPart = components[1].trimmingCharacters(in: .whitespaces)
+            // Берем значение до первого пробела (может быть комментарий)
             let portValue = portPart.components(separatedBy: .whitespaces).first ?? portPart
             return Int(portValue.trimmingCharacters(in: .whitespaces))
         }
