@@ -2,17 +2,80 @@ import SwiftUI
 import Foundation
 import AppKit
 
-// MARK: - Window Close Delegate для плавного закрытия
+// MARK: - Window Close Delegate для корректного сворачивания в трей
 class WindowCloseDelegate: NSObject, NSWindowDelegate {
     static let shared = WindowCloseDelegate()
     
+    // Глобальное состояние открытого окна настроек
+    static var isSettingsOpen = false
+    
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        print("🚪 Окно пытается закрыться - выполняем плавное закрытие!")
+        print("🚪 Окно пытается закрыться - делегат вызван для: \(sender.title)")
         
-        // Вызываем плавное закрытие через трей
-        TrayManager.shared.quitApplication()
+        // Проверяем глобальное состояние настроек
+        if WindowCloseDelegate.isSettingsOpen {
+            print("⚙️ Настройки открыты (через глобальное состояние) - закрываем их")
+            NotificationCenter.default.post(name: NSNotification.Name("CloseSettings"), object: nil)
+            WindowCloseDelegate.isSettingsOpen = false
+            
+            // Принудительно завершаем модальное представление если оно не закрывается
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if WindowCloseDelegate.isSettingsOpen {
+                    print("⚙️ Принудительное закрытие настроек через NSApp")
+                    NotificationCenter.default.post(name: NSNotification.Name("CloseSettings"), object: nil)
+                    WindowCloseDelegate.isSettingsOpen = false
+                }
+            }
+            return true
+        }
         
-        // Предотвращаем стандартное закрытие
+        // Проверяем, есть ли активное модальное окно настроек
+        if isSettingsModalOpen() {
+            print("⚙️ Обнаружено модальное окно настроек - закрываем его")
+            NotificationCenter.default.post(name: NSNotification.Name("CloseSettings"), object: nil)
+            WindowCloseDelegate.isSettingsOpen = false
+            return true
+        }
+        
+        print("🚪 Главное окно закрывается - сворачиваем в трей")
+        
+        // Сначала сворачиваем окно в трей, а не закрываем приложение
+        TrayManager.shared.hideMainWindow()
+        
+        // Предотвращаем стандартное закрытие окна - приложение остается работать в трее
+        return false
+    }
+    
+    private func isSettingsModalOpen() -> Bool {
+        // Проверяем, есть ли активное модальное окно настроек через поиск текущего окна
+        let windows = NSApplication.shared.windows
+        print("🔍 Проверяем окна: всего \(windows.count)")
+        
+        // Проверяем есть ли у нас более одного окна (главное + модальное)
+        if windows.count > 1 {
+            // Ищем модальное окно SwiftUI
+            for (index, window) in windows.enumerated() {
+                print("🔍 Окно \(index): '\(window.title)', visible: \(window.isVisible), level: \(window.level)")
+                
+                // Модальные окна SwiftUI часто имеют специальные уровни
+                if window !== NSApplication.shared.keyWindow && window.isVisible {
+                    print("🔍 Найдено потенциальное модальное окно: \(window.title)")
+                    return true
+                }
+            }
+        }
+        
+        // Проверяем через глобальное состояние приложения
+        // Модальное окно SwiftUI часто создает дополнительные окна
+        
+        // Дополнительная проверка: если есть активное модальное окно, оно будет видно в keyWindow
+        if let keyWindow = NSApplication.shared.keyWindow {
+            if keyWindow.title.contains("Настройки") || keyWindow.title.contains("Settings") {
+                print("🔍 Найдено окно настроек через ключевое окно")
+                return true
+            }
+        }
+        
         return false
     }
 }
@@ -26,16 +89,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     
     private func setupGlobalQuitHandler() {
-        // Пытаемся перехватить глобальные события клавиатуры
-        NSApplication.shared.windows.first?.delegate = self
-        
-        // Добавляем обработчик для NSApp
+        // Добавляем обработчик для NSApp (обрабатывает только Ctrl+Q и другие системные запросы завершения)
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(applicationWillTerminate(_:)),
             name: NSApplication.willTerminateNotification,
             object: nil
         )
+        
+        // Устанавливаем делегат окна с небольшой задержкой, чтобы окно успело создаться
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.setupWindowDelegate()
+        }
+    }
+    
+    private func setupWindowDelegate() {
+        // Назначаем правильного делегата для обработки закрытия всех окон
+        for window in NSApplication.shared.windows {
+            if window.delegate == nil || window.delegate is AppDelegate {
+                window.delegate = WindowCloseDelegate.shared
+                print("✅ Назначен WindowCloseDelegate для окна: \(window.title)")
+            }
+        }
     }
     
     @objc func applicationWillTerminate(_ notification: Notification) {
@@ -365,6 +440,10 @@ class TrayManager: NSObject, ObservableObject {
         print("⚙️ ПОКАЗ ОКНА из трея!")
         for window in NSApplication.shared.windows {
             window.makeKeyAndOrderFront(nil)
+            // Убеждаемся, что у окна правильный делегат
+            if window.delegate === nil || !(window.delegate is WindowCloseDelegate) {
+                window.delegate = WindowCloseDelegate.shared
+            }
         }
         NSApplication.shared.activate(ignoringOtherApps: true)
         updateStatusText("⚙️ Главное окно открыто")
@@ -712,9 +791,13 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSettings"))) { _ in
             showingSettings = true
+            WindowCloseDelegate.isSettingsOpen = true
+            print("⚙️ Настройки открыты - обновляем глобальное состояние")
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CloseSettings"))) { _ in
             showingSettings = false
+            WindowCloseDelegate.isSettingsOpen = false
+            print("⚙️ Настройки закрыты - обновляем глобальное состояние")
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonStartRequest"))) { _ in
             // Обрабатываем запрос запуска демона из трея
@@ -1177,9 +1260,11 @@ struct SettingsView: View {
         let launchAgentsDir = homeDir.appendingPathComponent("Library/LaunchAgents")
         let plistPath = launchAgentsDir.appendingPathComponent("com.example.i2pd-gui.plist")
         
-        // Получаем путь к текущему приложению
+        // Получаем путь к исполняемому файлу внутри .app пакета
         let appBundle = Bundle.main.bundlePath
+        let executablePath = appBundle + "/Contents/MacOS/I2P-GUI"
         print("📱 DEBUG: Путь к приложению: \(appBundle)")
+        print("📱 DEBUG: Путь к исполняемому файлу: \(executablePath)")
         
         // Создаем LaunchAgents директорию если она не существует
         do {
@@ -1199,7 +1284,7 @@ struct SettingsView: View {
             <string>com.example.i2pd-gui</string>
             <key>ProgramArguments</key>
             <array>
-                <string>\(appBundle)</string>
+                <string>\(executablePath)</string>
             </array>
             <key>RunAtLoad</key>
             <true/>
@@ -1357,19 +1442,10 @@ struct SettingsView: View {
                 
                 Spacer()
                 
-                Button("Готово") {
-                    // Отправляем уведомление для закрытия настроек
-                    NotificationCenter.default.post(name: NSNotification.Name("CloseSettings"), object: nil)
-                    dismiss()
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.return, modifiers: [.command])
-                
-                Button("Отмена") {
-                    dismiss()
-                }
-                .buttonStyle(.bordered)
-                .keyboardShortcut(.escape)
+                Text("Esc для закрытия")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.trailing, 16)
             }
             .padding(16)
             .background(Color(NSColor.windowBackgroundColor))
@@ -1914,6 +1990,16 @@ struct SettingsView: View {
             Button("OK") { }
         } message: {
             Text("SOCKS порт изменен и сохранен в конфиг: \(displaySocksPort)")
+        }
+        .onKeyPress { keyPress in
+            if keyPress.key == .escape {
+                print("🚪 Esc нажат - закрываем настройки")
+                WindowCloseDelegate.isSettingsOpen = false
+                NotificationCenter.default.post(name: NSNotification.Name("CloseSettings"), object: nil)
+                dismiss()
+                return .handled
+            }
+            return .ignored
         }
     }
     
@@ -3381,7 +3467,7 @@ struct LaunchAgentControlsView: View {
         if SettingsView.launchAgentExists() {
             HStack(spacing: 12) {
                 Button(action: {
-                    SettingsView.removeLaunchAgent()
+                    _ = SettingsView.removeLaunchAgent()
                     autoStart = false
                 }) {
                     Label("Отключить автозапуск", systemImage: "stop.circle")
@@ -3390,7 +3476,7 @@ struct LaunchAgentControlsView: View {
                 
                 Button(action: {
                     let launchAgentsDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/LaunchAgents")
-                    NSWorkspace.shared.openFile(launchAgentsDir.path)
+                    NSWorkspace.shared.open(launchAgentsDir)
                 }) {
                     Label("Открыть папку", systemImage: "folder")
                 }
@@ -3404,7 +3490,7 @@ struct LaunchAgentControlsView: View {
                     if SettingsView.createLaunchAgent() {
                         autoStart = true
                         let launchAgentsDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/LaunchAgents")
-                    NSWorkspace.shared.openFile(launchAgentsDir.path)
+                    NSWorkspace.shared.open(launchAgentsDir)
                     }
                 }) {
                     Label("Включить автозапуск", systemImage: "play.circle")
