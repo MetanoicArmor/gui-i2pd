@@ -841,8 +841,13 @@ struct SettingsView: View {
     init(i2pdManager: I2pdManager) {
         self.i2pdManager = i2pdManager
         // Инициализируем порты из конфига при создании view
-        _displayDaemonPort = State(initialValue: Self.loadDaemonPortFromConfig())
-        _displaySocksPort = State(initialValue: Self.loadSocksPortFromConfig())
+        let daemonPort = Self.loadDaemonPortFromConfig()
+        let socksPort = Self.loadSocksPortFromConfig()
+        
+        print("📋 DEBUG: SettingsView init - HTTP порт: \(daemonPort), SOCKS порт: \(socksPort)")
+        
+        _displayDaemonPort = State(initialValue: daemonPort)
+        _displaySocksPort = State(initialValue: socksPort)
     }
     
     // Статические функции для чтения портов из конфига при инициализации
@@ -858,6 +863,8 @@ struct SettingsView: View {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
         
+        print("📋 DEBUG: Ищем порт для секции '\(sectionName)' в \(configPath.path)")
+        
         guard FileManager.default.fileExists(atPath: configPath.path) else {
             print("⚠️ i2pd.conf не найден для секции \(sectionName)")
             return nil
@@ -869,19 +876,26 @@ struct SettingsView: View {
             
             var currentSection = ""
             
-            for line in lines {
+            for (index, line) in lines.enumerated() {
                 let trimmedLine = line.trimmingCharacters(in: .whitespaces)
                 
                 // Определяем текущую секцию
                 if trimmedLine.hasPrefix("[") && trimmedLine.hasSuffix("]") {
                     currentSection = trimmedLine.lowercased()
+                    print("📋 DEBUG: Найдена секция '\(currentSection)' на строке \(index)")
                 }
                 
                 // Ищем порты в соответствующей секции
-                if (trimmedLine.contains(" port = ") || trimmedLine.contains("# port = ")) && currentSection.contains(sectionName) {
-                    return Self.extractPortFromLineStatic(trimmedLine)
+                if (trimmedLine.contains("port = ") || trimmedLine.contains("# port = ")) && currentSection.contains(sectionName) {
+                    print("📋 DEBUG: Найден порт '\(trimmedLine)' в секции '\(currentSection)' на строке \(index)")
+                    if let port = Self.extractPortFromLineStatic(trimmedLine) {
+                        print("📋 DEBUG: Извлечен порт \(port) для секции \(sectionName)")
+                        return port
+                    }
                 }
             }
+            
+            print("⚠️ DEBUG: Порт для секции '\(sectionName)' не найден")
         } catch {
             print("❌ Ошибка чтения конфига для секции \(sectionName): \(error)")
         }
@@ -932,7 +946,7 @@ struct SettingsView: View {
                 }
                 
                 // Ищем порты в соответствующих секциях (как раскомментированные, так и закомментированные)
-                if trimmedLine.contains(" port = ") || trimmedLine.contains("# port = ") {
+                if trimmedLine.contains("port = ") || trimmedLine.contains("# port = ") {
                     if currentSection.contains("httpproxy") {
                         if let portValue = extractPortFromLine(trimmedLine) {
                             displayDaemonPort = portValue
