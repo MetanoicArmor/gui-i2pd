@@ -2170,6 +2170,14 @@ class I2pdManager: ObservableObject {
         
         DispatchQueue.global(qos: .background).async { [weak self] in
             self?.stopDaemonProcess()
+            
+            // Обновляем состояние в UI после остановки
+            DispatchQueue.main.async {
+                self?.isRunning = false
+                self?.isLoading = false
+                self?.operationInProgress = false
+                self?.addLog(.info, "✅ Демон остановлен")
+            }
         }
     }
     
@@ -2192,10 +2200,10 @@ class I2pdManager: ObservableObject {
         
         if [ -n "$DEMON_PID" ]; then
             echo "✅ Найден демон с PID: $DEMON_PID" &&
-            echo "💀 Останавливаем демон..." &&
-            kill -TERM $DEMON_PID 2>/dev/null &&
+            echo "💀 Останавливаем демон через kill -s INT..." &&
+            kill -s INT $DEMON_PID 2>/dev/null &&
             sleep 2 &&
-            kill -INT $DEMON_PID 2>/dev/null &&
+            kill -s TERM $DEMON_PID 2>/dev/null &&
             sleep 1 &&
             kill -KILL $DEMON_PID 2>/dev/null &&
             
@@ -2341,6 +2349,7 @@ class I2pdManager: ObservableObject {
     }
     
     private func executeStopCommand(_ command: String) {
+        addLog(.debug, "🚀 Запускаем команду остановки демона...")
         
         let killProcess = Process()
         killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
