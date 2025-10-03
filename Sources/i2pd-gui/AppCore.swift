@@ -595,6 +595,7 @@ struct I2pdGUIApp: App {
 struct ContentView: View {
     @StateObject private var i2pdManager = I2pdManager()
     @State private var showingSettings = false
+    @AppStorage("autoStartDaemon") private var autoStartDaemon = false
     
     
     var body: some View {
@@ -779,6 +780,14 @@ struct ContentView: View {
         .frame(maxWidth: 950) // Адаптивная ширина для разных экранов
         .onAppear {
             i2pdManager.checkStatus()
+            
+            // Проверяем и автоматически запускаем демон если включено
+            if autoStartDaemon && !i2pdManager.isRunning {
+                print("🚀 Автоматический запуск демона включен - запускаем i2pd")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    i2pdManager.startDaemon()
+                }
+            }
             
             // Загружаем статистику и применяем тему после полной инициализации
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -1420,6 +1429,7 @@ struct SettingsView: View {
         return nil
     }
     @AppStorage("autoStart") private var autoStart = false
+    @AppStorage("autoStartDaemon") private var autoStartDaemon = false
     @AppStorage("darkMode") private var darkMode = true
     @AppStorage("autoRefresh") private var autoRefresh = true
     @AppStorage("autoLogCleanup") private var autoLogCleanup = false
@@ -1587,6 +1597,34 @@ struct SettingsView: View {
                             
                             // Кнопка управления LaunchAgent
                             LaunchAgentControlsView(autoStart: $autoStart)
+                            
+                            Divider()
+                            
+                            // Автозапуск демона при открытии приложения
+                            HStack(spacing: 12) {
+                                Image(systemName: "arrow.right.circle")
+                                    .foregroundColor(.blue)
+                                    .font(.title2)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Автозапуск демона")
+                                        .font(.system(.body, design: .default, weight: .medium))
+                                        .foregroundColor(.primary)
+                                    
+                                    Text(autoStartDaemon ? "Демон автоматически запустится при открытии приложения" : "Демон запускается вручную")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Toggle("", isOn: $autoStartDaemon)
+                                    .labelsHidden()
+                                    .onChange(of: autoStartDaemon) { _, newValue in
+                                        print("🔄 Настройка автозапуска демона изменена: \(newValue)")
+                                    }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                     
@@ -2064,6 +2102,7 @@ struct SettingsView: View {
         DispatchQueue.main.async {
             // Сброс всех настроек к значениям по умолчанию
             autoStart = false
+            autoStartDaemon = false
             autoRefresh = true
             autoLogCleanup = false
             darkMode = true
