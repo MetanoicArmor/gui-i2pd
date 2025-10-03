@@ -178,106 +178,29 @@ class TrayManager: NSObject, ObservableObject {
     
     @objc public func startDaemon() {
         print("🚀 ========== ЗАПУСК DAEMON ИЗ ТРЕЯ! ==========")
-        print("🚀 Метод startDaemon() успешно вызван!")
+        updateStatusText("🚀 Запуск daemon из трея...")
         
-        // Простая проверка
-        updateStatusText("🚀 Запуск daemon...")
+        // Делегируем запуск к I2pdManager чтобы избежать дублирования процессов
+        NotificationCenter.default.post(name: NSNotification.Name("DaemonStartRequest"), object: nil)
         
-        // Попробуем простую команду сначала
-        let testCommand = "echo 'DAEMON START TEST' && date"
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/bash")
-        process.arguments = ["-c", testCommand]
-        
-        do {
-            try process.run()
-            print("✅ Тестовая команда выполнена")
-            
-            // Теперь реальный запуск
-            let bundlePath = Bundle.main.bundlePath
-            let executablePath = "\(bundlePath)/Contents/Resources/i2pd"
-            
-            if FileManager.default.fileExists(atPath: executablePath) {
-                let daemonCommand = "\"\(executablePath)\" --daemon"
-                let daemonProcess = Process()
-                daemonProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
-                daemonProcess.arguments = ["-c", daemonCommand]
-                
-                try daemonProcess.run()
-                updateStatusText("🚀 Daemon запущен!")
-                print("✅ Daemon команда выполнена")
-                
-                // Отправляем уведомления в главное окно
-                NotificationCenter.default.post(name: NSNotification.Name("DaemonStarted"), object: nil)
-                
-                // Задержка и обновление статуса
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self.updateStatusText("✅ Daemon работает")
-                    NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
-                }
-            } else {
-                updateStatusText("❌ Бинарник не найден")
-                print("❌ Бинарник i2pd не найден в: \(executablePath)")
-                NotificationCenter.default.post(name: NSNotification.Name("DaemonError"), object: nil)
-            }
-        } catch {
-            updateStatusText("❌ Ошибка запуска: \(error)")
-            print("❌ Ошибка выполнения команды: \(error)")
-            NotificationCenter.default.post(name: NSNotification.Name("DaemonError"), object: nil)
+        // Даем время на обработку запроса
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
+            self.updateStatusText("🎯 Запрос обработан главным окном")
         }
     }
     
     @objc public func stopDaemon() {
         print("⏹️ ОСТАНОВКА DAEMON из трея!")
-        updateStatusText("⏹️ Остановка daemon...")
+        updateStatusText("⏹️ Остановка daemon из трея...")
         
-        // Более агрессивная остановка всех процессов i2pd
-        let stopCommand = """
-        echo "🔍 Поиск процессов i2pd..." &&
-        ps aux | grep i2pd | grep -v grep &&
-        echo "🛑 Остановка всех процессов i2pd..." &&
+        // Делегируем остановку к I2pdManager чтобы избежать конфликтов
+        NotificationCenter.default.post(name: NSNotification.Name("DaemonStopRequest"), object: nil)
         
-        # БЕЗОПАСНАЯ остановка ТОЛЬКО демонов i2pd
-        pkill -TERM -f "i2pd.*daemon" 2>/dev/null || true &&
-        sleep 2 &&
-        pkill -INT -f "i2pd.*daemon" 2>/dev/null || true &&
-        sleep 2 &&
-        pkill -KILL -f "i2pd.*daemon" 2>/dev/null || true &&
-        
-        # Дополнительно ищем ТОЛЬКО процессы демона
-        ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs kill -TERM 2>/dev/null || true &&
-        sleep 1 &&
-        ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs kill -KILL 2>/dev/null || true &&
-        
-        # Финальная проверка
-        echo "✅ Финальная проверка процессов..." &&
-        REMAINING=$(ps aux | grep i2pd | grep -v grep | wc -l) &&
-        if [ "$REMAINING" -eq 0 ]; then
-            echo "✅ Все процессы i2pd остановлены"
-        else
-            echo "⚠️ Остались процессы: $REMAINING"
-            ps aux | grep i2pd | grep -v grep
-        fi
-        """
-        
-        let stopProcess = Process()
-        stopProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
-        stopProcess.arguments = ["-c", stopCommand]
-        
-        do {
-            try stopProcess.run()
-            updateStatusText("💀 Принудительная остановка...")
-            print("✅ Команда остановки запущена")
-            
-            // Проверяем результат через 5 секунд
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                self.checkIfStillRunning()
-            }
-            
-        } catch {
-            updateStatusText("❌ Ошибка остановки демона")
-            print("❌ Ошибка остановки: \(error)")
-            NotificationCenter.default.post(name: NSNotification.Name("DaemonError"), object: nil)
+        // Даем время на обработку запроса
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
+            self.updateStatusText("🎯 Остановка обработана главным окном")
         }
     }
     
@@ -730,9 +653,25 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSettings"))) { _ in
             showingSettings = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonStartRequest"))) { _ in
+            // Обрабатываем запрос запуска демона из трея
+            print("🚀 Получен запрос запуска демона из трея")
+            if !i2pdManager.isRunning {
+                i2pdManager.startDaemon()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonStopRequest"))) { _ in
+            // Обрабатываем запрос остановки демона из трея
+            print("⏹️ Получен запрос остановки демона из трея")
+            if i2pdManager.isRunning {
+                i2pdManager.stopDaemon()
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NSApplicationWillTerminate"))) { _ in
-            // Останавливаем демон при закрытии приложения
-            TrayManager.shared.stopDaemon()
+            // Останавливаем демон при закрытии приложения через I2pdManager
+            if i2pdManager.isRunning {
+                i2pdManager.stopDaemon()
+            }
         }
         .overlay(alignment: .bottom) {
             if i2pdManager.isLoading {
