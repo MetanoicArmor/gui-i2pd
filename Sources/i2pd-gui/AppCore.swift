@@ -2273,11 +2273,23 @@ class I2pdManager: ObservableObject {
     }
     
     private func findDaemonChildProcesses() {
-        // Ищем реальный PID демона через ps aux
+        // РАЗВЕРНУТЫЙ поиск демона с подробной диагностикой
         let findCommand = """
-        echo "🔍 Поиск реального PID демона..." &&
+        echo "🔍 ДЕТАЛЬНЫЙ ПОИСК ДЕМОНА..." &&
+        echo "📋 Все процессы с i2pd:" &&
+        ps aux | grep i2pd | grep -v grep &&
+        echo "" &&
+        echo "📋 Демоны с --daemon:" &&
+        ps aux | grep "i2pd.*daemon" | grep -v grep &&
+        echo "" &&
+        echo "📋 Точный поиск демона:" &&
+        ps aux | grep "i2pd.*--daemon" | grep -v grep &&
+        echo "" &&
+        echo "🎯 ПОЛУЧЕНИЕ PID:" &&
         ps aux | grep "i2pd.*--daemon" | grep -v grep | awk '{print $2}' | head -1
         """
+        
+        addLog(.debug, "🔍 Запускаем подробный поиск демона...")
         
         let findProcess = Process()
         findProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -2292,14 +2304,22 @@ class I2pdManager: ObservableObject {
             
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             let output = String(data: data, encoding: .utf8)
-
+    
             DispatchQueue.main.async { [weak self] in
-                if let pidString = output?.trimmingCharacters(in: .whitespacesAndNewlines),
-                   let pid = Int32(pidString) {
-                    self?.daemonPID = pid
-                    self?.addLog(.debug, "✅ Найден реальный PID демона: \(pid)")
+                if let output = output {
+                    print("🔍 Результат поиска PID: \(output)")
+                    
+                    let lines = output.components(separatedBy: "\n")
+                    // Берем последнюю строку (которая должна содержать PID)
+                    if let lastLine = lines.last, !lastLine.isEmpty,
+                       let pid = Int32(lastLine.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                        self?.daemonPID = pid
+                        self?.addLog(.debug, "✅ Найден реальный PID демона: \(pid)")
+                    } else {
+                        self?.addLog(.debug, "⚠️ Не удалось найти PID в выводе: \(lines)")
+                    }
                 } else {
-                    self?.addLog(.debug, "⚠️ Не удалось найти PID демона")
+                    self?.addLog(.debug, "⚠️ Пустой вывод поиска PID")
                 }
             }
         } catch {
