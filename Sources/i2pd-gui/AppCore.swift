@@ -677,6 +677,9 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSettings"))) { _ in
             showingSettings = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CloseSettings"))) { _ in
+            showingSettings = false
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonStartRequest"))) { _ in
             // Обрабатываем запрос запуска демона из трея
             print("🚀 Получен запрос запуска демона из трея")
@@ -822,7 +825,8 @@ struct SettingsView: View {
                 Spacer()
                 
                 Button("Готово") {
-                    saveSettings()
+                    // Отправляем уведомление для закрытия настроек
+                    NotificationCenter.default.post(name: NSNotification.Name("CloseSettings"), object: nil)
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
