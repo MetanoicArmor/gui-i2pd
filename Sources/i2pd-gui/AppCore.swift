@@ -13,31 +13,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Дополнительная прямая остановка демона для надежности
         DispatchQueue.global(qos: .background).async {
             let stopCommand = """
-            # Агрессивная остановка при выходе приложения
-            echo "🛑 КРИТИЧЕСКАЯ остановка демона при выходе приложения..." &&
+            # БЕЗОПАСНАЯ остановка демона при выходе приложения
+            echo "🛑 БЕЗОПАСНАЯ остановка демона при выходе приложения..." &&
             
-            # Показываем все процессы i2pd
-            ps aux | grep i2pd | grep -v grep &&
+            # Показываем только процессы демона (НЕ GUI!)
+            echo "📋 Процессы демона перед остановкой:" &&
+            ps aux | grep "i2pd.*daemon" | grep -v grep &&
             
-            # Применяем все методы остановки
-            pkill -TERM i2pd 2>/dev/null || true &&
+            # БЕЗОПАСНАЯ остановка как минимум демонов
+            pkill -TERM -f "i2pd.*daemon" 2>/dev/null || true &&
             sleep 2 &&
-            pkill -INT i2pd 2>/dev/null || true &&
+            pkill -INT -f "i2pd.*daemon" 2>/dev/null || true &&
             sleep 2 &&
-            pkill -KILL i2pd 2>/dev/null || true &&
+            pkill -KILL -f "i2pd.*daemon" 2>/dev/null || true &&
             
-            # Дополнительный поиск через ps и kill по PID
-            ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs kill -TERM 2>/dev/null || true &&
+            # ДОПОЛНИТЕЛЬНО: kill только процессов с --daemon
+            ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs kill -TERM 2>/dev/null || true &&
             sleep 1 &&
-            ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs kill -KILL 2>/dev/null || true &&
+            ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs kill -KILL 2>/dev/null || true &&
             
-            # Финальная проверка и логирование
-            REMAINING=$(ps aux | grep i2pd | grep -v grep | wc -l | tr -d ' ') &&
+            # Финальная проверка ДЕМОНОВ (не GUI!)
+            REMAINING=$(ps aux | grep "i2pd.*daemon" | grep -v grep | wc -l | tr -d ' ') &&
             if [ "$REMAINING" -eq 0 ]; then
-                echo "✅ ДЕМОН ПОЛНОСТЬЮ ОСТАНОВЛЕН при выходе из приложения"
+                echo "✅ ДЕМОН ПОЛНОСТЬЮ ОСТАНОВЛЕН при выходе" &&
+                echo "✅ GUI приложение ОСТАЕТСЯ ЖИВЫМ"
             else
-                echo "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: остались процессы ($REMAINING):" &&
-                ps aux | grep i2pd | grep -v grep
+                echo "❌ ПРОБЛЕМА: остались демоны ($REMAINING):" &&
+                ps aux | grep "i2pd.*daemon" | grep -v grep
             fi
             """
             
@@ -217,17 +219,17 @@ class TrayManager: NSObject, ObservableObject {
         ps aux | grep i2pd | grep -v grep &&
         echo "🛑 Остановка всех процессов i2pd..." &&
         
-        # Останавливаем все процессы i2pd несколькими способами
-        pkill -TERM i2pd 2>/dev/null || true &&
+        # БЕЗОПАСНАЯ остановка ТОЛЬКО демонов i2pd
+        pkill -TERM -f "i2pd.*daemon" 2>/dev/null || true &&
         sleep 2 &&
-        pkill -INT i2pd 2>/dev/null || true &&
+        pkill -INT -f "i2pd.*daemon" 2>/dev/null || true &&
         sleep 2 &&
-        pkill -KILL i2pd 2>/dev/null || true &&
+        pkill -KILL -f "i2pd.*daemon" 2>/dev/null || true &&
         
-        # Дополнительно ищем процессы через ps
-        ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs kill -TERM 2>/dev/null || true &&
+        # Дополнительно ищем ТОЛЬКО процессы демона
+        ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs kill -TERM 2>/dev/null || true &&
         sleep 1 &&
-        ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs kill -KILL 2>/dev/null || true &&
+        ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs kill -KILL 2>/dev/null || true &&
         
         # Финальная проверка
         echo "✅ Финальная проверка процессов..." &&
@@ -2302,44 +2304,44 @@ class I2pdManager: ObservableObject {
     
     private var globalStopCommand: String {
         return """
-        echo "🔍 РАДИКАЛЬНАЯ остановка ВСЕХ процессов i2pd..." &&
+        echo "🔍 БЕЗОПАСНАЯ остановка только демона i2pd..." &&
         
-        # Показываем все процессы i2pd
-        echo "📋 Найденные процессы i2pd:" &&
-        ps aux | grep i2pd | grep -v grep &&
+        # Показываем только процессы демона (не GUI!)
+        echo "📋 Найденные процессы ДЕМОНА i2pd:" &&
+        ps aux | grep "i2pd.*daemon" | grep -v grep &&
         
-        # Метод 1: pkill с SIGINT
-        echo "🛑 Метод 1: pkill -INT..." &&
-        pkill -INT i2pd 2>/dev/null || true &&
+        # БЕЗОПАСНЫЙ Метод 1: остановка только демона с --daemon
+        echo "🛑 Метод 1: pkill только демона..." &&
+        pkill -INT -f "i2pd.*--daemon" 2>/dev/null || true &&
+        sleep 3 &&
+        
+        echo "💀 Метод 2: pkill KILL только демона..." &&
+        pkill -KILL -f "i2pd.*--daemon" 2>/dev/null || true &&
+        sleep 1 &&
+        
+        # БЕЗОПАСНЫЙ Метод 3: остановка по точному имени процесса демона
+        echo "⚰️ Метод 3: killall только существующих демонов..." &&
+        (ps aux | grep "i2pd.*daemon" | grep -v grep >/dev/null && killall -INT i2pd 2>/dev/null || true) &&
+        sleep 1 &&
+        (ps aux | grep "i2pd.*daemon" | grep -v grep >/dev/null && killall -KILL i2pd 2>/dev/null || true) &&
+        sleep 1 &&
+        
+        # БЕЗОПАСНЫЙ Метод 4: поиск и kill ТОЛЬКО демонов
+        echo "🎯 Метод 4: поиск и kill только демонов..." &&
+        ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs -I {} kill -TERM {} 2>/dev/null || true &&
+        sleep 1 &&
+        ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs -I {} kill -KILL {} 2>/dev/null || true &&
         sleep 2 &&
         
-        # Метод 2: pkill с SIGKILL
-        echo "💀 Метод 2: pkill -KILL..." &&
-        pkill -KILL i2pd 2>/dev/null || true &&
-        sleep 1 &&
-        
-        # Метод 3: killall по имени
-        echo "⚰️ Метод 3: killall i2pd..." &&
-        killall -INT i2pd 2>/dev/null || true &&
-        sleep 1 &&
-        killall -KILL i2pd 2>/dev/null || true &&
-        sleep 1 &&
-        
-        # Метод 4: поиск через ps и kill по PID
-        echo "🎯 Метод 4: поиск и kill по PID..." &&
-        ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs -I {} kill -TERM {} 2>/dev/null || true &&
-        sleep 1 &&
-        ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs -I {} kill -KILL {} 2>/dev/null || true &&
-        sleep 2 &&
-        
-        # Финальная проверка
-        FINAL_COUNT=$(ps aux | grep i2pd | grep -v grep | wc -l | tr -d ' ') &&
-        if [ "$FINAL_COUNT" -eq 0 ]; then
-            echo "✅ ВСЕ процессы i2pd ПОЛНОСТЬЮ остановлены!"
+        # Финальная проверка ТОЛЬКО демонов
+        DEMON_COUNT=$(ps aux | grep "i2pd.*daemon" | grep -v grep | wc -l | tr -d ' ') &&
+        if [ "$DEMON_COUNT" -eq 0 ]; then
+            echo "✅ ДЕМОНЫ i2pd ПОЛНОСТЬЮ остановлены!" &&
+            echo "✅ GUI приложение НЕ должно пострадать!"
         else
-            echo "❌ ПРОЦЕССЫ НЕ ОСТАНАВЛИВАЮТСЯ! ($FINAL_COUNT шт.)" &&
-            echo "Оставшиеся процессы:" &&
-            ps aux | grep i2pd | grep -v grep
+            echo "❌ ДЕМОНЫ не останавливаются! ($DEMON_COUNT шт.)" &&
+            echo "Оставшиеся демоны:" &&
+            ps aux | grep "i2pd.*daemon" | grep -v grep
         fi
         """
     }
