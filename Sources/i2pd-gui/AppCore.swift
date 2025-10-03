@@ -1309,11 +1309,6 @@ struct SettingsView: View {
                                             Self.writeBandwidthToConfig("X")
                                             showBandwidthAlert = true
                                         }
-                                        Divider()
-                                        Button("Настроить произвольную скорость") {
-                                            displayBandwidth = "Custom"
-                                            // TODO: Добавить поле ввода для произвольного значения
-                                        }
                                     } label: {
                                         HStack {
                                             Text("\(displayBandwidth)")
