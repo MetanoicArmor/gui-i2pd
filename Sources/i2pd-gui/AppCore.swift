@@ -168,7 +168,10 @@ class TrayManager: NSObject, ObservableObject {
     }
     
     private func setupStatusBar() {
+        print("🔧🔧🔧 СОЗДАНИЕ ТРЕЯ НАЧИНАЕТСЯ 🔧🔧🔧")
         statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        
+        print("🔧 StatusBar создан: \(String(describing: statusBarItem))")
         
         if let statusBarItem = statusBarItem {
             // Используем кастомную иконку трея или системную как fallback
@@ -241,15 +244,22 @@ class TrayManager: NSObject, ObservableObject {
             menu.addItem(quitItem)
             
             statusBarItem.menu = menu
-            print("✅ Статус бар создан")
+            print("✅✅✅ СТАТУС БАР ПОЛНОСТЬЮ СОЗДАН И НАСТРОЕН! ✅✅✅")
+            print("🔧 Меню установлено: \(String(describing: statusBarItem.menu))")
+            print("🔧 Количество пунктов меню: \(menu.items.count)")
+            print("🔧 Target startItem: \(String(describing: startItem?.target))")
+            print("🔧 Action startItem: \(String(describing: startItem?.action))")
+        } else {
+            print("❌❌❌ ОШИБКА СОЗДАНИЯ STATUS BAR! ❌❌❌")
         }
     }
     
     // MARK: - Объективные методы для меню
     
-    @objc private func checkStatus() {
-        print("📊 Статус проверяется...")
+    @objc func checkStatus() {
+        print("📊📊📊 МЕТОД checkStatus ВЫЗВАН ИЗ ТРЕЯ! 📊📊📊")
         updateStatusText("📊 Статус обновлен")
+        print("📊 Статус обновлен на: 📊 Статус обновлен")
     }
     
     
@@ -356,7 +366,7 @@ class TrayManager: NSObject, ObservableObject {
         }
     }
     
-    @objc private func openSettings() {
+    @objc func openSettings() {
         print("⚙️ ОТКРЫТИЕ НАСТРОЕК из трея!")
         print("📋 Текущее количество окон: \(NSApplication.shared.windows.count)")
         
