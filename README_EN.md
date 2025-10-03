@@ -83,7 +83,7 @@
 ![I2P GUI Tray Menu](screenshots/screenshoot4_en.png)
 *Tray menu with checkmarks showing current daemon state*
 
-<img src="screenshots/screenshoot5_en.png" width="40%">
+<img src="screenshots/screenshoot5_en.png" width="30%">
 *Logs window with detailed daemon operation information*
 
 ### 🖥️ **Main Window:**
