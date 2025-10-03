@@ -840,6 +840,8 @@ struct SettingsView: View {
     @State private var displaySocksPort = 4447
     @State private var displayBandwidth = "L"
     @State private var showBandwidthAlert = false
+    @State private var showHttpPortAlert = false
+    @State private var showSocksPortAlert = false
 
     
     init(i2pdManager: I2pdManager) {
@@ -1105,8 +1107,70 @@ struct SettingsView: View {
         } catch {
             print("❌ Ошибка записи bandwidth в конфиг: \(error)")
         }
+}
+
+    // Записывает значение порта в соответствующую секцию конфига (раскомментирует строку если необходимо)
+    static func writePortToConfig(port: Int, service: String) {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        
+        print("📋 DEBUG: Записываем порт \(port) для \(service) в конфиг")
+        
+        guard FileManager.default.fileExists(atPath: configPath.path) else {
+            print("⚠️ i2pd.conf не найден для записи порта \(service)")
+            return
+        }
+        
+        do {
+            let configContent = try String(contentsOf: configPath)
+            let lines = configContent.components(separatedBy: .newlines)
+            
+            var updatedLines: [String] = []
+            var inTargetSection = false
+            var currentSection = ""
+            
+            for line in lines {
+                let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+                
+                // Пропускаем пустые строки
+                guard !trimmedLine.isEmpty else {
+                    updatedLines.append(line)
+                    continue
+                }
+                
+                // Определяем текущую секцию
+                if trimmedLine.hasPrefix("[") && trimmedLine.hasSuffix("]") {
+                    currentSection = trimmedLine.lowercased()
+                    let sectionNameClean = currentSection.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+                    inTargetSection = sectionNameClean == service
+                    updatedLines.append(line)
+                    continue
+                }
+                
+                // Ищем строку с портом в целевой секции
+                if inTargetSection && Self.isPortLine(trimmedLine) {
+                    // Заменяем строку на новое значение (активное)
+                    let newLine = " port = \(port)"
+                    updatedLines.append(newLine)
+                    print("📋 DEBUG: Заменена строка порта \(service) на: \(newLine)")
+                    print("📋 DEBUG: Исходная строка была: '\(line)'")
+                } else {
+                    // Оставляем строку без изменений
+                    updatedLines.append(line)
+                }
+            }
+            
+            // Записываем обновленный конфиг обратно в файл
+            let updatedContent = updatedLines.joined(separator: "\n")
+            try updatedContent.write(to: configPath, atomically: true, encoding: .utf8)
+            
+            print("✅ Порт \(port) для \(service) успешно записан в конфиг")
+            
+        } catch {
+            print("❌ Ошибка записи порта \(port) для \(service) в конфиг: \(error)")
+        }
     }
-    
+
     // Функция для чтения настроек из реального конфига (для .onAppear)
     private func loadSettingsFromConfig() {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
@@ -1240,39 +1304,55 @@ struct SettingsView: View {
                     // Сетевая конфигурация
                     SettingsSection(title: "🌐 Сетевая конфигурация", icon: "globe") {
                         VStack(spacing: 12) {
-                            // Порт HTTP прокси (фиксированный)
+                            // Порт HTTP прокси (интерактивный)
                             HStack(spacing: 12) {
                                 Text("Порт HTTP прокси")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                Text("\(displayDaemonPort)")
+                                TextField("Порт", value: $displayDaemonPort, format: .number)
+                                    .textFieldStyle(.plain)
                                     .font(.system(.body, design: .monospaced, weight: .medium))
-                                    .foregroundColor(.secondary)
-                                    .frame(width: 180, alignment: .leading)
+                                    .frame(width: 120)
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 12)
-                                    .background(Color(NSColor.controlBackgroundColor))
+                                    .background(Color(NSColor.textBackgroundColor))
                                     .cornerRadius(6)
+                                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+                                
+                                Button("Сохранить") {
+                                    Self.writePortToConfig(port: displayDaemonPort, service: "httpproxy")
+                                    showHttpPortAlert = true
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            // Порт SOCKS5 прокси (фиксированный)
+                            // Порт SOCKS5 прокси (интерактивный)
                             HStack(spacing: 12) {
                                 Text("Порт SOCKS5 прокси")
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                Text("\(displaySocksPort)")
+                                TextField("Порт", value: $displaySocksPort, format: .number)
+                                    .textFieldStyle(.plain)
                                     .font(.system(.body, design: .monospaced, weight: .medium))
-                                    .foregroundColor(.secondary)
-                                    .frame(width: 180, alignment: .leading)
+                                    .frame(width: 120)
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 12)
-                                    .background(Color(NSColor.controlBackgroundColor))
+                                    .background(Color(NSColor.textBackgroundColor))
                                     .cornerRadius(6)
+                                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+                                
+                                Button("Сохранить") {
+                                    Self.writePortToConfig(port: displaySocksPort, service: "socksproxy")
+                                    showSocksPortAlert = true
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
@@ -1744,6 +1824,16 @@ struct SettingsView: View {
             Button("OK") { }
         } message: {
             Text("Пропускная способность изменена и сохранена в конфиг: \(displayBandwidth)")
+        }
+        .alert("HTTP порт обновлен", isPresented: $showHttpPortAlert) {
+            Button("OK") { }
+        } message: {
+            Text("HTTP порт изменен и сохранен в конфиг: \(displayDaemonPort)")
+        }
+        .alert("SOCKS порт обновлен", isPresented: $showSocksPortAlert) {
+            Button("OK") { }
+        } message: {
+            Text("SOCKS порт изменен и сохранен в конфиг: \(displaySocksPort)")
         }
     }
     
