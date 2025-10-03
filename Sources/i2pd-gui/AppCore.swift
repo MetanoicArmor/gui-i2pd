@@ -835,6 +835,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("daemonPort") private var daemonPort = 4444
     @AppStorage("socksPort") private var socksPort = 4447
+    @State private var displayDaemonPort = 4444
+    @State private var displaySocksPort = 4447
     
     // Функция для чтения портов из реального конфига
     private func loadPortsFromConfig() {
@@ -850,17 +852,28 @@ struct SettingsView: View {
             let configContent = try String(contentsOf: configPath)
             let lines = configContent.components(separatedBy: .newlines)
             
+            var currentSection = ""
+            
             for line in lines {
                 let trimmedLine = line.trimmingCharacters(in: .whitespaces)
-                if trimmedLine.contains("port =") && trimmedLine.contains("daemon") {
-                    if let portValue = extractPortFromLine(trimmedLine) {
-                        daemonPort = portValue
-                        print("✅ HTTP порт загружен из конфига: \(daemonPort)")
-                    }
-                } else if trimmedLine.contains("port =") && trimmedLine.contains("socksproxy") {
-                    if let portValue = extractPortFromLine(trimmedLine) {
-                        socksPort = portValue
-                        print("✅ SOCKS порт загружен из конфига: \(socksPort)")
+                
+                // Определяем текущую секцию
+                if trimmedLine.hasPrefix("[") && trimmedLine.hasSuffix("]") {
+                    currentSection = trimmedLine.lowercased()
+                }
+                
+                // Ищем порты в соответствующих секциях
+                if trimmedLine.contains("# port = ") {
+                    if currentSection.contains("httpproxy") {
+                        if let portValue = extractPortFromLine(trimmedLine) {
+                            displayDaemonPort = portValue
+                            print("✅ HTTP порт загружен из конфига: \(displayDaemonPort)")
+                        }
+                    } else if currentSection.contains("socksproxy") {
+                        if let portValue = extractPortFromLine(trimmedLine) {
+                            displaySocksPort = portValue
+                            print("✅ SOCKS порт загружен из конфига: \(displaySocksPort)")
+                        }
                     }
                 }
             }
@@ -870,8 +883,10 @@ struct SettingsView: View {
     }
     
     private func extractPortFromLine(_ line: String) -> Int? {
-        // Парсим строку вида "port = 4444" или "port = 4444 #комментарий"
-        let components = line.components(separatedBy: "port =")
+        // Парсим строку вида "# port = 4444" или "port = 4444 #комментарий"
+        let cleanLine = line.replacingOccurrences(of: "#", with: "").trimmingCharacters(in: .whitespaces)
+        let components = cleanLine.components(separatedBy: "port =")
+        
         if components.count > 1 {
             let portPart = components[1].trimmingCharacters(in: .whitespaces)
             let portValue = portPart.components(separatedBy: .whitespaces).first ?? portPart
@@ -934,7 +949,7 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                Text("\(daemonPort)")
+                                Text("\(displayDaemonPort)")
                                     .font(.system(.body, design: .monospaced, weight: .medium))
                                     .foregroundColor(.secondary)
                                     .frame(width: 180, alignment: .leading)
@@ -952,7 +967,7 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                Text("\(socksPort)")
+                                Text("\(displaySocksPort)")
                                     .font(.system(.body, design: .monospaced, weight: .medium))
                                     .foregroundColor(.secondary)
                                     .frame(width: 180, alignment: .leading)
@@ -1369,6 +1384,10 @@ struct SettingsView: View {
             }
         }
         .frame(minWidth: 750, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
+        .onAppear {
+            // Загружаем актуальные порты из конфига при открытии настроек
+            loadPortsFromConfig()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .init("NSWindowDidResignKey"))) { _ in
             // Дополнительная обработка для лучшего закрытия окна
         }
