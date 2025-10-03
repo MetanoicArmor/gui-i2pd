@@ -88,6 +88,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setupGlobalQuitHandler()
     }
     
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Проверяем настройку "Запускать свернутым"
+        let startMinimized = UserDefaults.standard.bool(forKey: "startMinimized")
+        
+        if startMinimized {
+            print("🔽 Запускаем приложение свернутым в трей")
+            // Скрываем все окна
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                NSApp.hide(nil)
+            }
+        }
+    }
+    
     private func setupGlobalQuitHandler() {
         // Добавляем обработчик для NSApp (обрабатывает только Ctrl+Q и другие системные запросы завершения)
         NotificationCenter.default.addObserver(
@@ -572,6 +585,7 @@ class MenuTarget: NSObject {
 // MARK: - App Entry Point
 @main
 struct I2pdGUIApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @AppStorage("darkMode") private var darkMode = true
     @State private var showingSettings = false
     
@@ -1479,6 +1493,7 @@ struct SettingsView: View {
     }
     @AppStorage("autoStart") private var autoStart = false
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
+    @AppStorage("startMinimized") private var startMinimized = false
     @AppStorage("darkMode") private var darkMode = true
     @AppStorage("autoRefresh") private var autoRefresh = true
     @AppStorage("autoLogCleanup") private var autoLogCleanup = false
@@ -1672,6 +1687,34 @@ struct SettingsView: View {
                                     .labelsHidden()
                                     .onChange(of: autoStartDaemon) { _, newValue in
                                         print("🔄 Настройка автозапуска демона изменена: \(newValue)")
+                                    }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            Divider()
+                            
+                            // Запускать приложение свернутым
+                            HStack(spacing: 12) {
+                                Image(systemName: "eye.slash.circle")
+                                    .foregroundColor(.purple)
+                                    .font(.title2)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Запускать свернутым")
+                                        .font(.system(.body, design: .default, weight: .medium))
+                                        .foregroundColor(.primary)
+                                    
+                                    Text(startMinimized ? "Приложение откроется свернутым в трей" : "Приложение откроется с видимым окном")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Toggle("", isOn: $startMinimized)
+                                    .labelsHidden()
+                                    .onChange(of: startMinimized) { _, newValue in
+                                        print("🔽 Настройка запуска свернутым изменена: \(newValue)")
                                     }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -2211,6 +2254,7 @@ struct SettingsView: View {
             // Сброс всех настроек к значениям по умолчанию
             autoStart = false
             autoStartDaemon = false
+            startMinimized = false
             autoRefresh = true
             autoLogCleanup = false
             darkMode = true
