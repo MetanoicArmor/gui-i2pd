@@ -1488,35 +1488,29 @@ struct SettingsView: View {
                     
                     // Автоматизация
                     SettingsSection(title: "💻 Автоматизация", icon: "laptop") {
-                        VStack(spacing: 12) {
+                        VStack(spacing: 16) {
+                            // Показываем текущее состояние LaunchAgent
                             HStack(spacing: 12) {
-                                Text("Автозапуск daemon")
-                                    .font(.system(.body, design: .default, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .frame(minWidth: 250, alignment: .leading)
+                                Image(systemName: Self.launchAgentExists() ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(Self.launchAgentExists() ? .green : .gray)
+                                    .font(.title2)
                                 
-                            HStack {
-                                Spacer()
-                                    Toggle("", isOn: $autoStart)
-                                        .labelsHidden()
-                                        .onChange(of: autoStart) { _, newValue in
-                                            if newValue {
-                                                if Self.createLaunchAgent() {
-                                                    print("✅ Автозапуск включен")
-                                                } else {
-                                                    autoStart = false // Откатываем если не удалось
-                                                }
-                                            } else {
-                                                if Self.removeLaunchAgent() {
-                                                    print("✅ Автозапуск отключен")
-                                                } else {
-                                                    autoStart = true // Откатываем если не удалось
-                                                }
-                                            }
-                                        }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Автозапуск daemon")
+                                        .font(.system(.body, design: .default, weight: .medium))
+                                        .foregroundColor(.primary)
+                                    
+                                    Text(Self.launchAgentExists() ? "Включен - приложение запускается при входе в систему" : "Отключен")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
+                                
+                                Spacer()
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            // Кнопка управления LaunchAgent
+                            LaunchAgentControlsView(autoStart: $autoStart)
                         }
                     }
                     
@@ -3379,3 +3373,46 @@ class I2pdManager: ObservableObject {
     }
 }
 
+// MARK: - LaunchAgent Controls Component
+struct LaunchAgentControlsView: View {
+    @Binding var autoStart: Bool
+    
+    var body: some View {
+        if SettingsView.launchAgentExists() {
+            HStack(spacing: 12) {
+                Button(action: {
+                    SettingsView.removeLaunchAgent()
+                    autoStart = false
+                }) {
+                    Label("Отключить автозапуск", systemImage: "stop.circle")
+                }
+                .buttonStyle(.bordered)
+                
+                Button(action: {
+                    let launchAgentsDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/LaunchAgents")
+                    NSWorkspace.shared.openFile(launchAgentsDir.path)
+                }) {
+                    Label("Открыть папку", systemImage: "folder")
+                }
+                .buttonStyle(.borderedProminent)
+                
+                Spacer()
+            }
+        } else {
+            HStack(spacing: 12) {
+                Button(action: {
+                    if SettingsView.createLaunchAgent() {
+                        autoStart = true
+                        let launchAgentsDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/LaunchAgents")
+                    NSWorkspace.shared.openFile(launchAgentsDir.path)
+                    }
+                }) {
+                    Label("Включить автозапуск", systemImage: "play.circle")
+                }
+                .buttonStyle(.borderedProminent)
+                
+                Spacer()
+            }
+        }
+    }
+}
