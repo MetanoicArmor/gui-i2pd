@@ -299,8 +299,14 @@ Info.plist              # Метаданные приложения
 
 **☕ Купить кофе разработчику:**
 
+**💎 Bitcoin (BTC):**
 ```
-TON кошелёк: UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
+bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd
+```
+
+**⚡ TON:**
+```
+UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
 ```
 
 *Спасибо за поддержку! Это мотивирует продолжать работу над проектом* 🙏
