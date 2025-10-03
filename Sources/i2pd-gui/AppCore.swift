@@ -482,7 +482,7 @@ struct I2pdGUIApp: App {
             ContentView()
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 800, height: 900)
+        .defaultSize(width: 800, height: 1000)
         .windowResizability(.contentSize)
         .handlesExternalEvents(matching: ["quit"])
         
@@ -519,7 +519,7 @@ struct ContentView: View {
     
     
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 16) {
             // Заголовок (опущен ниже)
             Text("I2P Daemon GUI")
                 .font(.title)
@@ -684,7 +684,7 @@ struct ContentView: View {
                 }
                     }
                 }
-                .frame(minHeight: 200, maxHeight: 300) // Адаптивная высота логов
+                .frame(minHeight: 250, maxHeight: 350) // Больше места для логов
             }
             .padding(.horizontal, 16) // Адаптивные отступы
             
@@ -696,7 +696,7 @@ struct ContentView: View {
                 .padding(.trailing, 12)
                 .padding(.bottom, 8)
         }
-        .frame(minWidth: 750, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
+        .frame(minWidth: 750, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         .frame(maxWidth: 850) // Максимально компактная ширина
         .onAppear {
             i2pdManager.checkStatus()
