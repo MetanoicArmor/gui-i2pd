@@ -300,7 +300,9 @@ Info.plist              # Метаданные приложения
 **☕ Купить кофе разработчику:**
 
 **💎 Bitcoin (BTC):**
-<img src="btc_donation_qr.png" width="150">
+<div align="center">
+<img src="btc_donation_qr.png" width="200">
+</div>
 
 <button onclick="copyToClipboard('bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd')">
 
@@ -315,7 +317,9 @@ bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd
 ---
 
 **⚡ TON:**
-<img src="ton_donation_qr.png" width="150">
+<div align="center">
+<img src="ton_donation_qr.png" width="200">
+</div>
 
 <button onclick="copyToClipboard('UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY')">
 
