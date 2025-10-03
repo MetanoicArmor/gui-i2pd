@@ -18,10 +18,7 @@ let package = Package(
         .executableTarget(
             name: "i2pd-gui",
             dependencies: [],
-            path: "Sources/i2pd-gui",
-            resources: [
-                .copy("i2pd")
-            ]
+            path: "Sources/i2pd-gui"
         ),
     ]
 )

@@ -293,7 +293,8 @@ class TrayManager: NSObject, ObservableObject {
     
     private func checkIfStillRunning() {
         print("🔍 Проверяем, остановился ли daemon...")
-        let checkCommand = "pgrep -x i2pd | wc -l"
+        // БЕЗОПАСНО: ищем только процессы с --daemon
+        let checkCommand = "ps aux | grep 'i2pd.*--daemon' | grep -v grep | wc -l"
         
         let checkProcess = Process()
         checkProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -333,7 +334,8 @@ class TrayManager: NSObject, ObservableObject {
         print("💥 Применяем жёсткую остановку...")
         updateStatusText("💥 Жёсткая остановка...")
         
-        let forceCommand = "pkill -KILL i2pd 2>/dev/null || killall -KILL i2pd 2>/dev/null || true"
+        // БЕЗОПАСНО: убиваем только процессы с --daemon, не трогаем системные i2pd
+        let forceCommand = "pkill -KILL -f 'i2pd.*--daemon' 2>/dev/null || true"
         
         let forceProcess = Process()
         forceProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -815,7 +817,7 @@ struct ContentView: View {
             .padding(.horizontal, 20) // Больше места для адаптивности
             
             // Версия демона в правом нижнем углу
-            Text("i2pd v2.58.0")
+            Text(String(format: NSLocalizedString("i2pd v%@", comment: "i2pd version label"), i2pdManager.daemonVersion))
                 .font(.system(size: 9))
                 .foregroundColor(.primary.opacity(0.7))
                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -907,6 +909,7 @@ struct ContentView: View {
 // MARK: - About View
 struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var i2pdManager: I2pdManager
     
     var body: some View {
         VStack(spacing: 20) {
@@ -921,7 +924,7 @@ struct AboutView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             
-            Text("Версия 2.58.0")
+            Text(String(format: NSLocalizedString("Версия %@", comment: "app version in About"), i2pdManager.daemonVersion))
                 .font(.headline)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
@@ -932,7 +935,7 @@ struct AboutView: View {
                     .multilineTextAlignment(.center)
                 Text("• Радикальная остановка daemon")
                 Text("• Мониторинг в реальном времени")
-                Text("• Встроенный бинарник i2pd 2.58.0")
+                Text(String(format: NSLocalizedString("Встроенный бинарник i2pd %@", comment: "bundled binary"), i2pdManager.daemonVersion))
                 Text("• Подвижное и масштабируемое окно")
                 Text("• Тёмный интерфейс")
             }
@@ -2889,6 +2892,7 @@ class I2pdManager: ObservableObject {
     @Published var bytesSent = 0
     @Published var activeTunnels = 0
     @Published var routerInfos = 0
+    @Published var daemonVersion: String = "—"
     
     // Форматированные значения для отображения
     var receivedBytes: String {
@@ -2971,6 +2975,7 @@ class I2pdManager: ObservableObject {
                 // Обновляем состояние меню трея
                 TrayManager.shared.updateMenuState(isRunning: true)
                 self?.checkStatus()
+                self?.fetchDaemonVersion()
             }
         }
         
@@ -2994,6 +2999,7 @@ class I2pdManager: ObservableObject {
         ) { [weak self] _ in
             self?.addLog(.info, "📱 Статус обновлен из трея")
             self?.checkStatus()
+            self?.fetchDaemonVersionIfNeeded()
         }
     }
     
@@ -3442,10 +3448,12 @@ class I2pdManager: ObservableObject {
         // Обновляем статистику каждые 5 секунд
         logTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             self?.updateStatus()
+            self?.fetchDaemonVersionIfNeeded()
         }
         
         // Обновляем статистику сразу
         updateStatus()
+        fetchDaemonVersionIfNeeded()
     }
     
     private func stopStatusMonitoring() {
@@ -3523,6 +3531,65 @@ class I2pdManager: ObservableObject {
             self.activeTunnels = Int.random(in: 2...8)           // Активные туннели
             self.peerCount = Int.random(in: 50...200)            // Количество роутеров
         }
+    }
+
+    // MARK: - Версия демона
+    private func fetchDaemonVersionIfNeeded() {
+        guard isRunning else { return }
+        if daemonVersion == "—" || daemonVersion.isEmpty {
+            fetchDaemonVersion()
+        }
+    }
+
+    func fetchDaemonVersion() {
+        // 1) Пытаемся получить из веб‑консоли: http://127.0.0.1:7070/about или /version
+        // У i2pd нет стабильного JSON API веб‑консоли, поэтому используем парсинг HTML как бэкап.
+        // 2) Бэкап: через бинарник `i2pd --version`.
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            guard let self else { return }
+            if let version = self.fetchVersionFromWebConsole() ?? self.fetchVersionFromBinary() {
+                DispatchQueue.main.async {
+                    self.daemonVersion = version
+                    self.addLog(.info, "🔎 Версия демона: v\(version)")
+                }
+            }
+        }
+    }
+
+    private func fetchVersionFromWebConsole() -> String? {
+        let candidates = [
+            "http://127.0.0.1:7070/",
+            "http://127.0.0.1:7070/?lang=en",
+            "http://127.0.0.1:7070/?lang=ru"
+        ]
+        for urlString in candidates {
+            guard let url = URL(string: urlString) else { continue }
+            if let html = synchronousFetchString(url: url) {
+                if let match = firstRegexCapture(in: html, pattern: "(?:i2pd\\s+version\\s+|i2pd\\s+v)(\\d+\\.\\d+(?:\\.\\d+)?)") {
+                    return match
+                }
+            }
+        }
+        return nil
+    }
+
+    private func fetchVersionFromBinary() -> String? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executablePath)
+        process.arguments = ["--version"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        do {
+            try process.run()
+            process.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8) ?? ""
+            if let match = firstRegexCapture(in: output, pattern: "i2pd\\s+version\\s+(\\d+\\.\\d+(?:\\.\\d+)?)") { return match }
+        } catch {
+            addLog(.error, "Не удалось получить версию из бинарника: \(error.localizedDescription)")
+        }
+        return nil
     }
     
     private func addLog(_ level: LogLevel, _ message: String) {
@@ -3606,6 +3673,33 @@ class I2pdManager: ObservableObject {
                 addLog(.error, "❌ Ошибка копирования tunnels.conf: \(error)")
             }
         }
+    }
+
+    // MARK: - Utility helpers
+    private func synchronousFetchString(url: URL, timeout: TimeInterval = 3.0) -> String? {
+        var resultData: Data?
+        var responseError: Error?
+        let semaphore = DispatchSemaphore(value: 0)
+        let task = URLSession.shared.dataTask(with: url) { data, _, error in
+            resultData = data
+            responseError = error
+            semaphore.signal()
+        }
+        task.resume()
+        _ = semaphore.wait(timeout: .now() + timeout)
+        if responseError != nil { return nil }
+        if let data = resultData, let str = String(data: data, encoding: .utf8) { return str }
+        return nil
+    }
+
+    private func firstRegexCapture(in text: String, pattern: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        if let match = regex.firstMatch(in: text, options: [], range: range), match.numberOfRanges > 1,
+           let r = Range(match.range(at: 1), in: text) {
+            return String(text[r])
+        }
+        return nil
     }
 }
 
