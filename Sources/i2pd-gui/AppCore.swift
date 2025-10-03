@@ -874,23 +874,40 @@ struct SettingsView: View {
             let configContent = try String(contentsOf: configPath)
             let lines = configContent.components(separatedBy: .newlines)
             
+            var inTargetSection = false
             var currentSection = ""
-            
-            for (index, line) in lines.enumerated() {
+            for line in lines {
                 let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+                
+                // Пропускаем пустые строки
+                guard !trimmedLine.isEmpty else { continue }
                 
                 // Определяем текущую секцию
                 if trimmedLine.hasPrefix("[") && trimmedLine.hasSuffix("]") {
                     currentSection = trimmedLine.lowercased()
-                    print("📋 DEBUG: Найдена секция '\(currentSection)' на строке \(index)")
-                }
-                
-                // Ищем порты в соответствующей секции
-                if (trimmedLine.contains("port = ") || trimmedLine.contains("# port = ")) && currentSection.contains(sectionName) {
-                    print("📋 DEBUG: Найден порт '\(trimmedLine)' в секции '\(currentSection)' на строке \(index)")
-                    if let port = Self.extractPortFromLineStatic(trimmedLine) {
-                        print("📋 DEBUG: Извлечен порт \(port) для секции \(sectionName)")
-                        return port
+                    // Убираем квадратные скобки для сравнения
+                    let sectionNameClean = currentSection.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+                    
+                    inTargetSection = sectionNameClean == sectionName
+                    print("📋 DEBUG: Секция '\(sectionNameClean)' - в нашей цели: \(inTargetSection)")
+                    
+                } else if inTargetSection {
+                    // Мы в нужной секции, ищем строку с портом
+                    if Self.isPortLine(trimmedLine) {
+                        print("📋 DEBUG: Найдена строка с портом '\(trimmedLine)' в секции \(sectionName)")
+                        
+                        if let port = Self.extractPortFromConfigLine(trimmedLine) {
+                            // Проверяем что это не комментарий (раскомментированная строка имеет приоритет)
+                            if !trimmedLine.hasPrefix("#") {
+                                print("📋 DEBUG: Извлечен активный порт \(port) для секции \(sectionName)")
+                                return port
+                            } else {
+                                // Если это комментарий, сохраняем как резервный вариант
+                                print("📋 DEBUG: Найден закомментированный порт \(port) для секции \(sectionName)")
+                                // Возвращаем закомментированный порт если активных нет
+                                return port
+                            }
+                        }
                     }
                 }
             }
@@ -903,22 +920,48 @@ struct SettingsView: View {
         return nil
     }
     
-    static private func extractPortFromLineStatic(_ line: String) -> Int? {
-        // Парсим строку вида "port = 4444" или "# port = 4444" или "port = 4444 #комментарий"
-        let cleanLine = line.trimmingCharacters(in: .whitespaces)
+    // Проверяет является ли строка строкой с портом (только стандартные строки)
+    static private func isPortLine(_ line: String) -> Bool {
+        let trimmedLine = line.trimmingCharacters(in: .whitespaces)
         
-        // Убираем символ # из начала если есть
-        let processedLine = cleanLine.hasPrefix("#") ? String(cleanLine.dropFirst()).trimmingCharacters(in: .whitespaces) : cleanLine
+        // Убираем комментарии для проверки
+        let cleanLine = trimmedLine.hasPrefix("#") ? 
+            String(trimmedLine.dropFirst()).trimmingCharacters(in: .whitespaces) : 
+            trimmedLine
         
-        let components = processedLine.components(separatedBy: "port =")
+        // Проверяем точный паттерн: строка должна начинаться с "port" и содержать "="
+        // Исключаем случаи типа "notaport = 123"
+        return cleanLine.hasPrefix("port") && cleanLine.contains("=")
+    }
+    
+    // Извлекает порт из строки конфига (адаптивно к комментариям и пробелам)
+    static private func extractPortFromConfigLine(_ line: String) -> Int? {
+        let trimmedLine = line.trimmingCharacters(in: .whitespaces)
         
-        if components.count > 1 {
-            let portPart = components[1].trimmingCharacters(in: .whitespaces)
-            // Берем значение до первого пробела (может быть комментарий)
-            let portValue = portPart.components(separatedBy: .whitespaces).first ?? portPart
-            return Int(portValue.trimmingCharacters(in: .whitespaces))
+        // Убираем символ # в начале если он есть
+        let cleanLine = trimmedLine.hasPrefix("#") ? 
+            String(trimmedLine.dropFirst()).trimmingCharacters(in: .whitespaces) : 
+            trimmedLine
+        
+        // Разбиваем по "port =" чтобы найти значение
+        let components = cleanLine.components(separatedBy: "port =")
+        
+        guard components.count > 1 else {
+            return nil
         }
-        return nil
+        
+        let portSection = components[1].trimmingCharacters(in: .whitespaces)
+        
+        // Берем первое слово (до пробела), которое должно быть числом
+        let portValue = portSection.components(separatedBy: .whitespaces).first ?? portSection
+        
+        // Пытаемся преобразовать в число
+        return Int(portValue.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+    
+    // Старая функция (legacy)
+    static private func extractPortFromLineStatic(_ line: String) -> Int? {
+        return extractPortFromConfigLine(line)
     }
     
     // Функция для чтения портов из реального конфига (для .onAppear)
@@ -935,27 +978,40 @@ struct SettingsView: View {
             let configContent = try String(contentsOf: configPath)
             let lines = configContent.components(separatedBy: .newlines)
             
-            var currentSection = ""
+            var inHttpSection = false
+            var inSocksSection = false
             
             for line in lines {
                 let trimmedLine = line.trimmingCharacters(in: .whitespaces)
                 
+                // Пропускаем пустые строки
+                guard !trimmedLine.isEmpty else { continue }
+                
                 // Определяем текущую секцию
                 if trimmedLine.hasPrefix("[") && trimmedLine.hasSuffix("]") {
-                    currentSection = trimmedLine.lowercased()
+                    let sectionName = trimmedLine.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+                    inHttpSection = sectionName == "httpproxy"
+                    inSocksSection = sectionName == "socksproxy"
+                    print("📋 DEBUG: Переход в секцию '\(sectionName)' - HTTP: \(inHttpSection), SOCKS: \(inSocksSection)")
                 }
                 
-                // Ищем порты в соответствующих секциях (как раскомментированные, так и закомментированные)
-                if trimmedLine.contains("port = ") || trimmedLine.contains("# port = ") {
-                    if currentSection.contains("httpproxy") {
-                        if let portValue = extractPortFromLine(trimmedLine) {
-                            displayDaemonPort = portValue
-                            print("✅ HTTP порт загружен из конфига: \(displayDaemonPort)")
+                // Ищем порты в соответствующих секциях
+                if Self.isPortLine(trimmedLine) {
+                    if inHttpSection {
+                        if let portValue = Self.extractPortFromConfigLine(trimmedLine) {
+                            // Активные порты имеют приоритет над закомментированными
+                            if !trimmedLine.hasPrefix("#") {
+                                displayDaemonPort = portValue
+                                print("✅ HTTP порт загружен из конфига (активный): \(displayDaemonPort)")
+                            }
                         }
-                    } else if currentSection.contains("socksproxy") {
-                        if let portValue = extractPortFromLine(trimmedLine) {
-                            displaySocksPort = portValue
-                            print("✅ SOCKS порт загружен из конфига: \(displaySocksPort)")
+                    } else if inSocksSection {
+                        if let portValue = Self.extractPortFromConfigLine(trimmedLine) {
+                            // Активные порты имеют приоритет над закомментированными
+                            if !trimmedLine.hasPrefix("#") {
+                                displaySocksPort = portValue
+                                print("✅ SOCKS порт загружен из конфига (активный): \(displaySocksPort)")
+                            }
                         }
                     }
                 }
