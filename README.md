@@ -92,7 +92,7 @@
 ![I2P GUI Основной интерфейс](screenshots/screenshot1_ru.png)
 *Основной интерфейс приложения с мониторингом статуса*
 
-![I2P GUI Настройки](screenshots/screenshot2_ru.png.png)  
+![I2P GUI Настройки](screenshots/screenshot2_ru.png)  
 *Окно настроек с интерактивными портами HTTP/SOCKS5, управлением пропускной способностью и автозапуском*
 
 ![I2P GUI Расширенные настройки](screenshots/screenshot3_ru.png.png)
