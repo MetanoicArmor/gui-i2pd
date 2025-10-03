@@ -481,7 +481,7 @@ struct I2pdGUIApp: App {
         WindowGroup {
             ContentView()
         }
-        .windowStyle(.titleBar)
+        .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 800, height: 900)
         .windowResizability(.contentSize)
         .handlesExternalEvents(matching: ["quit"])
