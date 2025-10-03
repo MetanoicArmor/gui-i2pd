@@ -830,7 +830,6 @@ struct SettingsView: View {
     @AppStorage("autoStart") private var autoStart = false
     @AppStorage("darkMode") private var darkMode = true
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
-    @AppStorage("compactMode") private var compactMode = false
     @AppStorage("autoRefresh") private var autoRefresh = true
     @AppStorage("autoLogCleanup") private var autoLogCleanup = false
     @AppStorage("addressBookAutoUpdate") private var addressBookAutoUpdate = true
@@ -964,19 +963,6 @@ struct SettingsView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             
-                            HStack(spacing: 12) {
-                                Text("Компактный режим")
-                                    .font(.system(.body, design: .default, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .frame(minWidth: 220, alignment: .leading)
-                            
-                            HStack {
-                                Spacer()
-                                    Toggle("", isOn: $compactMode)
-                                        .labelsHidden()
-                            }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                     
@@ -1401,7 +1387,6 @@ struct SettingsView: View {
             // Сброс всех настроек к значениям по умолчанию
             autoStart = false
             notificationsEnabled = false
-            compactMode = false
             autoRefresh = true
             autoLogCleanup = false
             darkMode = true
