@@ -1170,6 +1170,80 @@ struct SettingsView: View {
             print("❌ Ошибка записи порта \(port) для \(service) в конфиг: \(error)")
         }
     }
+    
+    // MARK: - LaunchAgent Management
+    static func createLaunchAgent() -> Bool {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let launchAgentsDir = homeDir.appendingPathComponent("Library/LaunchAgents")
+        let plistPath = launchAgentsDir.appendingPathComponent("com.example.i2pd-gui.plist")
+        
+        // Получаем путь к текущему приложению
+        let appBundle = Bundle.main.bundlePath
+        
+        // Создаем LaunchAgents директорию если она не существует
+        do {
+            try FileManager.default.createDirectory(at: launchAgentsDir, withIntermediateDirectories: true)
+        } catch {
+            print("❌ Ошибка создания директории LaunchAgents: \(error)")
+            return false
+        }
+        
+        // Создаем содержимое plist файла
+        let plistContent = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>Label</key>
+            <string>com.example.i2pd-gui</string>
+            <key>ProgramArguments</key>
+            <array>
+                <string>\(appBundle)</string>
+            </array>
+            <key>RunAtLoad</key>
+            <true/>
+            <key>KeepAlive</key>
+            <false/>
+        </dict>
+        </plist>
+        """
+        
+        do {
+            try plistContent.write(to: plistPath, atomically: true, encoding: .utf8)
+            print("✅ LaunchAgent создан: \(plistPath.path)")
+            return true
+        } catch {
+            print("❌ Ошибка создания LaunchAgent: \(error)")
+            return false
+        }
+    }
+    
+    static func removeLaunchAgent() -> Bool {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let launchAgentsDir = homeDir.appendingPathComponent("Library/LaunchAgents")
+        let plistPath = launchAgentsDir.appendingPathComponent("com.example.i2pd-gui.plist")
+        
+        do {
+            if FileManager.default.fileExists(atPath: plistPath.path) {
+                try FileManager.default.removeItem(at: plistPath)
+                print("✅ LaunchAgent удален: \(plistPath.path)")
+            } else {
+                print("ℹ️ LaunchAgent файл не найден")
+            }
+            return true
+        } catch {
+            print("❌ Ошибка удаления LaunchAgent: \(error)")
+            return false
+        }
+    }
+    
+    static func launchAgentExists() -> Bool {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let launchAgentsDir = homeDir.appendingPathComponent("Library/LaunchAgents")
+        let plistPath = launchAgentsDir.appendingPathComponent("com.example.i2pd-gui.plist")
+        
+        return FileManager.default.fileExists(atPath: plistPath.path)
+    }
 
     // Функция для чтения настроек из реального конфига (для .onAppear)
     private func loadSettingsFromConfig() {
@@ -1258,7 +1332,6 @@ struct SettingsView: View {
     }
     @AppStorage("autoStart") private var autoStart = false
     @AppStorage("darkMode") private var darkMode = true
-    @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @AppStorage("autoRefresh") private var autoRefresh = true
     @AppStorage("autoLogCleanup") private var autoLogCleanup = false
     @AppStorage("addressBookAutoUpdate") private var addressBookAutoUpdate = true
@@ -1422,21 +1495,22 @@ struct SettingsView: View {
                                 Spacer()
                                     Toggle("", isOn: $autoStart)
                                         .labelsHidden()
+                                        .onChange(of: autoStart) { _, newValue in
+                                            if newValue {
+                                                if Self.createLaunchAgent() {
+                                                    print("✅ Автозапуск включен")
+                                                } else {
+                                                    autoStart = false // Откатываем если не удалось
+                                                }
+                                            } else {
+                                                if Self.removeLaunchAgent() {
+                                                    print("✅ Автозапуск отключен")
+                                                } else {
+                                                    autoStart = true // Откатываем если не удалось
+                                                }
+                                            }
+                                        }
                                 }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            HStack(spacing: 12) {
-                                Text("Отправлять уведомления")
-                                    .font(.system(.body, design: .default, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .frame(minWidth: 250, alignment: .leading)
-                                
-                            HStack {
-                                Spacer()
-                                    Toggle("", isOn: $notificationsEnabled)
-                                        .labelsHidden()
-                            }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -1814,8 +1888,16 @@ struct SettingsView: View {
         .frame(minWidth: 750, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
         .onAppear {
             // Загружаем актуальные порты из конфига при открытии настроек
-            print("🔄 SettingsView opened - loading ports from config...")
-            loadSettingsFromConfig()
+        print("🔄 SettingsView opened - loading ports from config...")
+        loadSettingsFromConfig()
+        
+        // Загружаем состояние автозапуска
+        if Self.launchAgentExists() {
+            if !autoStart {
+                autoStart = true
+                print("📋 Автозапуск найден в системе, обновляем UI")
+            }
+        }
         }
         .onReceive(NotificationCenter.default.publisher(for: .init("NSWindowDidResignKey"))) { _ in
             // Дополнительная обработка для лучшего закрытия окна
@@ -1898,7 +1980,6 @@ struct SettingsView: View {
         DispatchQueue.main.async {
             // Сброс всех настроек к значениям по умолчанию
             autoStart = false
-            notificationsEnabled = false
             autoRefresh = true
             autoLogCleanup = false
             darkMode = true
