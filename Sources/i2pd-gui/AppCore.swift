@@ -2183,45 +2183,35 @@ class I2pdManager: ObservableObject {
     }
     
     private func stopDaemonProcess() {
-        addLog(.debug, "🛑 Начинаем остановку демона...")
+        addLog(.debug, "🛑 Начинаем прямую остановку демона...")
         
-        // Максимально агрессивная остановка - НАЙДЕМ и ОСТАНОВИМ любой запущенный демон
-        let aggressiveStopCommand = """
-        echo "🔍 ПОИСК ВСЕХ демонов i2pd..." &&
-        ps aux | grep "i2pd.*daemon" | grep -v grep &&
-        echo "" &&
+        // ПРОСТОЙ И НАДЕЖНЫЙ поиск и остановка демона
+        let simpleStopCommand = """
+        echo "🔍 Поиск демона i2pd..." &&
+        DEMON_PID=$(ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | head -1) &&
         
-        # Находим ВСЕ демоны и убиваем их
-        echo "💀 НАХОДИМ И ОСТАНАВЛИВАЕМ ВСЕ ДЕМОНЫ..." &&
-        ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | while read pids; do 
-            echo "🎯 Останавливаем PID: $pids" &&
-            kill -TERM $pids 2>/dev/null || echo "TERM для $pids не сработал" &&
+        if [ -n "$DEMON_PID" ]; then
+            echo "✅ Найден демон с PID: $DEMON_PID" &&
+            echo "💀 Останавливаем демон..." &&
+            kill -TERM $DEMON_PID 2>/dev/null &&
+            sleep 2 &&
+            kill -INT $DEMON_PID 2>/dev/null &&
             sleep 1 &&
-            kill -INT $pids 2>/dev/null || echo "INT для $pids не сработал" &&
+            kill -KILL $DEMON_PID 2>/dev/null &&
+            
+            # Проверка результата
             sleep 1 &&
-            kill -KILL $pids 2>/dev/null || echo "KILL для $pids не сработал"
-        done &&
-        
-        # Дополнительные методы остановки
-        echo "" &&
-        echo "🔍 ДОПОЛНИТЕЛЬНЫЕ МЕТОДЫ ОСТАНОВКИ..." &&
-        pkill -TERM -f "i2pd.*daemon" 2>/dev/null || echo "pkill TERM не сработал" &&
-        sleep 2 &&
-        pkill -KILL -f "i2pd.*daemon" 2>/dev/null || echo "pkill KILL не сработал" &&
-        
-        # Финальная проверка
-        echo "" &&
-        echo "📋 ФИНАЛЬНАЯ ПРОВЕРКА:" &&
-        DEMON_COUNT=$(ps aux | grep "i2pd.*daemon" | grep -v grep | wc -l | tr -d ' ') &&
-        if [ "$DEMON_COUNT" -eq 0 ]; then
-            echo "✅ ВСЕ ДЕМОНЫ ОСТАНОВЛЕНЫ! ($DEMON_COUNT шт.)"
+            if ps -p $DEMON_PID >/dev/null 2>&1; then
+                echo "❌ Демон всё ещё жив!"
+            else
+                echo "✅ Демон успешо остановлен!"
+            fi
         else
-            echo "❌ ОСТАЛИСЬ ДЕМОНЫ! ($DEMON_COUNT шт.):" &&
-            ps aux | grep "i2pd.*daemon" | grep -v grep
+            echo "⚠️ Демон не найден"
         fi
         """
         
-        executeStopCommand(aggressiveStopCommand)
+        executeStopCommand(simpleStopCommand)
     }
     
     private func findDaemonChildProcesses() {
