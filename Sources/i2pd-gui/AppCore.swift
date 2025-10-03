@@ -358,16 +358,19 @@ class TrayManager: NSObject, ObservableObject {
     
     @objc private func openSettings() {
         print("⚙️ ОТКРЫТИЕ НАСТРОЕК из трея!")
+        print("📋 Текущее количество окон: \(NSApplication.shared.windows.count)")
         
         // Показываем главное окно
         showMainWindow()
         
         // Отправляем уведомление для открытия настроек в главном окне
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            print("📨 Отправляем уведомление OpenSettings...")
             NotificationCenter.default.post(name: NSNotification.Name("OpenSettings"), object: nil)
+            print("✅ Уведомление OpenSettings отправлено")
         }
         
-        updateStatusText("⚙️ Настройки открыты")
+        updateStatusText("⚙️ Открытие настроек...")
         print("✅ Главное окно открыто с настройками")
     }
     
@@ -438,16 +441,23 @@ class TrayManager: NSObject, ObservableObject {
     
     @objc func showMainWindow() {
         print("⚙️ ПОКАЗ ОКНА из трея!")
-        for window in NSApplication.shared.windows {
-            window.makeKeyAndOrderFront(nil)
-            // Убеждаемся, что у окна правильный делегат
-            if window.delegate === nil || !(window.delegate is WindowCloseDelegate) {
-                window.delegate = WindowCloseDelegate.shared
+        
+        // Временно меняем политику приложения на regular для показа окна
+        NSApplication.shared.setActivationPolicy(.regular)
+        
+        // Небольшая задержка для применения политики
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            for window in NSApplication.shared.windows {
+                window.makeKeyAndOrderFront(nil)
+                // Убеждаемся, что у окна правильный делегат
+                if window.delegate === nil || !(window.delegate is WindowCloseDelegate) {
+                    window.delegate = WindowCloseDelegate.shared
+                }
             }
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            self.updateStatusText("⚙️ Главное окно открыто")
+            print("✅ Главное окно показано")
         }
-        NSApplication.shared.activate(ignoringOtherApps: true)
-        updateStatusText("⚙️ Главное окно открыто")
-        print("✅ Главное окно показано")
     }
     
     @objc func hideMainWindow() {
@@ -455,6 +465,13 @@ class TrayManager: NSObject, ObservableObject {
         for window in NSApplication.shared.windows {
             window.orderOut(nil)
         }
+        
+        // Возвращаем приложение в accessory режим если настройка включена
+        let hideFromDock = UserDefaults.standard.bool(forKey: "hideFromDock")
+        if hideFromDock {
+            NSApplication.shared.setActivationPolicy(.accessory)
+        }
+        
         updateStatusText("📱 Свернуто в трей")
         print("✅ Приложение свернуто в трей")
     }
