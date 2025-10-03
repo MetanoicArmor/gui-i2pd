@@ -835,19 +835,24 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("daemonPort") private var daemonPort = 4444
     @AppStorage("socksPort") private var socksPort = 4447
+    @AppStorage("bandwidth") private var bandwidth = "L"
     @State private var displayDaemonPort = 4444
     @State private var displaySocksPort = 4447
+    @State private var displayBandwidth = "L"
+
     
     init(i2pdManager: I2pdManager) {
         self.i2pdManager = i2pdManager
-        // Инициализируем порты из конфига при создании view
+        // Инициализируем значения из конфига при создании view
         let daemonPort = Self.loadDaemonPortFromConfig()
         let socksPort = Self.loadSocksPortFromConfig()
+        let bandwidthValue = Self.loadBandwidthFromConfig()
         
-        print("📋 DEBUG: SettingsView init - HTTP порт: \(daemonPort), SOCKS порт: \(socksPort)")
+        print("📋 DEBUG: SettingsView init - HTTP порт: \(daemonPort), SOCKS порт: \(socksPort), Bandwidth: \(bandwidthValue)")
         
         _displayDaemonPort = State(initialValue: daemonPort)
         _displaySocksPort = State(initialValue: socksPort)
+        _displayBandwidth = State(initialValue: bandwidthValue)
     }
     
     // Статические функции для чтения портов из конфига при инициализации
@@ -857,6 +862,10 @@ struct SettingsView: View {
     
     static private func loadSocksPortFromConfig() -> Int {
         return Self.loadPortFromConfigForSection("socksproxy") ?? 4447
+    }
+    
+    static private func loadBandwidthFromConfig() -> String {
+        return Self.loadBandwidthFromConfigSection("bandwidth") ?? "L"
     }
     
     static private func loadPortFromConfigForSection(_ sectionName: String) -> Int? {
@@ -964,8 +973,87 @@ struct SettingsView: View {
         return extractPortFromConfigLine(line)
     }
     
-    // Функция для чтения портов из реального конфига (для .onAppear)
-    private func loadPortsFromConfig() {
+    // Загружает значение bandwidth из конфига
+    static private func loadBandwidthFromConfigSection(_ settingName: String) -> String? {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        
+        print("📋 DEBUG: Ищем bandwidth в \(configPath.path)")
+        
+        guard FileManager.default.fileExists(atPath: configPath.path) else {
+            print("⚠️ i2pd.conf не найден для bandwidth")
+            return nil
+        }
+        
+        do {
+            let configContent = try String(contentsOf: configPath)
+            let lines = configContent.components(separatedBy: .newlines)
+            
+            for line in lines {
+                let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+                
+                // Пропускаем пустые строки
+                guard !trimmedLine.isEmpty else { continue }
+                
+                // Ищем строку с bandwidth = 
+                if Self.isBandwidthLine(trimmedLine) {
+                    print("📋 DEBUG: Найдена строка с bandwidth '\(trimmedLine)'")
+                    
+                    if let bandwidth = Self.extractBandwidthFromConfigLine(trimmedLine) {
+                        print("📋 DEBUG: Извлечен bandwidth \(bandwidth)")
+                        return bandwidth
+                    }
+                }
+            }
+            
+            print("⚠️ DEBUG: Bandwidth не найден в конфиге")
+        } catch {
+            print("❌ Ошибка чтения конфига для bandwidth: \(error)")
+        }
+        
+        return nil
+    }
+    
+    // Проверяет является ли строка строкой с bandwidth
+    static private func isBandwidthLine(_ line: String) -> Bool {
+        let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+        
+        // Убираем комментарии для проверки
+        let cleanLine = trimmedLine.hasPrefix("#") ? 
+            String(trimmedLine.dropFirst()).trimmingCharacters(in: .whitespaces) : 
+            trimmedLine
+        
+        // Проверяем точный паттерн: строка должна содержать "bandwidth ="
+        return cleanLine.lowercased().contains("bandwidth =")
+    }
+    
+    // Извлекает значение bandwidth из строки конфига (адаптивно к комментариям и пробелам)
+    static private func extractBandwidthFromConfigLine(_ line: String) -> String? {
+        let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+        
+        // Убираем символ # в начале если он есть
+        let cleanLine = trimmedLine.hasPrefix("#") ? 
+            String(trimmedLine.dropFirst()).trimmingCharacters(in: .whitespaces) : 
+            trimmedLine
+        
+        // Разбиваем по "bandwidth =" чтобы найти значение (case insensitive)
+        let components = cleanLine.lowercased().components(separatedBy: "bandwidth =")
+        
+        guard components.count > 1 else {
+            return nil
+        }
+        
+        let bandwidthSection = components[1].trimmingCharacters(in: .whitespaces)
+        
+        // Берем первое слово (до пробела), которое должно быть значением L, O, P, X или числом
+        let bandwidthValue = bandwidthSection.components(separatedBy: .whitespaces).first ?? bandwidthSection
+        
+        // Возвращаем значение в верхнем регистре
+        return bandwidthValue.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    // Функция для чтения настроек из реального конфига (для .onAppear)
+    private func loadSettingsFromConfig() {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
         
@@ -1010,8 +1098,19 @@ struct SettingsView: View {
                             // Активные порты имеют приоритет над закомментированными
                             if !trimmedLine.hasPrefix("#") {
                                 displaySocksPort = portValue
-                                print("✅ SOCKS порт загружен из конфига (активный): \(displaySocksPort)")
+                                print("✅ SOCKS порт загружен из конфига (активен): \(displaySocksPort)")
                             }
+                        }
+                    }
+                }
+                
+                // Ищем bandwidth в любой секции (так как он может быть в корне конфига)
+                if Self.isBandwidthLine(trimmedLine) {
+                    if let bandwidthValue = Self.extractBandwidthFromConfigLine(trimmedLine) {
+                        // Активное значение имеет приоритет над закомментированным
+                        if !trimmedLine.hasPrefix("#") {
+                            displayBandwidth = bandwidthValue
+                            print("✅ Bandwidth загружен из конфига (активный): \(displayBandwidth)")
                         }
                     }
                 }
@@ -1122,6 +1221,48 @@ struct SettingsView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
+                            // Настройка пропускной способности
+                            HStack(spacing: 12) {
+                                Text("Пропускная способность")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 220, alignment: .leading)
+                                
+                                HStack {
+                                    Menu {
+                                        Button("L (32 KB/s) - Стандартная") {
+                                            displayBandwidth = "L"
+                                        }
+                                        Button("O (256 KB/s) - Средняя") {
+                                            displayBandwidth = "O"
+                                        }
+                                        Button("P (2048 KB/s) - Высокая (рекомендуется)") {
+                                            displayBandwidth = "P"
+                                        }
+                                        Button("X (unlimited) - Максимальная") {
+                                            displayBandwidth = "X"
+                                        }
+                                        Divider()
+                                        Button("Настроить произвольную скорость") {
+                                            displayBandwidth = "Custom"
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text("\(displayBandwidth)")
+                                                .font(.system(.body, design: .monospaced, weight: .medium))
+                                            Image(systemName: "chevron.down")
+                                                .font(.caption)
+                                        }
+                                            .foregroundColor(.primary)
+                                            .padding(.vertical, 8)
+                                            .padding(.horizontal, 12)
+                                            .background(Color(NSColor.controlBackgroundColor))
+                                    .cornerRadius(6)
+                                }
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
                         }
                     }
                     
@@ -1199,7 +1340,7 @@ struct SettingsView: View {
                             HStack {
                                 Spacer()
                                     Toggle("", isOn: $autoRefresh)
-                                    .labelsHidden()
+                                        .labelsHidden()
                                     .onChange(of: autoRefresh) { 
                                         // Управляем автопобновлением статистики
                                         if autoRefresh {
@@ -1221,7 +1362,7 @@ struct SettingsView: View {
                             HStack {
                                 Spacer()
                                     Toggle("", isOn: $autoLogCleanup)
-                                    .labelsHidden()
+                                        .labelsHidden()
                                     .onChange(of: autoLogCleanup) { 
                                         // Управляем автоочисткой логов
                                         if autoLogCleanup {
@@ -1531,7 +1672,7 @@ struct SettingsView: View {
         .onAppear {
             // Загружаем актуальные порты из конфига при открытии настроек
             print("🔄 SettingsView opened - loading ports from config...")
-            loadPortsFromConfig()
+            loadSettingsFromConfig()
         }
         .onReceive(NotificationCenter.default.publisher(for: .init("NSWindowDidResignKey"))) { _ in
             // Дополнительная обработка для лучшего закрытия окна
@@ -1607,7 +1748,7 @@ struct SettingsView: View {
             addressBookInterval = 720
             
             // Применяем тёмную тему по умолчанию безопасно
-            NSApp.appearance = NSAppearance(named: .darkAqua)
+                NSApp.appearance = NSAppearance(named: .darkAqua)
             
             i2pdManager.logExportComplete("🔄 Настройки сброшены к значениям по умолчанию")
             
@@ -2115,20 +2256,20 @@ struct ControlButtons: View {
             
             // Дополнительные кнопки
             HStack(spacing: 12) {
-                Button("⚙️ Настройки") {
-                    showingSettings = true
-                }
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-                .frame(height: 36)
+                    Button("⚙️ Настройки") {
+                        showingSettings = true
+                    }
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
+                    .frame(height: 36)
                 .frame(maxWidth: .infinity)
                 
                 Button("🔽 Свернуть в трей") {
                     TrayManager.shared.hideMainWindow()
-                }
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-                .frame(height: 36)
+                    }
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
+                    .frame(height: 36)
                 .frame(maxWidth: .infinity)
                 
                 Button("Очистить логи") {
@@ -2464,13 +2605,13 @@ class I2pdManager: ObservableObject {
             echo "✅ Найден демон с PID: $DEMON_PID" &&
             echo "💀 Останавливаем демон через kill -s INT..." &&
             kill -s INT $DEMON_PID 2>/dev/null &&
-            sleep 2 &&
+        sleep 2 &&
             kill -s TERM $DEMON_PID 2>/dev/null &&
             sleep 1 &&
             kill -KILL $DEMON_PID 2>/dev/null &&
-            
+        
             # Проверка результата
-            sleep 1 &&
+        sleep 1 &&
             if ps -p $DEMON_PID >/dev/null 2>&1; then
                 echo "❌ Демон всё ещё жив!"
             else
