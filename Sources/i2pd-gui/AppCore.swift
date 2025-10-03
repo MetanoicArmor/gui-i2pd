@@ -2,6 +2,11 @@ import SwiftUI
 import Foundation
 import AppKit
 
+// MARK: - Localization Helper
+func L(_ key: String) -> String {
+    return NSLocalizedString(key, comment: "")
+}
+
 // MARK: - Window Close Delegate для корректного сворачивания в трей
 class WindowCloseDelegate: NSObject, NSWindowDelegate {
     static let shared = WindowCloseDelegate()
@@ -83,6 +88,9 @@ class WindowCloseDelegate: NSObject, NSWindowDelegate {
 // MARK: - App Delegate для обработки завершения приложения
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     
+    // Флаг для отслеживания перезапуска приложения (не останавливать демон)
+    static var isRestarting = false
+    
     override init() {
         super.init()
         setupGlobalQuitHandler()
@@ -110,9 +118,57 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             object: nil
         )
         
+        // Перехватываем Cmd+Q через меню
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            self.setupQuitMenuItem()
+        }
+        
         // Устанавливаем делегат окна с небольшой задержкой, чтобы окно успело создаться
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.setupWindowDelegate()
+        }
+    }
+    
+    private func setupQuitMenuItem() {
+        // Находим меню "Quit" и заменяем его действие
+        if let mainMenu = NSApp.mainMenu {
+            for menu in mainMenu.items {
+                if let submenu = menu.submenu {
+                    for item in submenu.items {
+                        if item.action == #selector(NSApplication.terminate(_:)) {
+                            print("🔧 Перехватываем Cmd+Q (Quit)")
+                            item.action = #selector(self.customQuit(_:))
+                            item.target = self
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    @objc private func customQuit(_ sender: Any?) {
+        print("🚪 Custom Quit вызван - обрабатываем корректно")
+        
+        // Если приложение перезапускается, просто выходим
+        if AppDelegate.isRestarting {
+            print("🔄 Перезапуск - быстрый выход")
+            NSApp.terminate(nil)
+            return
+        }
+        
+        // Принудительно закрываем все окна (включая настройки)
+        print("🚪 Закрываем все окна перед выходом")
+        for window in NSApplication.shared.windows {
+            window.close()
+        }
+        
+        // Сбрасываем флаг настроек
+        WindowCloseDelegate.isSettingsOpen = false
+        
+        // Даём время окнам закрыться, затем завершаем
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            print("🚪 Завершаем приложение")
+            NSApp.terminate(nil)
         }
     }
     
@@ -126,8 +182,36 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
     
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        print("🚪 applicationShouldTerminate вызван")
+        
+        // Если приложение перезапускается (смена языка), разрешаем выход БЕЗ остановки демона
+        if AppDelegate.isRestarting {
+            print("🔄 Перезапуск - разрешаем выход без остановки демона")
+            return .terminateNow
+        }
+        
+        // При обычном выходе принудительно закрываем все окна (включая настройки)
+        print("🚪 Обычный выход - закрываем все окна")
+        for window in NSApplication.shared.windows {
+            window.close()
+        }
+        
+        // Сбрасываем флаг настроек
+        WindowCloseDelegate.isSettingsOpen = false
+        
+        // Разрешаем завершение - будет вызван applicationWillTerminate
+        return .terminateNow
+    }
+    
     @objc func applicationWillTerminate(_ notification: Notification) {
         print("🚪🚪🚪 AppDelegate.applicationWillTerminate ВЫЗВАН! 🚪🚪🚪")
+        
+        // Если приложение перезапускается (смена языка), НЕ останавливаем демон
+        if AppDelegate.isRestarting {
+            print("🔄 Приложение перезапускается - демон НЕ останавливается")
+            return
+        }
         
         // Вызываем СИНХРОННУЮ остановку демона напрямую (без recursion)
         let findAndKillCommand = """
@@ -205,7 +289,7 @@ class TrayManager: NSObject, ObservableObject {
             let menu = NSMenu()
             
             // Статус
-            statusItem = NSMenuItem(title: "Статус: Готов", action: #selector(checkStatus), keyEquivalent: "")
+            statusItem = NSMenuItem(title: L("Статус: Готов"), action: #selector(checkStatus), keyEquivalent: "")
             statusItem?.target = self
             menu.addItem(statusItem!)
             menu.addItem(NSMenuItem.separator())
@@ -214,19 +298,19 @@ class TrayManager: NSObject, ObservableObject {
             let startAction = #selector(TrayManager.startDaemon)
             print("🔧 Селектор для start: \(String(describing: startAction))")
             
-            startItem = NSMenuItem(title: "Запустить daemon", action: startAction, keyEquivalent: "")
+            startItem = NSMenuItem(title: L("Запустить daemon"), action: startAction, keyEquivalent: "")
             startItem?.target = self
             startItem?.tag = 1
             print("🔧 startItem создан с target: \(String(describing: startItem?.target)), action: \(String(describing: startItem?.action))")
             menu.addItem(startItem!)
             
-            stopItem = NSMenuItem(title: "Остановить daemon", action: #selector(stopDaemon), keyEquivalent: "")
+            stopItem = NSMenuItem(title: L("Остановить daemon"), action: #selector(stopDaemon), keyEquivalent: "")
             stopItem?.target = self
             stopItem?.tag = 2
             print("🔧 stopItem создан с target: \(String(describing: stopItem?.target)), action: \(String(describing: stopItem?.action))")
             menu.addItem(stopItem!)
             
-            let restartItem = NSMenuItem(title: "Перезапустить daemon", action: #selector(restartDaemon), keyEquivalent: "")
+            let restartItem = NSMenuItem(title: L("Перезапустить daemon"), action: #selector(restartDaemon), keyEquivalent: "")
             restartItem.target = self
             restartItem.tag = 3
             print("🔧 restartItem создан с target: \(String(describing: restartItem.target)), action: \(String(describing: restartItem.action))")
@@ -234,25 +318,25 @@ class TrayManager: NSObject, ObservableObject {
             menu.addItem(NSMenuItem.separator())
             
             // Функции
-            let settingsItem = NSMenuItem(title: "Настройки", action: #selector(openSettings), keyEquivalent: ",")
+            let settingsItem = NSMenuItem(title: L("Настройки"), action: #selector(openSettings), keyEquivalent: ",")
             settingsItem.target = self
             print("🔧 Создан settingsItem с target: \(String(describing: settingsItem.target)), action: \(String(describing: settingsItem.action))")
             menu.addItem(settingsItem)
             
-            let webItem = NSMenuItem(title: "Веб-консоль", action: #selector(openWebConsole), keyEquivalent: "")
+            let webItem = NSMenuItem(title: L("Веб-консоль"), action: #selector(openWebConsole), keyEquivalent: "")
             webItem.target = self
             menu.addItem(webItem)
             
-            let showItem = NSMenuItem(title: "Показать окно", action: #selector(showMainWindow), keyEquivalent: "")
+            let showItem = NSMenuItem(title: L("Показать окно"), action: #selector(showMainWindow), keyEquivalent: "")
             showItem.target = self
             menu.addItem(showItem)
             menu.addItem(NSMenuItem.separator())
             
-            let hideItem = NSMenuItem(title: "Свернуть в трей", action: #selector(hideMainWindow), keyEquivalent: "")
+            let hideItem = NSMenuItem(title: L("Свернуть в трей"), action: #selector(hideMainWindow), keyEquivalent: "")
             hideItem.target = self
             menu.addItem(hideItem)
             
-            let quitItem = NSMenuItem(title: "Выйти", action: #selector(quitApplication), keyEquivalent: "")
+            let quitItem = NSMenuItem(title: L("Выйти"), action: #selector(quitApplication), keyEquivalent: "")
             quitItem.target = self
             menu.addItem(quitItem)
             
@@ -530,13 +614,33 @@ class TrayManager: NSObject, ObservableObject {
             killProcess.waitUntilExit()
             print("✅ Синхронная остановка завершена")
             
-            // Теперь закрываем приложение
-            print("🚪 Закрываем приложение...")
-            NSApplication.shared.terminate(nil)
+            // Принудительно закрываем все окна (включая настройки) перед выходом
+            print("🚪 Закрываем все окна перед выходом...")
+            for window in NSApplication.shared.windows {
+                window.close()
+            }
+            
+            // Сбрасываем флаг настроек
+            WindowCloseDelegate.isSettingsOpen = false
+            
+            // Даём время окнам закрыться, затем завершаем
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                print("🚪 Завершаем приложение...")
+                NSApplication.shared.terminate(nil)
+            }
             
         } catch {
             print("❌ Ошибка остановки демона: \(error)")
-            NSApplication.shared.terminate(nil)
+            
+            // Даже при ошибке закрываем все окна
+            for window in NSApplication.shared.windows {
+                window.close()
+            }
+            WindowCloseDelegate.isSettingsOpen = false
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                NSApplication.shared.terminate(nil)
+            }
         }
     }
     
@@ -552,14 +656,14 @@ class TrayManager: NSObject, ObservableObject {
             
             if isRunning {
                 // Демон запущен
-                self.startItem?.title = "✓ Запустить daemon" // Добавляем галочку
-                self.stopItem?.title = "Остановить daemon"
-                self.statusItem?.title = "Статус: Запущен"
+                self.startItem?.title = "✓ " + L("Запустить daemon") // Добавляем галочку
+                self.stopItem?.title = L("Остановить daemon")
+                self.statusItem?.title = L("Статус: Запущен")
             } else {
                 // Демон остановлен
-                self.startItem?.title = "Запустить daemon"
-                self.stopItem?.title = "✓ Остановить daemon" // Можно остановить
-                self.statusItem?.title = "Статус: Остановлен"
+                self.startItem?.title = L("Запустить daemon")
+                self.stopItem?.title = "✓ " + L("Остановить daemon") // Можно остановить
+                self.statusItem?.title = L("Статус: Остановлен")
             }
             
             print("🏷️ Обновлено состояние меню трея: демон \(isRunning ? "запущен" : "остановлен")")
@@ -594,6 +698,11 @@ struct I2pdGUIApp: App {
         if UserDefaults.standard.object(forKey: "darkMode") == nil {
             UserDefaults.standard.set(true, forKey: "darkMode")
         }
+        
+        // Применяем сохраненный язык
+        let savedLanguage = UserDefaults.standard.string(forKey: "appLanguage") ?? "ru"
+        UserDefaults.standard.set([savedLanguage], forKey: "AppleLanguages")
+        UserDefaults.standard.synchronize()
         
         // Инициализируем менеджер трея
         _ = TrayManager.shared
@@ -631,17 +740,17 @@ struct I2pdGUIApp: App {
         
         .commands {
             CommandGroup(after: .windowArrangement) {
-                Button("Свернуть в трей (⌘H)") {
+                Button(L("Свернуть в трей (⌘H)")) {
                     TrayManager.shared.hideMainWindow()
                 }
                 .keyboardShortcut("h", modifiers: [.command])
                 
-                Button("Показать главное окно") {
+                Button(L("Показать главное окно")) {
                     TrayManager.shared.showMainWindow()
                 }
                 .keyboardShortcut("w", modifiers: [.command])
                 
-                Button("Настройки (⌘,)") {
+                Button(L("Настройки (⌘,)")) {
                     NotificationCenter.default.post(name: NSNotification.Name("OpenSettings"), object: nil)
                 }
                 .keyboardShortcut(",", modifiers: [.command])
@@ -663,7 +772,7 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 16) {
             // Заголовок (опущен ниже)
-            Text("I2P Daemon GUI")
+            Text(L("I2P Daemon GUI"))
                 .font(.title)
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
@@ -686,7 +795,7 @@ struct ContentView: View {
                     Image(systemName: "chart.bar.fill")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.orange)
-                    Text("📊 Сетевая статистика")
+                    Text(L("📊 Сетевая статистика"))
                         .font(.headline)
                         .fontWeight(.semibold)
                     Spacer()
@@ -694,14 +803,14 @@ struct ContentView: View {
                         showingSettings = true
                     }
                     .buttonStyle(.borderless)
-                    .help("Настройки")
+                    .help(L("Настройки"))
                     
                     Button("🔄") {
                         i2pdManager.getExtendedStats()
                     }
                     .disabled(!i2pdManager.isRunning)
                     .buttonStyle(.borderless)
-                    .help("Обновить")
+                    .help(L("Обновить"))
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
@@ -714,7 +823,7 @@ struct ContentView: View {
                         Image(systemName: "arrow.down.circle.fill")
                             .foregroundColor(.green)
                             .font(.caption)
-                        Text("Получено: \(i2pdManager.receivedBytes)")
+                        Text(String(format: L("Получено: %@"), i2pdManager.receivedBytes))
                             .font(.caption)
                     }
                     
@@ -722,7 +831,7 @@ struct ContentView: View {
                         Image(systemName: "arrow.up.circle.fill")
                             .foregroundColor(.blue)
                             .font(.caption)
-                        Text("Отправлено: \(i2pdManager.sentBytes)")
+                        Text(String(format: L("Отправлено: %@"), i2pdManager.sentBytes))
                             .font(.caption)
                     }
                     
@@ -732,7 +841,7 @@ struct ContentView: View {
                         Image(systemName: "lock.fill")
                             .foregroundColor(.purple)
                             .font(.caption)
-                        Text("Туннели: \(i2pdManager.activeTunnels)")
+                        Text(String(format: L("Туннели: %d"), i2pdManager.activeTunnels))
                             .font(.caption)
                     }
                     
@@ -740,7 +849,7 @@ struct ContentView: View {
                         Image(systemName: "wifi")
                             .foregroundColor(.orange)
                             .font(.caption)
-                        Text("Роутеры: \(i2pdManager.peerCount)")
+                        Text(String(format: L("Роутеры: %d"), i2pdManager.peerCount))
                             .font(.caption)
                     }
                 }
@@ -763,12 +872,12 @@ struct ContentView: View {
                     Image(systemName: "doc.text")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.blue)
-                    Text("📋 Логи системы")
+                    Text(L("📋 Логи системы"))
                         .font(.headline)
                         .fontWeight(.semibold)
                     Spacer()
                     if !i2pdManager.logs.isEmpty {
-                        Button("🗑️ Очистить") {
+                        Button("🗑️ " + L("Очистить")) {
                             i2pdManager.clearLogs()
                         }
                         .buttonStyle(.bordered)
@@ -814,10 +923,10 @@ struct ContentView: View {
                         Image(systemName: "doc.text")
                                     .font(.system(size: 24))
                             .foregroundColor(.secondary)
-                                Text("Система готова к работе")
+                                Text(L("Система готова к работе"))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                                Text("Логи появятся при запуске демона")
+                                Text(L("Логи появятся при запуске демона"))
                                     .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -932,7 +1041,7 @@ struct AboutView: View {
                 .font(.system(size: 64))
                 .foregroundColor(.blue)
             
-            Text("I2P Daemon GUI")
+            Text(L("I2P Daemon GUI"))
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .lineLimit(1)
@@ -945,13 +1054,13 @@ struct AboutView: View {
                 .minimumScaleFactor(0.9)
             
             VStack(spacing: 8) {
-                Text("Современный GUI для управления I2P Daemon")
+                Text(L("Современный GUI для управления I2P Daemon"))
                     .multilineTextAlignment(.center)
-                Text("• Радикальная остановка daemon")
-                Text("• Мониторинг в реальном времени")
+                Text(L("• Радикальная остановка daemon"))
+                Text(L("• Мониторинг в реальном времени"))
                 Text(String(format: NSLocalizedString("Встроенный бинарник i2pd %@", comment: "bundled binary"), i2pdManager.daemonVersion))
-                Text("• Подвижное и масштабируемое окно")
-                Text("• Тёмный интерфейс")
+                Text(L("• Подвижное и масштабируемое окно"))
+                Text(L("• Тёмный интерфейс"))
             }
             .font(.body)
             .multilineTextAlignment(.center)
@@ -959,9 +1068,9 @@ struct AboutView: View {
             Divider()
             
             VStack(spacing: 2) {
-                Text("Разработано на SwiftUI")
+                Text(L("Разработано на SwiftUI"))
                     .font(.caption)
-                Text("Swift 5.7+ • macOS 14.0+")
+                Text(L("Swift 5.7+ • macOS 14.0+"))
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -1494,6 +1603,7 @@ struct SettingsView: View {
     @AppStorage("autoStart") private var autoStart = false
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
     @AppStorage("startMinimized") private var startMinimized = false
+    @AppStorage("appLanguage") private var appLanguage = "ru"
     @AppStorage("darkMode") private var darkMode = true
     @AppStorage("autoRefresh") private var autoRefresh = true
     @AppStorage("autoLogCleanup") private var autoLogCleanup = false
@@ -1509,7 +1619,7 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             // Заголовок
             HStack {
-                Text("⚙️ Настройки")
+                Text(L("⚙️ Настройки"))
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .lineLimit(1)
@@ -1517,7 +1627,7 @@ struct SettingsView: View {
                 
                 Spacer()
                 
-                Text("Esc для закрытия")
+                Text(L("Esc для закрытия"))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.trailing, 16)
@@ -1530,11 +1640,11 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     // Сетевая конфигурация
-                    SettingsSection(title: "🌐 Сетевая конфигурация", icon: "globe") {
+                    SettingsSection(title: "🌐 " + L("Сетевая конфигурация"), icon: "globe") {
                         VStack(spacing: 12) {
                             // Порт HTTP прокси (интерактивный)
                             HStack(spacing: 12) {
-                                Text("Порт HTTP прокси")
+                                Text(L("Порт HTTP прокси"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
@@ -1560,7 +1670,7 @@ struct SettingsView: View {
                             
                             // Порт SOCKS5 прокси (интерактивный)
                             HStack(spacing: 12) {
-                                Text("Порт SOCKS5 прокси")
+                                Text(L("Порт SOCKS5 прокси"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
@@ -1586,32 +1696,32 @@ struct SettingsView: View {
                             
                             // Настройка пропускной способности
                             HStack(spacing: 12) {
-                                Text("Пропускная способность")
+                                Text(L("Пропускная способность"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
                                 HStack {
                                     Menu {
-                                        Button("L (32 KB/s) - Стандартная") {
+                                        Button("L (32 KB/s) - " + L("Standard")) {
                                             print("🔄 Пользователь выбрал L")
                                             displayBandwidth = "L"
                                             Self.writeBandwidthToConfig("L")
                                             showBandwidthAlert = true
                                         }
-                                        Button("O (256 KB/s) - Средняя") {
+                                        Button("O (256 KB/s) - " + L("Medium")) {
                                             print("🔄 Пользователь выбрал O")
                                             displayBandwidth = "O"
                                             Self.writeBandwidthToConfig("O")
                                             showBandwidthAlert = true
                                         }
-                                        Button("P (2048 KB/s) - Высокая (рекомендуется)") {
+                                        Button("P (2048 KB/s) - " + L("High (recommended)")) {
                                             print("🔄 Пользователь выбрал P")
                                             displayBandwidth = "P"
                                             Self.writeBandwidthToConfig("P")
                                             showBandwidthAlert = true
                                         }
-                                        Button("X (unlimited) - Максимальная") {
+                                        Button("X (unlimited) - " + L("Maximum")) {
                                             print("🔄 Пользователь выбрал X")
                                             displayBandwidth = "X"
                                             Self.writeBandwidthToConfig("X")
@@ -1638,7 +1748,7 @@ struct SettingsView: View {
                     }
                     
                     // Автоматизация
-                    SettingsSection(title: "💻 Автоматизация", icon: "gearshape.2.fill") {
+                    SettingsSection(title: "💻 " + L("Автоматизация"), icon: "gearshape.2.fill") {
                         VStack(spacing: 16) {
                             // Показываем текущее состояние LaunchAgent
                             HStack(spacing: 12) {
@@ -1647,7 +1757,7 @@ struct SettingsView: View {
                                     .font(.title2)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Автозапуск приложения")
+                                    Text(L("Автозапуск приложения"))
                                         .font(.system(.body, design: .default, weight: .medium))
                                         .foregroundColor(.primary)
                                     
@@ -1672,7 +1782,7 @@ struct SettingsView: View {
                                     .font(.title2)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Автозапуск демона")
+                                    Text(L("Автозапуск демона"))
                                         .font(.system(.body, design: .default, weight: .medium))
                                         .foregroundColor(.primary)
                                     
@@ -1700,7 +1810,7 @@ struct SettingsView: View {
                                     .font(.title2)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Запускать свернутым")
+                                    Text(L("Запускать свернутым"))
                                         .font(.system(.body, design: .default, weight: .medium))
                                         .foregroundColor(.primary)
                                     
@@ -1722,16 +1832,39 @@ struct SettingsView: View {
                     }
                     
                     // Интерфейс
-                    SettingsSection(title: "🎨 Интерфейс", icon: "paintpalette.fill") {
+                    SettingsSection(title: "🎨 " + L("Интерфейс"), icon: "paintpalette.fill") {
                         VStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Тема приложения")
+                                Text(L("Язык приложения"))
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Picker(L("Язык"), selection: $appLanguage) {
+                                    Text("🇷🇺 \(NSLocalizedString("Русский", comment: "Russian"))").tag("ru")
+                                    Text("🇬🇧 \(NSLocalizedString("English", comment: "English"))").tag("en")
+                                }
+                                .pickerStyle(.segmented)
+                                .frame(maxWidth: .infinity)
+                                .onChange(of: appLanguage) { _, newValue in
+                                    changeLanguage(to: newValue)
+                                }
+                                
+                                Text(NSLocalizedString("Изменения языка применятся после перезапуска приложения", comment: "Restart required"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            
+                            Divider()
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(NSLocalizedString("Тема приложения", comment: "App theme"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                 Picker("Тема приложения", selection: $darkMode) {
-                                    Text("Светлая").tag(false)
-                                    Text("Тёмная").tag(true)
+                                    Text(NSLocalizedString("Светлая", comment: "Light")).tag(false)
+                                    Text(NSLocalizedString("Тёмная", comment: "Dark")).tag(true)
                                 }
                                 .pickerStyle(.segmented)
                                 .frame(maxWidth: .infinity)
@@ -1750,13 +1883,13 @@ struct SettingsView: View {
                             Divider()
                             
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Отображение приложения")
+                                Text(L("Отображение приложения"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                 
                                 HStack(spacing: 12) {
-                                    Text("Скрыть из Dock")
+                                    Text(L("Скрыть из Dock"))
                                         .font(.system(.body, design: .default, weight: .medium))
                                         .foregroundColor(.primary)
                                         .frame(minWidth: 200, alignment: .leading)
@@ -1771,7 +1904,7 @@ struct SettingsView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 
-                                Text("При включении приложение скроется из Dock и станет доступно только через трей. ✅ Настройка восстанавливается при перезапуске.")
+                                Text(L("При включении приложение скроется из Dock и станет доступно только через трей. ✅ Настройка восстанавливается при перезапуске."))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1781,10 +1914,10 @@ struct SettingsView: View {
                     }
                     
                     // Мониторинг
-                    SettingsSection(title: "📊 Мониторинг", icon: "chart.bar") {
+                    SettingsSection(title: "📊 " + L("Мониторинг"), icon: "chart.bar") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
-                                Text("Обновление каждые 5 сек")
+                                Text(L("Обновление каждые 5 сек"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 250, alignment: .leading)
@@ -1806,7 +1939,7 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
                             HStack(spacing: 12) {
-                                Text("Автоматическая очистка логов")
+                                Text(L("Автоматическая очистка логов"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 250, alignment: .leading)
@@ -1830,10 +1963,10 @@ struct SettingsView: View {
                     }
                     
                     // Данные
-                    SettingsSection(title: "💾 Данные", icon: "folder.fill") {
+                    SettingsSection(title: "💾 " + L("Данные"), icon: "folder.fill") {
                         VStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Путь к данным")
+                                Text(L("Путь к данным"))
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1842,7 +1975,7 @@ struct SettingsView: View {
                                         .foregroundColor(.secondary)
                                         .font(.system(.caption, design: .monospaced))
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                    Button("Изменить") {
+                                    Button(L("Изменить")) {
                                         selectDataDirectory()
                                     }
                                     .buttonStyle(.borderless)
@@ -1853,14 +1986,14 @@ struct SettingsView: View {
                             Divider()
                             
                             VStack(spacing: 12) {
-                                Button("🗑️ Очистить кэш") {
+                                Button("🗑️ " + L("Очистить кэш")) {
                                     clearDataCache()
                                 }
                                 .foregroundColor(.red)
                                 .buttonStyle(.borderless)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 
-                                Button("📊 Экспорт логов") {
+                                Button("📊 " + L("Экспорт логов")) {
                                     exportLogs()
                                 }
                                 .foregroundColor(.blue)
@@ -1871,10 +2004,10 @@ struct SettingsView: View {
                     }
                     
                     // Действия
-                    SettingsSection(title: "🔄 Действия", icon: "hammer.circle.fill") {
+                    SettingsSection(title: "🔄 " + L("Действия"), icon: "hammer.circle.fill") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
-                                Button("🔧 Сбросить настройки") {
+                                Button("🔧 " + L("Сбросить настройки")) {
                                     showingResetAlert = true
                                 }
                                 .foregroundColor(.orange)
@@ -1891,11 +2024,11 @@ struct SettingsView: View {
                                 }
                                 Button("Отменить", role: .cancel) {}
                             } message: {
-                                Text("Все настройки будут сброшены к значениям по умолчанию. Вы уверены?")
+                                Text(L("Все настройки будут сброшены к значениям по умолчанию. Вы уверены?"))
                             }
                             
                             HStack(spacing: 12) {
-                                Button("📊 Тестовая статистика") {
+                                Button("📊 " + L("Тестовая статистика")) {
                                     i2pdManager.getExtendedStats()
                                 }
                                 .disabled(!i2pdManager.isRunning)
@@ -1909,15 +2042,15 @@ struct SettingsView: View {
                     }
                     
                     // Конфигурация и файлы
-                    SettingsSection(title: "📁 Конфигурация", icon: "doc.text") {
+                    SettingsSection(title: "📁 " + L("Конфигурация"), icon: "doc.text") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
-                                Text("Конфиг файл")
+                                Text(L("Конфиг файл"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("📁 Открыть") {
+                                Button("📁 " + L("Открыть")) {
                                     openConfigFile()
                                 }
                                 .buttonStyle(.borderless)
@@ -1927,12 +2060,12 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
                             HStack(spacing: 12) {
-                                Text("Папка данных")
+                                Text(L("Папка данных"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("📂 Открыть") {
+                                Button("📂 " + L("Открыть")) {
                                     openLogsDirectory() // Используем логи как папку данных
                                 }
                                 .buttonStyle(.borderless)
@@ -1942,12 +2075,12 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
                             HStack(spacing: 12) {
-                                Text("Журналы")
+                                Text(L("Журналы"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("📋 Открыть") {
+                                Button("📋 " + L("Открыть")) {
                                     openLogsDirectory()
                                 }
                                 .buttonStyle(.borderless)
@@ -1959,15 +2092,15 @@ struct SettingsView: View {
                     }
                     
                     // Туннели
-                    SettingsSection(title: "🚇 Туннели", icon: "network") {
+                    SettingsSection(title: "🚇 " + L("Туннели"), icon: "network") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
-                                Text("Управление туннелями")
+                                Text(L("Управление туннелями"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("⚙️ Настроить") {
+                                Button("⚙️ " + L("Настроить")) {
                                     openTunnelManager()
                                 }
                                 .buttonStyle(.borderless)
@@ -1978,12 +2111,12 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
                             HStack(spacing: 12) {
-                                Text("Пример туннелей")
+                                Text(L("Пример туннелей"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("📝 Показать") {
+                                Button("📝 " + L("Показать")) {
                                     showTunnelExamples()
                                 }
                                 .buttonStyle(.borderless)
@@ -1995,15 +2128,15 @@ struct SettingsView: View {
                     }
                     
                     // Address Book
-                    SettingsSection(title: "📖 Address Book", icon: "book.fill") {
+                    SettingsSection(title: "📖 " + L("Address Book"), icon: "book.fill") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
-                                Text("Подписки adressbook")
+                                Text(L("Подписки adressbook"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                Button("📝 Редактировать") {
+                                Button("📝 " + L("Редактировать")) {
                                     openAddressBookSubscriptions()
                                 }
                                 .buttonStyle(.borderless)
@@ -2013,7 +2146,7 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
                             HStack(spacing: 12) {
-                                Text("Автообновление:")
+                                Text(L("Автообновление:"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 180, alignment: .leading)
@@ -2026,16 +2159,16 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
                             HStack(spacing: 12) {
-                                Text("Интервал обновления:")
+                                Text(L("Интервал обновления:"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Picker("Интервал обновления", selection: $addressBookInterval) {
-                                    Text("Каждые 6 часов").tag(360)
-                                    Text("Ежедневно").tag(720)
-                                    Text("Каждые 3 дня").tag(2160)
-                                    Text("Еженедельно").tag(5040)
+                                Picker(L("Интервал обновления"), selection: $addressBookInterval) {
+                                    Text(L("Каждые 6 часов")).tag(360)
+                                    Text(L("Ежедневно")).tag(720)
+                                    Text(L("Каждые 3 дня")).tag(2160)
+                                    Text(L("Еженедельно")).tag(5040)
                                 }
                                 .pickerStyle(.menu)
                                 .frame(width: 200)
@@ -2048,20 +2181,20 @@ struct SettingsView: View {
                             Divider()
                             
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Текущие подписки:")
+                                Text(L("Текущие подписки:"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                 
-                                Text("• reg.i2p - Основной реестр адресов")
+                                Text(L("• reg.i2p - Основной реестр адресов"))
                                     .font(.system(.caption, design: .default))
                                     .foregroundColor(.secondary)
-                                Text("• identiguy.i2p - Альтернативный источник")
+                                Text(L("• identiguy.i2p - Альтернативный источник"))
                                     .font(.system(.caption, design: .default))
                                     .foregroundColor(.secondary)
-                                Text("• stats.i2p - Статистика сети")
+                                Text(L("• stats.i2p - Статистика сети"))
                                     .font(.system(.caption, design: .default))
                                     .foregroundColor(.secondary)
-                                Text("• i2p-projekt.i2p - Проектный источник")
+                                Text(L("• i2p-projekt.i2p - Проектный источник"))
                                     .font(.system(.caption, design: .default))
                                     .foregroundColor(.secondary)
                             }
@@ -2070,15 +2203,15 @@ struct SettingsView: View {
                     }
                     
                     // Веб-консоль
-                    SettingsSection(title: "🖥️ Веб-консоль", icon: "safari.fill") {
+                    SettingsSection(title: "🖥️ " + L("Веб-консоль"), icon: "safari.fill") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
-                                Text("Веб-интерфейс")
+                                Text(L("Веб-интерфейс"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("🌐 Открыть") {
+                                Button("🌐 " + L("Открыть")) {
                                     openWebConsole()
                                 }
                                 .buttonStyle(.borderless)
@@ -2089,12 +2222,12 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
                             HStack(spacing: 12) {
-                                Text("Порт: 7070")
+                                Text(L("Порт: 7070"))
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.secondary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("🔗 Копировать URL") {
+                                Button("🔗 " + L("Копировать URL")) {
                                     copyWebConsoleURL()
                                 }
                                 .buttonStyle(.borderless)
@@ -2137,20 +2270,20 @@ struct SettingsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .init("NSWindowDidResignKey"))) { _ in
             // Дополнительная обработка для лучшего закрытия окна
         }
-        .alert("Bandwidth обновлен", isPresented: $showBandwidthAlert) {
+        .alert(L("Пропускная способность обновлена"), isPresented: $showBandwidthAlert) {
             Button("OK") { }
         } message: {
-            Text("Пропускная способность изменена и сохранена в конфиг: \(displayBandwidth)")
+            Text(String(format: L("Пропускная способность изменена и сохранена в конфиг: %@"), displayBandwidth))
         }
-        .alert("HTTP порт обновлен", isPresented: $showHttpPortAlert) {
+        .alert(L("HTTP порт обновлен"), isPresented: $showHttpPortAlert) {
             Button("OK") { }
         } message: {
-            Text("HTTP порт изменен и сохранен в конфиг: \(displayDaemonPort)")
+            Text(String(format: L("HTTP порт изменен и сохранен в конфиг: %d"), displayDaemonPort))
         }
-        .alert("SOCKS порт обновлен", isPresented: $showSocksPortAlert) {
+        .alert(L("SOCKS порт обновлен"), isPresented: $showSocksPortAlert) {
             Button("OK") { }
         } message: {
-            Text("SOCKS порт изменен и сохранен в конфиг: \(displaySocksPort)")
+            Text(String(format: L("SOCKS порт изменен и сохранен в конфиг: %d"), displaySocksPort))
         }
         .onKeyPress { keyPress in
             if keyPress.key == .escape {
@@ -2161,6 +2294,10 @@ struct SettingsView: View {
                 return .handled
             }
             return .ignored
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CloseSettings"))) { _ in
+            print("📨 SettingsView получил CloseSettings - закрываем через dismiss()")
+            dismiss()
         }
     }
     
@@ -2219,6 +2356,98 @@ struct SettingsView: View {
         }
     }
     
+    private func changeLanguage(to language: String) {
+        print("🌐 Смена языка на: \(language)")
+        UserDefaults.standard.set([language], forKey: "AppleLanguages")
+        UserDefaults.standard.synchronize()
+        
+        let languageName = language == "ru" ? "русский 🇷🇺" : "English 🇬🇧"
+        i2pdManager.logExportComplete("🌐 " + L("Язык изменён на") + " \(languageName). " + L("Перезапуск приложения..."))
+        
+        // Умный перезапуск приложения
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.restartApplication()
+        }
+    }
+    
+    private func restartApplication() {
+        // Закрываем окно настроек перед перезапуском
+        if WindowCloseDelegate.isSettingsOpen {
+            print("⚙️ Закрываем настройки перед перезапуском")
+            NotificationCenter.default.post(name: NSNotification.Name("CloseSettings"), object: nil)
+            WindowCloseDelegate.isSettingsOpen = false
+            
+            // Даём время на закрытие модального окна
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self.performRestart()
+            }
+        } else {
+            performRestart()
+        }
+    }
+    
+    private func performRestart() {
+        // Получаем путь к приложению и PID текущего процесса
+        let appPath = Bundle.main.bundlePath
+        let currentPID = ProcessInfo.processInfo.processIdentifier
+        
+        // Устанавливаем флаг перезапуска - демон НЕ будет остановлен
+        AppDelegate.isRestarting = true
+        
+        print("🔄 Начинаем перезапуск приложения (PID: \(currentPID))...")
+        
+        // Принудительно закрываем ВСЕ окна приложения
+        for window in NSApplication.shared.windows {
+            window.close()
+        }
+        
+        // Создаем bash-скрипт который:
+        // 1. Ждёт завершения текущего процесса
+        // 2. Перезапускает приложение
+        let script = """
+        #!/bin/bash
+        # Ждём завершения текущего процесса GUI
+        while kill -0 \(currentPID) 2>/dev/null; do
+            sleep 0.1
+        done
+        
+        # Перезапускаем приложение
+        echo "🔄 Перезапуск приложения..."
+        open "\(appPath)"
+        """
+        
+        // Сохраняем скрипт во временный файл
+        let tempDir = FileManager.default.temporaryDirectory
+        let scriptURL = tempDir.appendingPathComponent("restart-\(UUID().uuidString).sh")
+        
+        do {
+            try script.write(to: scriptURL, atomically: true, encoding: .utf8)
+            
+            // Делаем скрипт исполняемым
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+            
+            // Запускаем скрипт в фоне (он будет ждать завершения приложения)
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/bin/bash")
+            task.arguments = [scriptURL.path]
+            task.standardOutput = nil
+            task.standardError = nil
+            try task.run()
+            
+            print("✅ Скрипт перезапуска запущен в фоне")
+            
+            // Выходим через exit(0) - НЕ вызывает applicationWillTerminate
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                print("🚪 Выход через exit(0) - демон останется работать")
+                exit(0)
+            }
+        } catch {
+            print("❌ Ошибка перезапуска: \(error)")
+            AppDelegate.isRestarting = false
+            i2pdManager.logExportComplete("❌ " + L("Ошибка перезапуска:") + " \(error.localizedDescription)")
+        }
+    }
+    
     private func toggleDockVisibility(isHidden: Bool) {
         DispatchQueue.main.async {
             if isHidden {
@@ -2255,6 +2484,7 @@ struct SettingsView: View {
             autoStart = false
             autoStartDaemon = false
             startMinimized = false
+            appLanguage = "ru"
             autoRefresh = true
             autoLogCleanup = false
             darkMode = true
@@ -2659,12 +2889,12 @@ struct StatusCard: View {
                     .frame(width: 12, height: 12)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(isRunning ? "Запущен" : "Остановлен")
+                    Text(isRunning ? L("Запущен") : L("Остановлен"))
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .lineLimit(1)
                         .minimumScaleFactor(0.9)
-                    Text(isRunning ? "Статус: активен" : "Статус: неактивен")
+                    Text(isRunning ? L("Статус: активен") : L("Статус: неактивен"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
@@ -2674,7 +2904,7 @@ struct StatusCard: View {
             
             // Время работы
             VStack(alignment: .leading, spacing: 2) {
-                Text("Время работы")
+                Text(L("Время работы"))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -2689,7 +2919,7 @@ struct StatusCard: View {
             
             // Счётчик пиров
             VStack(alignment: .leading, spacing: 2) {
-                Text("Подключения")
+                Text(L("Подключения"))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -2727,7 +2957,7 @@ struct ControlButtons: View {
         VStack(spacing: 16) {
             // Основные кнопки
             HStack(spacing: 16) {
-                Button("Перезапустить") {
+                Button(NSLocalizedString("Перезапустить", comment: "Restart button")) {
                     i2pdManager.restartDaemon()
                 }
                 .lineLimit(1)
@@ -2746,7 +2976,7 @@ struct ControlButtons: View {
                     HStack(spacing: 8) {
                         Image(systemName: i2pdManager.isRunning ? "stop.circle.fill" : "play.circle.fill")
                             .font(.system(size: 16))
-                        Text(i2pdManager.isRunning ? "Остановить" : "Запустить")
+                        Text(i2pdManager.isRunning ? NSLocalizedString("Остановить", comment: "Stop") : NSLocalizedString("Запустить", comment: "Start"))
                             .fontWeight(.medium)
                             .lineLimit(1)
                             .minimumScaleFactor(0.9)
@@ -2758,7 +2988,7 @@ struct ControlButtons: View {
                 .controlSize(.large)
                 .disabled(i2pdManager.isLoading || i2pdManager.operationInProgress)
                 
-                Button("Обновить статус") {
+                Button(L("Обновить статус")) {
                     i2pdManager.checkStatus()
                 }
                 .lineLimit(1)
@@ -2771,7 +3001,7 @@ struct ControlButtons: View {
             
             // Дополнительные кнопки
             HStack(spacing: 12) {
-                    Button("⚙️ Настройки") {
+                    Button("⚙️ " + L("Настройки")) {
                         showingSettings = true
                     }
                             .lineLimit(1)
@@ -2779,7 +3009,7 @@ struct ControlButtons: View {
                     .frame(height: 36)
                 .frame(maxWidth: .infinity)
                 
-                Button("🔽 Свернуть в трей") {
+                Button("🔽 " + L("Свернуть в трей")) {
                     TrayManager.shared.hideMainWindow()
                     }
                             .lineLimit(1)
@@ -2787,7 +3017,7 @@ struct ControlButtons: View {
                     .frame(height: 36)
                 .frame(maxWidth: .infinity)
                 
-                Button("Очистить логи") {
+                Button(L("Очистить логи")) {
                     i2pdManager.clearLogs()
                 }
                 .lineLimit(1)
@@ -3001,11 +3231,11 @@ class I2pdManager: ObservableObject {
         
         // Дебаг вывод
         DispatchQueue.main.async { [weak self] in
-            self?.addLog(.debug, "🔧 Инициализация I2pdManager")
-            self?.addLog(.debug, "📍 Bundle path: \(bundlePath)")
-            self?.addLog(.debug, "🎯 Ресурсный путь: \(resourcePath)")
-            self?.addLog(.debug, "✅ Финальный путь: \(self?.executablePath ?? "не найден")")
-            self?.addLog(.debug, "🔍 Файл существует: \(FileManager.default.fileExists(atPath: self?.executablePath ?? "") ? "✅ да" : "❌ нет")")
+            self?.addLog(.debug, L("🔧 Инициализация I2pdManager"))
+            self?.addLog(.debug, L("📍 Bundle path:") + "  \(bundlePath)")
+            self?.addLog(.debug, L("🎯 Ресурсный путь:") + "  \(resourcePath)")
+            self?.addLog(.debug, L("✅ Финальный путь:") + "  \(self?.executablePath ?? "не найден")")
+            self?.addLog(.debug, "🔍 " + L("Файл существует:") + "  \(FileManager.default.fileExists(atPath: self?.executablePath ?? "") ? "✅ " + L("да") : "❌ " + L("нет"))")
         }
         
         // Подписываемся на уведомления от трея
@@ -3015,7 +3245,7 @@ class I2pdManager: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                self?.addLog(.info, "📱 Daemon запущен из трея - обновляем статус")
+                self?.addLog(.info, L("📱 Daemon запущен из трея - обновляем статус"))
                 // Обновляем состояние меню трея
                 TrayManager.shared.updateMenuState(isRunning: true)
                 self?.checkStatus()
@@ -3029,7 +3259,7 @@ class I2pdManager: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                self?.addLog(.info, "📱 Daemon остановлен из трея - обновляем статус")
+                self?.addLog(.info, L("📱 Daemon остановлен из трея - обновляем статус"))
                 // Обновляем состояние меню трея
                 TrayManager.shared.updateMenuState(isRunning: false)
                 self?.checkStatus()
@@ -3041,7 +3271,7 @@ class I2pdManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.addLog(.info, "📱 Статус обновлен из трея")
+            self?.addLog(.info, L("📱 Статус обновлен из трея"))
             self?.checkStatus()
             self?.fetchDaemonVersionIfNeeded()
         }
@@ -3049,28 +3279,28 @@ class I2pdManager: ObservableObject {
     
     func startDaemon() {
         guard !operationInProgress else {
-            addLog(.warn, "Операция уже выполняется, пропускаем...")
+            addLog(.warn, L("Операция уже выполняется, пропускаем..."))
             return
         }
         operationInProgress = true
         isLoading = true
-        addLog(.info, "Запуск I2P daemon...")
-        addLog(.debug, "🔄 Пытаемся запустить daemon...")
-        addLog(.debug, "📍 Путь к бинарнику: \(executablePath)")
-        addLog(.debug, "🔍 Проверка существования: \(FileManager.default.fileExists(atPath: executablePath))")
+        addLog(.info, L("Запуск I2P daemon..."))
+        addLog(.debug, L("🔄 Пытаемся запустить daemon..."))
+        addLog(.debug, L("📍 Путь к бинарнику:") + "  \(executablePath)")
+        addLog(.debug, L("🔍 Проверка существования:") + "  \(FileManager.default.fileExists(atPath: executablePath))")
         
         guard FileManager.default.fileExists(atPath: executablePath) else {
-            addLog(.error, "❌ Бинарник i2pd не найден по пути: \(executablePath)")
+            addLog(.error, L("❌ Бинарник i2pd не найден по пути:") + " \(executablePath)")
             isLoading = false
             operationInProgress = false
             return
         }
         
-        addLog(.debug, "✅ Бинарник найден, продолжаем запуск")
+        addLog(.debug, L("✅ Бинарник найден, продолжаем запуск"))
         
         // Проверяем, не запущен ли уже процесс
         if isRunning {
-            addLog(.warn, "I2P daemon уже запущен")
+            addLog(.warn, L("I2P daemon уже запущен"))
             isLoading = false
             operationInProgress = false
             return
@@ -3082,17 +3312,17 @@ class I2pdManager: ObservableObject {
     }
     
     func stopDaemon() {
-        addLog(.info, "🚫 ОСТАНОВКА ДЕМОНА ИЗ I2pdManager НАЧАТА!")
+        addLog(.info, L("🚫 ОСТАНОВКА ДЕМОНА ИЗ I2pdManager НАЧАТА!"))
         
         guard !operationInProgress else {
             addLog(.warn, "⚠️ Операция уже выполняется, пропускаем...")
             return
         }
         
-        addLog(.debug, "✅ Блокировка операций установлена")
+        addLog(.debug, L("✅ Блокировка операций установлена"))
         operationInProgress = true
         isLoading = true
-        addLog(.info, "🛑 Остановка I2P daemon через kill -s INT...")
+        addLog(.info, L("🛑 Остановка I2P daemon через kill -s INT..."))
         
         DispatchQueue.global(qos: .background).async { [weak self] in
             self?.stopDaemonProcess()
@@ -3102,7 +3332,7 @@ class I2pdManager: ObservableObject {
                 self?.isRunning = false
                 self?.isLoading = false
                 self?.operationInProgress = false
-                self?.addLog(.info, "✅ Демон остановлен")
+                self?.addLog(.info, L("✅ Демон остановлен"))
             }
         }
     }
@@ -3117,7 +3347,7 @@ class I2pdManager: ObservableObject {
     }
     
     private func stopDaemonProcess() {
-        addLog(.debug, "🛑 Начинаем прямую остановку демона...")
+        addLog(.debug, L("🛑 Начинаем прямую остановку демона..."))
         
         // ПРОСТОЙ И НАДЕЖНЫЙ поиск и остановка демона
         let simpleStopCommand = """
@@ -3165,7 +3395,7 @@ class I2pdManager: ObservableObject {
         ps aux | grep "i2pd.*--daemon" | grep -v grep | awk '{print $2}' | head -1
         """
         
-        addLog(.debug, "🔍 Запускаем подробный поиск демона...")
+        addLog(.debug, L("🔍 Запускаем подробный поиск демона..."))
         
         let findProcess = Process()
         findProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -3215,17 +3445,17 @@ class I2pdManager: ObservableObject {
                     
                     if let pid = foundPid {
                         self?.daemonPID = pid
-                        self?.addLog(.debug, "✅ Найден реальный PID демона: \(pid)")
+                        self?.addLog(.debug, L("✅ Найден реальный PID демона:") + " \(pid)")
                     } else {
-                        self?.addLog(.debug, "⚠️ Не удалось найти PID в выводе: \(lines)")
+                        self?.addLog(.debug, L("⚠️ Не удалось найти PID в выводе:") + " \(lines)")
                     }
                 } else {
-                    self?.addLog(.debug, "⚠️ Пустой вывод поиска PID")
+                    self?.addLog(.debug, L("⚠️ Пустой вывод поиска PID"))
                 }
             }
         } catch {
             DispatchQueue.main.async { [weak self] in
-                self?.addLog(.error, "Ошибка поиска PID демона: \(error)")
+                self?.addLog(.error, L("Ошибка поиска PID демона:") + " \(error)")
             }
         }
     }
@@ -3301,7 +3531,7 @@ class I2pdManager: ObservableObject {
                         self?.addLog(.info, line)
                     }
                 } else {
-                    self?.addLog(.info, "Daemon остановлен")
+                    self?.addLog(.info, L("Daemon остановлен"))
                 }
                 
                 // Принудительно устанавливаем статус как остановленный
@@ -3317,7 +3547,7 @@ class I2pdManager: ObservableObject {
             
         } catch {
             DispatchQueue.main.async { [weak self] in
-                self?.addLog(.error, "Ошибка остановки daemon: \(error.localizedDescription)")
+                self?.addLog(.error, L("Ошибка остановки daemon:") + " \(error.localizedDescription)")
                 self?.isLoading = false
                 self?.operationInProgress = false
             }
@@ -3326,7 +3556,7 @@ class I2pdManager: ObservableObject {
     
     func checkStatus() {
         isLoading = true
-        addLog(.info, "Проверка статуса...")
+        addLog(.info, L("Проверка статуса..."))
         
         DispatchQueue.global(qos: .background).async { [weak self] in
             self?.checkDaemonStatus()
@@ -3336,13 +3566,13 @@ class I2pdManager: ObservableObject {
     func clearLogs() {
         DispatchQueue.main.async { [weak self] in
             self?.logs.removeAll()
-            self?.addLog(.info, "Логи очищены")
+            self?.addLog(.info, L("Логи очищены"))
         }
     }
     
     func logExportComplete(_ path: String) {
         DispatchQueue.main.async { [weak self] in
-            self?.addLog(.info, "📄 Статистика экспортирована: \(path)")
+            self?.addLog(.info, L("📄 Статистика экспортирована:") + " \(path)")
         }
     }
     
@@ -3358,14 +3588,14 @@ class I2pdManager: ObservableObject {
                         self?.bytesSent = 0
                         self?.activeTunnels = 0
                         self?.peerCount = 0
-                        self?.addLog(.info, "📊 Статистика сброшена (daemon остановлен)")
+                        self?.addLog(.info, L("📊 Статистика сброшена (daemon остановлен)"))
                     } else {
                         // Если демон запущен, показываем демо данные
                         self?.bytesReceived = Int.random(in: 1024...10485760)  // 1KB - 10MB
                         self?.bytesSent = Int.random(in: 1024...10485760)      // 1KB - 10MB
                         self?.activeTunnels = Int.random(in: 2...8)             // 2-8 туннелей
                         self?.peerCount = Int.random(in: 100...500)             // 100-500 роутеров
-                        self?.addLog(.info, "📊 Расширенная статистика обновлена")
+                        self?.addLog(.info, L("📊 Расширенная статистика обновлена"))
                     }
                 }
             }
@@ -3387,7 +3617,7 @@ class I2pdManager: ObservableObject {
             DispatchQueue.main.async { [weak self] in
                 self?.i2pdProcess = process
                 self?.i2pdPID = process.processIdentifier
-                self?.addLog(.debug, "🚀 Команда запущена: \(self?.executablePath ?? "unknown") \(arguments.joined(separator: " ")) с PID: \(process.processIdentifier)")
+                self?.addLog(.debug, L("🚀 Команда запущена:") + " \(self?.executablePath ?? "unknown") \(arguments.joined(separator: " ")) " + L("с PID:") + " \(process.processIdentifier)")
                 
                 // Для daemon режима также ищем дочерние процессы
                 if arguments.contains("--daemon") {
@@ -3403,7 +3633,7 @@ class I2pdManager: ObservableObject {
                 DispatchQueue.main.async { [weak self] in
                     let trimmedOutput = output.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmedOutput.isEmpty {
-                        self?.addLog(.info, "📝 Вывод команды: \(trimmedOutput)")
+                        self?.addLog(.info, L("📝 Вывод команды:") + " \(trimmedOutput)")
                     }
                 }
             }
@@ -3411,13 +3641,13 @@ class I2pdManager: ObservableObject {
             process.waitUntilExit()
             
             DispatchQueue.main.async { [weak self] in
-                self?.addLog(.debug, "✅ Процесс завершен с кодом: \(process.terminationStatus)")
+                self?.addLog(.debug, L("✅ Процесс завершен с кодом:") + " \(process.terminationStatus)")
                 self?.isLoading = false
                 self?.operationInProgress = false
                 
                 // Обновляем статус после завершения команды
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-                    self?.addLog(.debug, "🔄 Проверяем статус daemon...")
+                    self?.addLog(.debug, "🔄 " + L("Checking daemon status..."))
                     self?.checkDaemonStatus()
                 }
             }
@@ -3429,7 +3659,7 @@ class I2pdManager: ObservableObject {
             
         } catch {
             DispatchQueue.main.async { [weak self] in
-                self?.addLog(.error, "Ошибка выполнения команды: \(error.localizedDescription)")
+                self?.addLog(.error, L("Ошибка выполнения команды:") + " \(error.localizedDescription)")
                 self?.isLoading = false
                 self?.operationInProgress = false
             }
@@ -3458,8 +3688,8 @@ class I2pdManager: ObservableObject {
                 self?.isRunning = count > 0
                 
                 if self?.isRunning != wasRunning {
-                    let status = self?.isRunning == true ? "запустился" : "остановился"
-                    self?.addLog(.info, "Daemon \(status)")
+                    let status = self?.isRunning == true ? L("started") : L("stopped")
+                    self?.addLog(.info, L("Daemon") + " \(status)")
                     
                     // Отправляем уведомления об изменении состояния демона
                     if self?.isRunning == true {
@@ -3481,7 +3711,7 @@ class I2pdManager: ObservableObject {
             
         } catch {
             DispatchQueue.main.async { [weak self] in
-                self?.addLog(.error, "Ошибка проверки статуса: \(error.localizedDescription)")
+                self?.addLog(.error, L("Ошибка проверки статуса:") + " \(error.localizedDescription)")
                 self?.isLoading = false
                 self?.operationInProgress = false
             }
@@ -3511,7 +3741,7 @@ class I2pdManager: ObservableObject {
             self?.bytesSent = 0
             self?.activeTunnels = 0
             self?.peerCount = 0
-            self?.addLog(.info, "📊 Статистика сброшена (daemon остановлен)")
+            self?.addLog(.info, L("📊 Статистика сброшена (daemon остановлен)"))
         }
     }
     
@@ -3594,7 +3824,7 @@ class I2pdManager: ObservableObject {
             if let version = self.fetchVersionFromWebConsole() ?? self.fetchVersionFromBinary() {
                 DispatchQueue.main.async {
                     self.daemonVersion = version
-                    self.addLog(.info, "🔎 Версия демона: v\(version)")
+                    self.addLog(.info, "🔎 " + L("Daemon version:") + " v\(version)")
                 }
             }
         }
@@ -3669,12 +3899,12 @@ class I2pdManager: ObservableObject {
                 // Копируем только если файл не существует
                 if !FileManager.default.fileExists(atPath: destPath.path) {
                     try FileManager.default.copyItem(at: subscriptionsURL, to: destPath)
-                    addLog(.info, "✅ subscriptions.txt скопирован из бандла (первый запуск)")
+                    addLog(.info, L("✅ subscriptions.txt скопирован из бандла (первый запуск)"))
                 } else {
-                    addLog(.info, "📁 subscriptions.txt уже существует - сохраняем пользовательский")
+                    addLog(.info, L("📁 subscriptions.txt уже существует - сохраняем пользовательский"))
                 }
             } catch {
-                addLog(.error, "❌ Ошибка копирования subscriptions.txt: \(error)")
+                addLog(.error, L("❌ Ошибка копирования subscriptions.txt:") + " \(error)")
             }
         }
         
@@ -3689,12 +3919,12 @@ class I2pdManager: ObservableObject {
                 // Копируем только если файл не существует
                 if !FileManager.default.fileExists(atPath: destPath.path) {
                     try FileManager.default.copyItem(at: configURL, to: destPath)
-                    addLog(.info, "✅ i2pd.conf скопирован из бандла (первый запуск)")
+                    addLog(.info, L("✅ i2pd.conf скопирован из бандла (первый запуск)"))
                 } else {
-                    addLog(.info, "📁 i2pd.conf уже существует - сохраняем пользовательский")
+                    addLog(.info, L("📁 i2pd.conf уже существует - сохраняем пользовательский"))
                 }
             } catch {
-                addLog(.error, "❌ Ошибка копирования i2pd.conf: \(error)")
+                addLog(.error, L("❌ Ошибка копирования i2pd.conf:") + " \(error)")
             }
         }
         
@@ -3709,12 +3939,12 @@ class I2pdManager: ObservableObject {
                 // Копируем только если файл не существует
                 if !FileManager.default.fileExists(atPath: destPath.path) {
                     try FileManager.default.copyItem(at: tunnelsURL, to: destPath)
-                    addLog(.info, "✅ tunnels.conf скопирован из бандла (первый запуск)")
+                    addLog(.info, L("✅ tunnels.conf скопирован из бандла (первый запуск)"))
                 } else {
-                    addLog(.info, "📁 tunnels.conf уже существует - сохраняем пользовательский")
+                    addLog(.info, L("📁 tunnels.conf уже существует - сохраняем пользовательский"))
                 }
             } catch {
-                addLog(.error, "❌ Ошибка копирования tunnels.conf: \(error)")
+                addLog(.error, L("❌ Ошибка копирования tunnels.conf:") + " \(error)")
             }
         }
     }
@@ -3758,7 +3988,7 @@ struct LaunchAgentControlsView: View {
                     _ = SettingsView.removeLaunchAgent()
                     autoStart = false
                 }) {
-                    Label("Отключить автозапуск", systemImage: "stop.circle")
+                    Label(L("Отключить автозапуск"), systemImage: "stop.circle")
                 }
                 .buttonStyle(.bordered)
                 
@@ -3766,7 +3996,7 @@ struct LaunchAgentControlsView: View {
                     let launchAgentsDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/LaunchAgents")
                     NSWorkspace.shared.open(launchAgentsDir)
                 }) {
-                    Label("Открыть папку", systemImage: "folder")
+                    Label(L("Открыть папку"), systemImage: "folder")
                 }
                 .buttonStyle(.borderedProminent)
                 
@@ -3781,7 +4011,7 @@ struct LaunchAgentControlsView: View {
                     NSWorkspace.shared.open(launchAgentsDir)
                     }
                 }) {
-                    Label("Включить автозапуск", systemImage: "play.circle")
+                    Label(L("Включить автозапуск"), systemImage: "play.circle")
                 }
                 .buttonStyle(.borderedProminent)
                 

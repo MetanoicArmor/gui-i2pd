@@ -1,4 +1,298 @@
+/* Version and About */
 "i2pd v%@" = "i2pd v%@";
 "Версия %@" = "Version %@";
 "Встроенный бинарник i2pd %@" = "Bundled i2pd %@";
+"I2P Daemon GUI" = "I2P Daemon GUI";
 
+/* Main window */
+"Stopped" = "Stopped";
+"Running" = "Running";
+"Работает" = "Running";
+"Остановлен" = "Stopped";
+"Статус: неактивен" = "Status: inactive";
+"Статус: активен" = "Status: active";
+"Время работы" = "Uptime";
+"Подключения" = "Connections";
+"Сетевая статистика" = "Network Statistics";
+"Получено: %@ B" = "Received: %@ B";
+"Отправлено: %@ B" = "Sent: %@ B";
+"Туннели: %d" = "Tunnels: %d";
+"Роутеры: %d" = "Routers: %d";
+
+/* Control buttons */
+"Запустить" = "Start";
+"Остановить" = "Stop";
+"Перезапустить" = "Restart";
+"Настройки" = "Settings";
+"Обновить статус" = "Refresh Status";
+"Свернуть в трей" = "Minimize to Tray";
+"Очистить логи" = "Clear Logs";
+
+/* Settings window */
+"Настройки" = "Settings";
+"Esc для закрытия" = "Esc to close";
+
+/* Settings - Network Configuration */
+"Сетевая конфигурация" = "Network Configuration";
+"Порт HTTP прокси" = "HTTP Proxy Port";
+"Порт SOCKS5 прокси" = "SOCKS5 Proxy Port";
+"Пропускная способность" = "Bandwidth";
+"Сохранить" = "Save";
+
+/* Settings - Automation */
+"Автоматизация" = "Automation";
+"Автозапуск приложения" = "Application Auto-start";
+"Включен - приложение запускается при входе в систему" = "Enabled - application starts at system login";
+"Отключен" = "Disabled";
+"Отключить автозапуск" = "Disable Auto-start";
+"Включить автозапуск" = "Enable Auto-start";
+"Открыть папку" = "Open Folder";
+"Auto-start Daemon" = "Auto-start Daemon";
+"Daemon starts manually" = "Daemon starts manually";
+"Автозапуск демона" = "Auto-start Daemon";
+"Демон автоматически запустится при открытии приложения" = "Daemon will start automatically when opening the application";
+"Демон запускается вручную" = "Daemon starts manually";
+"Запускать свернутым" = "Start Minimized";
+"Приложение откроется свернутым в трей" = "Application will start minimized to tray";
+"Приложение откроется с видимым окном" = "Application will start with visible window";
+
+/* Settings - Interface */
+"Интерфейс" = "Interface";
+"Язык приложения" = "Application Language";
+"Язык" = "Language";
+"Русский" = "Russian";
+"English" = "English";
+"Изменения языка применятся после перезапуска приложения" = "Language changes will take effect after restarting the application";
+"Тема приложения" = "App Theme";
+"Светлая" = "Light";
+"Тёмная" = "Dark";
+"Отображение приложения" = "Application Display";
+"Скрыть из Dock" = "Hide from Dock";
+"При включении приложение скроется из Dock и станет доступно только через трей. ✅ Настройка восстанавливается при перезапуске." = "When enabled, the application will hide from Dock and be accessible only through the tray. ✅ Setting persists after restart.";
+
+/* Settings - Monitoring */
+"Мониторинг" = "Monitoring";
+"Обновление каждые 5 сек" = "Update every 5 sec";
+"Автоматическая очистка логов" = "Automatic log cleanup";
+
+/* Settings - Data */
+"Данные" = "Data";
+"Путь к данным" = "Data Path";
+"Изменить" = "Change";
+"Очистить кэш" = "Clear Cache";
+"Экспорт логов" = "Export Logs";
+"Data Path" = "Data Path";
+"Change" = "Change";
+
+/* Settings - Actions */
+"Действия" = "Actions";
+"Сбросить настройки" = "Reset Settings";
+"Тестовая статистика" = "Test Statistics";
+"Actions" = "Actions";
+
+/* Settings - Configuration */
+"Конфигурация" = "Configuration";
+"Конфиг файл" = "Config File";
+"Папка данных" = "Data Folder";
+"Журналы" = "Logs";
+"Открыть" = "Open";
+"Configuration" = "Configuration";
+"Config File" = "Config File";
+"Data Folder" = "Data Folder";
+"Logs" = "Logs";
+
+/* Settings - Tunnels */
+"Туннели" = "Tunnels";
+"Управление туннелями" = "Tunnel Management";
+"Пример туннелей" = "Tunnel Examples";
+"Настроить" = "Configure";
+"Показать" = "Show";
+"Tunnels" = "Tunnels";
+"Tunnel Management" = "Tunnel Management";
+
+/* Settings - Address Book */
+"Address Book" = "Address Book";
+"Подписки adressbook" = "Address Book Subscriptions";
+"Редактировать" = "Edit";
+"Автообновление:" = "Auto-update:";
+"Интервал обновления:" = "Update Interval:";
+"Интервал обновления" = "Update Interval";
+"Текущие подписки:" = "Current Subscriptions:";
+"Веб-интерфейс" = "Web Interface";
+"Порт: 7070" = "Port: 7070";
+"Копировать URL" = "Copy URL";
+
+/* Settings - Web Console */
+"Веб-консоль" = "Web Console";
+"Веб-интерфейс" = "Web Interface";
+"Порт: 7070" = "Port: 7070";
+"Копировать URL" = "Copy URL";
+
+/* Logs */
+"Логи системы" = "System Logs";
+"Очистить" = "Clear";
+
+/* Status labels */
+"Статус" = "Status";
+
+/* Tray Menu */
+"Запустить daemon" = "Start daemon";
+"Остановить daemon" = "Stop daemon";
+"Перезапустить daemon" = "Restart daemon";
+"Веб-консоль" = "Web Console";
+"Показать окно" = "Show Window";
+"Свернуть в трей" = "Hide to Tray";
+"Выйти" = "Quit";
+"Статус: Готов" = "Status: Ready";
+"Статус: Запущен" = "Status: Running";
+"Статус: Остановлен" = "Status: Stopped";
+
+/* About Window */
+"Современный GUI для управления I2P Daemon" = "Modern GUI for managing I2P Daemon";
+"• Радикальная остановка daemon" = "• Force stop daemon";
+"• Мониторинг в реальном времени" = "• Real-time monitoring";
+"• Подвижное и масштабируемое окно" = "• Movable and scalable window";
+"• Тёмный интерфейс" = "• Dark interface";
+"Разработано на SwiftUI" = "Built with SwiftUI";
+"Swift 5.7+ • macOS 14.0+" = "Swift 5.7+ • macOS 14.0+";
+
+/* Stats */
+"📊 Сетевая статистика" = "📊 Network Statistics";
+"Время работы" = "Uptime";
+"Подключения" = "Connections";
+
+/* Logs */
+"📋 Логи системы" = "📋 System Logs";
+"Система готова к работе" = "System ready";
+"Логи появятся при запуске демона" = "Logs will appear when daemon starts";
+
+/* Settings Window */
+"⚙️ Настройки" = "⚙️ Settings";
+"Esc для закрытия" = "Esc to close";
+
+/* Bandwidth */
+"Пропускная способность" = "Bandwidth";
+
+/* Address Book Intervals */
+"Каждые 6 часов" = "Every 6 hours";
+"Ежедневно" = "Daily";
+"Каждые 3 дня" = "Every 3 days";
+"Еженедельно" = "Weekly";
+
+/* Address Book Subscriptions */
+"• reg.i2p - Основной реестр адресов" = "• reg.i2p - Main address registry";
+"• identiguy.i2p - Альтернативный источник" = "• identiguy.i2p - Alternative source";
+"• stats.i2p - Статистика сети" = "• stats.i2p - Network statistics";
+"• i2p-projekt.i2p - Проектный источник" = "• i2p-projekt.i2p - Project source";
+
+/* Confirmations */
+"Все настройки будут сброшены к значениям по умолчанию. Вы уверены?" = "All settings will be reset to defaults. Are you sure?";
+
+/* Alerts */
+"Пропускная способность обновлена" = "Bandwidth Updated";
+"Пропускная способность изменена и сохранена в конфиг: %@" = "Bandwidth changed and saved to config: %@";
+"HTTP порт обновлен" = "HTTP Port Updated";
+"HTTP порт изменен и сохранен в конфиг: %d" = "HTTP port changed and saved to config: %d";
+"SOCKS порт обновлен" = "SOCKS Port Updated";
+"SOCKS порт изменен и сохранен в конфиг: %d" = "SOCKS port changed and saved to config: %d";
+
+/* Misc */
+"При включении приложение скроется из Dock и станет доступно только через трей. ✅ Настройка восстанавливается при перезапуске." = "When enabled, the app will hide from Dock and be available only via tray. ✅ Setting persists after restart.";
+
+/* Buttons with emoji */
+"Очистить кэш" = "Clear Cache";
+"Тестовая статистика" = "Test Statistics";
+
+/* Main Window */
+"I2P Daemon GUI" = "I2P Daemon GUI";
+"Настройки" = "Settings";
+"Обновить" = "Refresh";
+"Обновить статус" = "Refresh Status";
+"Свернуть в трей (⌘H)" = "Minimize to Tray (⌘H)";
+"Показать главное окно" = "Show Main Window";
+"Настройки (⌘,)" = "Settings (⌘,)";
+
+/* Network Statistics */
+"Получено: %@" = "Received: %@";
+"Отправлено: %@" = "Sent: %@";
+"Туннели: %d" = "Tunnels: %d";
+"Роутеры: %d" = "Routers: %d";
+
+/* Buttons */
+"Очистить" = "Clear";
+"Свернуть в трей" = "Minimize to Tray";
+"Очистить логи" = "Clear Logs";
+
+/* Log Messages */
+"🔧 Инициализация I2pdManager" = "🔧 Initializing I2pdManager";
+"📍 Bundle path:" = "📍 Bundle path:";
+"🎯 Ресурсный путь:" = "🎯 Resource path:";
+"✅ Финальный путь:" = "✅ Final path:";
+"🔍 Файл существует:" = "🔍 File exists:";
+"да" = "yes";
+"нет" = "no";
+"📱 Daemon запущен из трея - обновляем статус" = "📱 Daemon started from tray - updating status";
+"📱 Daemon остановлен из трея - обновляем статус" = "📱 Daemon stopped from tray - updating status";
+"📱 Статус обновлен из трея" = "📱 Status updated from tray";
+"Операция уже выполняется, пропускаем..." = "Operation already in progress, skipping...";
+"Запуск I2P daemon..." = "Starting I2P daemon...";
+"🔄 Пытаемся запустить daemon..." = "🔄 Trying to start daemon...";
+"📍 Путь к бинарнику:" = "📍 Path to binary:";
+"🔍 Проверка существования:" = "🔍 Checking existence:";
+"❌ Бинарник i2pd не найден по пути:" = "❌ i2pd binary not found at path:";
+"✅ Бинарник найден, продолжаем запуск" = "✅ Binary found, proceeding with start";
+"I2P daemon уже запущен" = "I2P daemon already running";
+"🚫 ОСТАНОВКА ДЕМОНА ИЗ I2pdManager НАЧАТА!" = "🚫 DAEMON STOP FROM I2pdManager STARTED!";
+"✅ Блокировка операций установлена" = "✅ Operation lock set";
+"🛑 Остановка I2P daemon через kill -s INT..." = "🛑 Stopping I2P daemon via kill -s INT...";
+"✅ Демон остановлен" = "✅ Daemon stopped";
+"🛑 Начинаем прямую остановку демона..." = "🛑 Starting direct daemon stop...";
+"Проверка статуса..." = "Checking status...";
+"Логи очищены" = "Logs cleared";
+"📄 Статистика экспортирована:" = "📄 Statistics exported:";
+"📊 Статистика сброшена (daemon остановлен)" = "📊 Statistics reset (daemon stopped)";
+"📊 Расширенная статистика обновлена" = "📊 Extended statistics updated";
+"🚀 Команда запущена:" = "🚀 Command started:";
+"с PID:" = "with PID:";
+"Daemon остановлен" = "Daemon stopped";
+"🔍 Запускаем подробный поиск демона..." = "🔍 Starting detailed daemon search...";
+"✅ Найден реальный PID демона:" = "✅ Found real daemon PID:";
+"⚠️ Не удалось найти PID в выводе:" = "⚠️ Could not find PID in output:";
+"⚠️ Пустой вывод поиска PID" = "⚠️ Empty PID search output";
+"Ошибка поиска PID демона:" = "Error finding daemon PID:";
+
+/* Config file logs */
+"✅ subscriptions.txt скопирован из бандла (первый запуск)" = "✅ subscriptions.txt copied from bundle (first run)";
+"📁 subscriptions.txt уже существует - сохраняем пользовательский" = "📁 subscriptions.txt already exists - keeping user's version";
+"✅ i2pd.conf скопирован из бандла (первый запуск)" = "✅ i2pd.conf copied from bundle (first run)";
+"📁 i2pd.conf уже существует - сохраняем пользовательский" = "📁 i2pd.conf already exists - keeping user's version";
+"✅ tunnels.conf скопирован из бандла (первый запуск)" = "✅ tunnels.conf copied from bundle (first run)";
+"📁 tunnels.conf уже существует - сохраняем пользовательский" = "📁 tunnels.conf already exists - keeping user's version";
+"❌ Ошибка копирования subscriptions.txt:" = "❌ Error copying subscriptions.txt:";
+"❌ Ошибка копирования i2pd.conf:" = "❌ Error copying i2pd.conf:";
+"❌ Ошибка копирования tunnels.conf:" = "❌ Error copying tunnels.conf:";
+
+/* Command output logs */
+"📝 Вывод команды:" = "📝 Command output:";
+"✅ Процесс завершен с кодом:" = "✅ Process finished with code:";
+"Ошибка остановки daemon:" = "Error stopping daemon:";
+"Ошибка выполнения команды:" = "Error executing command:";
+"Ошибка проверки статуса:" = "Error checking status:";
+
+/* Language change */
+"Язык изменён на" = "Language changed to";
+"Перезапуск приложения..." = "Restarting application...";
+"Ошибка перезапуска:" = "Error restarting:";
+
+/* Log messages */
+"Checking daemon status..." = "Checking daemon status...";
+"Daemon version:" = "Daemon version:";
+"started" = "started";
+"stopped" = "stopped";
+"Daemon" = "Daemon";
+
+/* Bandwidth settings */
+"Standard" = "Standard";
+"Medium" = "Medium";
+"High (recommended)" = "High (recommended)";
+"Maximum" = "Maximum";
