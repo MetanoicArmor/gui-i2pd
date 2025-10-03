@@ -25,8 +25,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         # Метод 1: Прямая остановка найденных PID
         ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | while read pid; do 
             echo "💀 Останавливаем PID: $pid" &&
-            kill -TERM $pid 2>/dev/null && echo "✅ TERM для $pid отправлен" &&
-            kill -INT $pid 2>/dev/null && echo "✅ INT для $pid отправлен" &&
+            kill -s INT $pid 2>/dev/null && echo "✅ kill -s INT для $pid отправлен" &&
+            kill -s TERM $pid 2>/dev/null && echo "✅ kill -s TERM для $pid отправлен" &&
             kill -KILL $pid 2>/dev/null && echo "✅ KILL для $pid отправлен"
         done &&
         
@@ -2160,13 +2160,17 @@ class I2pdManager: ObservableObject {
     }
     
     func stopDaemon() {
+        addLog(.info, "🚫 ОСТАНОВКА ДЕМОНА ИЗ I2pdManager НАЧАТА!")
+        
         guard !operationInProgress else {
-            addLog(.warn, "Операция уже выполняется, пропускаем...")
+            addLog(.warn, "⚠️ Операция уже выполняется, пропускаем...")
             return
         }
+        
+        addLog(.debug, "✅ Блокировка операций установлена")
         operationInProgress = true
         isLoading = true
-        addLog(.info, "Остановка I2P daemon...")
+        addLog(.info, "🛑 Остановка I2P daemon через kill -s INT...")
         
         DispatchQueue.global(qos: .background).async { [weak self] in
             self?.stopDaemonProcess()
