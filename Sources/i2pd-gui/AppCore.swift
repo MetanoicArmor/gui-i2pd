@@ -78,6 +78,11 @@ class TrayManager: NSObject, ObservableObject {
     private var statusBarItem: NSStatusItem?
     private var appDelegate: AppDelegate?
     
+    // Ссылки на элементы меню для обновления состояния
+    private var statusItem: NSMenuItem?
+    private var startItem: NSMenuItem?
+    private var stopItem: NSMenuItem?
+    
     private override init() {
         super.init()
         setupStatusBar()
@@ -109,26 +114,26 @@ class TrayManager: NSObject, ObservableObject {
             let menu = NSMenu()
             
             // Статус
-            let statusItem = NSMenuItem(title: "Статус: Готов", action: #selector(checkStatus), keyEquivalent: "")
-            statusItem.target = self
-            menu.addItem(statusItem)
+            statusItem = NSMenuItem(title: "Статус: Готов", action: #selector(checkStatus), keyEquivalent: "")
+            statusItem?.target = self
+            menu.addItem(statusItem!)
             menu.addItem(NSMenuItem.separator())
             
             // Управление daemon - только текст
             let startAction = #selector(TrayManager.startDaemon)
             print("🔧 Селектор для start: \(String(describing: startAction))")
             
-            let startItem = NSMenuItem(title: "Запустить daemon", action: startAction, keyEquivalent: "")
-            startItem.target = self
-            startItem.tag = 1
-            print("🔧 startItem создан с target: \(String(describing: startItem.target)), action: \(String(describing: startItem.action))")
-            menu.addItem(startItem)
+            startItem = NSMenuItem(title: "Запустить daemon", action: startAction, keyEquivalent: "")
+            startItem?.target = self
+            startItem?.tag = 1
+            print("🔧 startItem создан с target: \(String(describing: startItem?.target)), action: \(String(describing: startItem?.action))")
+            menu.addItem(startItem!)
             
-            let stopItem = NSMenuItem(title: "Остановить daemon", action: #selector(stopDaemon), keyEquivalent: "")
-            stopItem.target = self
-            stopItem.tag = 2
-            print("🔧 stopItem создан с target: \(String(describing: stopItem.target)), action: \(String(describing: stopItem.action))")
-            menu.addItem(stopItem)
+            stopItem = NSMenuItem(title: "Остановить daemon", action: #selector(stopDaemon), keyEquivalent: "")
+            stopItem?.target = self
+            stopItem?.tag = 2
+            print("🔧 stopItem создан с target: \(String(describing: stopItem?.target)), action: \(String(describing: stopItem?.action))")
+            menu.addItem(stopItem!)
             
             let restartItem = NSMenuItem(title: "Перезапустить daemon", action: #selector(restartDaemon), keyEquivalent: "")
             restartItem.target = self
@@ -227,6 +232,8 @@ class TrayManager: NSObject, ObservableObject {
                 print("✅ Daemon успешно остановлен")
                 updateStatusText("✅ Daemon остановлен")
                 NotificationCenter.default.post(name: NSNotification.Name("DaemonStopped"), object: nil)
+                // Обновляем состояние меню трея
+                updateMenuState(isRunning: false)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
                 }
@@ -253,6 +260,8 @@ class TrayManager: NSObject, ObservableObject {
             print("✅ Жёсткая остановка выполнена")
             
             NotificationCenter.default.post(name: NSNotification.Name("DaemonStopped"), object: nil)
+            // Обновляем состояние меню трея
+            updateMenuState(isRunning: false)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
             }
@@ -411,9 +420,28 @@ class TrayManager: NSObject, ObservableObject {
     }
     
     private func updateStatusText(_ text: String) {
-        if let menu = statusBarItem?.menu,
-           let firstItem = menu.items.first {
-            firstItem.title = text
+        statusItem?.title = text
+        print("📱 Обновлен статус трея: \(text)")
+    }
+    
+    // Обновление состояния элементов меню на основе состояния демона
+    func updateMenuState(isRunning: Bool) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            if isRunning {
+                // Демон запущен
+                self.startItem?.title = "✓ Запустить daemon" // Добавляем галочку
+                self.stopItem?.title = "Остановить daemon"
+                self.statusItem?.title = "Статус: Запущен"
+            } else {
+                // Демон остановлен
+                self.startItem?.title = "Запустить daemon"
+                self.stopItem?.title = "✓ Остановить daemon" // Можно остановить
+                self.statusItem?.title = "Статус: Остановлен"
+            }
+            
+            print("🏷️ Обновлено состояние меню трея: демон \(isRunning ? "запущен" : "остановлен")")
         }
     }
 }
@@ -2128,6 +2156,8 @@ class I2pdManager: ObservableObject {
         ) { [weak self] _ in
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 self?.addLog(.info, "📱 Daemon запущен из трея - обновляем статус")
+                // Обновляем состояние меню трея
+                TrayManager.shared.updateMenuState(isRunning: true)
                 self?.checkStatus()
             }
         }
@@ -2139,6 +2169,8 @@ class I2pdManager: ObservableObject {
         ) { [weak self] _ in
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 self?.addLog(.info, "📱 Daemon остановлен из трея - обновляем статус")
+                // Обновляем состояние меню трея
+                TrayManager.shared.updateMenuState(isRunning: false)
                 self?.checkStatus()
             }
         }
@@ -2566,6 +2598,13 @@ class I2pdManager: ObservableObject {
                 if self?.isRunning != wasRunning {
                     let status = self?.isRunning == true ? "запустился" : "остановился"
                     self?.addLog(.info, "Daemon \(status)")
+                    
+                    // Отправляем уведомления об изменении состояния демона
+                    if self?.isRunning == true {
+                        NotificationCenter.default.post(name: NSNotification.Name("DaemonStarted"), object: nil)
+                    } else {
+                        NotificationCenter.default.post(name: NSNotification.Name("DaemonStopped"), object: nil)
+                    }
                 }
                 
                 self?.isLoading = false
