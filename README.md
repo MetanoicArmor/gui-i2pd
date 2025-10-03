@@ -299,17 +299,20 @@ Info.plist              # Метаданные приложения
 
 **☕ Купить кофе разработчику:**
 
-**💎 Bitcoin (BTC):**
-![Bitcoin QR](btc_donation_qr.png)
-```
-bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd
-```
-
-**⚡ TON:**
-![TON QR](ton_donation_qr.png)
-```
-UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
-```
+<table>
+<tr>
+<td width="50%">**💎 Bitcoin (BTC)**</td>
+<td width="50%">**⚡ TON**</td>
+</tr>
+<tr>
+<td><img src="btc_donation_qr.png" width="150"></td>
+<td><img src="ton_donation_qr.png" width="150"></td>
+</tr>
+<tr>
+<td><code>bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd</code></td>
+<td><code>UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY</code></td>
+</tr>
+</table>
 
 *Спасибо за поддержку! Это мотивирует продолжать работу над проектом* 🙏
 
