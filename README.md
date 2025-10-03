@@ -104,22 +104,6 @@
 ![I2P GUI Логи](screenshots/screenshot5_ru.png)
 *Окно логов с подробной информацией о работе демона*
 
-#### 🇺🇸 **English Interface:**
-![I2P GUI Main Interface](screenshots/screenshoot1_en.png)
-*Main application interface with status monitoring*
-
-![I2P GUI Settings](screenshots/screenshoot2_en.png)  
-*Settings window with interactive HTTP/SOCKS5 ports, bandwidth management and auto-start*
-
-![I2P GUI Advanced Settings](screenshots/screenshoot3_en.png)
-*Advanced settings window with tunnel configuration, Address Book management and address book subscriptions*
-
-![I2P GUI Tray Menu](screenshots/screenshoot4_en.png)
-*Tray menu with checkmarks showing current daemon state*
-
-![I2P GUI Logs](screenshots/screenshoot5_en.png)
-*Logs window with detailed daemon operation information*
-
 ### 🖥️ **Основное окно:**
 - **📊 Статус сервера**: показывает состояние daemon (работает/остановлен)
 - **⏱️ Время работы**: uptime I2P daemon
