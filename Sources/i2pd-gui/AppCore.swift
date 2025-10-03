@@ -2796,14 +2796,13 @@ class I2pdManager: ObservableObject {
             let destPath = i2pdDir.appendingPathComponent("subscriptions.txt")
             
             do {
-                // ФОРСИРУЕМ перезапись - удаляем старый если есть
-                if FileManager.default.fileExists(atPath: destPath.path) {
-                    try FileManager.default.removeItem(at: destPath)
-                    addLog(.info, "🔄 Удален старый subscriptions.txt для замены полным")
+                // Копируем только если файл не существует
+                if !FileManager.default.fileExists(atPath: destPath.path) {
+                    try FileManager.default.copyItem(at: subscriptionsURL, to: destPath)
+                    addLog(.info, "✅ subscriptions.txt скопирован из бандла (первый запуск)")
+                } else {
+                    addLog(.info, "📁 subscriptions.txt уже существует - сохраняем пользовательский")
                 }
-                
-                try FileManager.default.copyItem(at: subscriptionsURL, to: destPath)
-                addLog(.info, "✅ subscriptions.txt скопирован из бандла")
             } catch {
                 addLog(.error, "❌ Ошибка копирования subscriptions.txt: \(error)")
             }
@@ -2817,14 +2816,13 @@ class I2pdManager: ObservableObject {
             let destPath = i2pdDir.appendingPathComponent("i2pd.conf")
             
             do {
-                // ФОРСИРУЕМ перезапись - удаляем старый если есть
-                if FileManager.default.fileExists(atPath: destPath.path) {
-                    try FileManager.default.removeItem(at: destPath)
-                    addLog(.info, "🔄 Удалён старый i2pd.conf для замены полным")
+                // Копируем только если файл не существует
+                if !FileManager.default.fileExists(atPath: destPath.path) {
+                    try FileManager.default.copyItem(at: configURL, to: destPath)
+                    addLog(.info, "✅ i2pd.conf скопирован из бандла (первый запуск)")
+                } else {
+                    addLog(.info, "📁 i2pd.conf уже существует - сохраняем пользовательский")
                 }
-                
-                try FileManager.default.copyItem(at: configURL, to: destPath)
-                addLog(.info, "✅ i2pd.conf скопирован из бандла")
             } catch {
                 addLog(.error, "❌ Ошибка копирования i2pd.conf: \(error)")
             }
@@ -2838,14 +2836,13 @@ class I2pdManager: ObservableObject {
             let destPath = i2pdDir.appendingPathComponent("tunnels.conf")
             
             do {
-                // ФОРСИРУЕМ перезапись - удаляем старый если есть
-                if FileManager.default.fileExists(atPath: destPath.path) {
-                    try FileManager.default.removeItem(at: destPath)
-                    addLog(.info, "🔄 Удалён старый tunnels.conf для замены полным")
+                // Копируем только если файл не существует
+                if !FileManager.default.fileExists(atPath: destPath.path) {
+                    try FileManager.default.copyItem(at: tunnelsURL, to: destPath)
+                    addLog(.info, "✅ tunnels.conf скопирован из бандла (первый запуск)")
+                } else {
+                    addLog(.info, "📁 tunnels.conf уже существует - сохраняем пользовательский")
                 }
-                
-                try FileManager.default.copyItem(at: tunnelsURL, to: destPath)
-                addLog(.info, "✅ tunnels.conf скопирован из бандла")
             } catch {
                 addLog(.error, "❌ Ошибка копирования tunnels.conf: \(error)")
             }
