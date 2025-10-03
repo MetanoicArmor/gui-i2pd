@@ -520,14 +520,14 @@ struct ContentView: View {
     
     var body: some View {
         VStack(spacing: 2) {
-            // Заголовок
+            // Заголовок (опущен ниже)
             Text("I2P Daemon GUI")
                 .font(.title)
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-                .offset(y: -40)
+                .padding(.top, 15)
             
             // Статус сервера
             StatusCard(
@@ -684,12 +684,20 @@ struct ContentView: View {
                 }
                     }
                 }
-                .frame(maxHeight: 250) // Компактная высота логов
+                .frame(minHeight: 200, maxHeight: 300) // Адаптивная высота логов
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 16) // Адаптивные отступы
+            
+            // Версия демона в правом нижнем углу
+            Text("i2pd v2.58.0")
+                .font(.system(size: 9))
+                .foregroundColor(.primary.opacity(0.7))
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, 12)
+                .padding(.bottom, 8)
         }
-        .frame(width: 1000, height: 650)
-        .fixedSize()
+        .frame(minWidth: 750, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
+        .frame(maxWidth: 850) // Максимально компактная ширина
         .onAppear {
             i2pdManager.checkStatus()
             
@@ -961,6 +969,16 @@ struct SettingsView: View {
                                 }
                                 .pickerStyle(.segmented)
                                 .frame(maxWidth: .infinity)
+                                .onChange(of: darkMode) { _, newValue in
+                                    // Применяем тему сразу при изменении
+                                    DispatchQueue.main.async {
+                                        if newValue {
+                                            NSApp.appearance = NSAppearance(named: .darkAqua)
+                                        } else {
+                                            NSApp.appearance = NSAppearance(named: .aqua)
+                                        }
+                                    }
+                                }
                             }
                             
                         }
@@ -1052,29 +1070,6 @@ struct SettingsView: View {
                                 .foregroundColor(.blue)
                                 .buttonStyle(.borderless)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
-                    }
-                    
-                    // О программе
-                    SettingsSection(title: "ℹ️ О программе", icon: "info.circle") {
-                        VStack(spacing: 12) {
-                            HStack {
-                                Text("Версия:")
-                                    .frame(width: 100, alignment: .leading)
-                                Text("2.58.0")
-                                    .foregroundColor(.secondary)
-                                    .fontWeight(.medium)
-                                Spacer()
-                            }
-                            
-                            HStack {
-                                Text("Разработчик:")
-                                    .frame(width: 100, alignment: .leading)
-                                Text("Vade")
-                                    .foregroundColor(.secondary)
-                                    .fontWeight(.medium)
-                                Spacer()
                             }
                         }
                     }
@@ -1314,6 +1309,16 @@ struct SettingsView: View {
                             
                         }
                     }
+                    
+                    // Простая ссылка на GitHub
+                    HStack {
+                        Spacer()
+                        Text("GitHub: https://github.com/MetanoicArmor/gui-i2pd")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .padding(.top, 8)
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 16)
