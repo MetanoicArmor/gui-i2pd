@@ -2086,6 +2086,7 @@ class I2pdManager: ObservableObject {
     
     private var i2pdProcess: Process?
     private var i2pdPID: Int32?
+    private var daemonPID: Int32?
     private var logTimer: Timer?
     
     private let executablePath: String
@@ -2223,16 +2224,30 @@ class I2pdManager: ObservableObject {
     }
     
     private func stopDaemonProcess() {
-        // Сначала пробуем остановить наш сохранённый процесс
-        if let savedPID = i2pdPID {
+        // Используем реальный PID демона, если найден
+        var targetPID: Int32?
+        if let daemonPID = daemonPID {
+            targetPID = daemonPID
+            addLog(.debug, "🎯 Используем найденный PID демона: \(daemonPID)")
+        } else if let savedPID = i2pdPID {
+            targetPID = savedPID
+            addLog(.debug, "🎯 Используем сохранённый PID процесса: \(savedPID)")
+        }
+        
+        if let pid = targetPID {
             let directKILLCommand = """
-            echo "🎯 КРИТИЧЕСКАЯ ОСТАНОВКА по сохранённому PID: \(savedPID)" &&
-            kill -TERM \(savedPID) 2>/dev/null || echo "TERM не сработал для PID \(savedPID)" &&
+            echo "💀 КРИТИЧЕСКАЯ ОСТАНОВКА по реальному PID: \(pid)" &&
+            echo "📋 Проверяем процесс перед остановкой:" &&
+            ps -p \(pid) -o pid,ppid,comm 2>/dev/null || echo "Процесс не найден" &&
+            kill -TERM \(pid) 2>/dev/null || echo "TERM не сработал для PID \(pid)" &&
             sleep 2 &&
-            kill -INT \(savedPID) 2>/dev/null || echo "INT не сработал для PID \(savedPID)" &&
+            kill -INT \(pid) 2>/dev/null || echo "INT не сработал для PID \(pid)" &&
             sleep 2 &&
-            kill -KILL \(savedPID) 2>/dev/null || echo "KILL не сработал для PID \(savedPID)" &&
-            echo "✅ Попытки остановки PID \(savedPID) завершены"
+            kill -KILL \(pid) 2>/dev/null || echo "KILL не сработал для PID \(pid)" &&
+            sleep 1 &&
+            echo "✅ Попытки остановки PID \(pid) завершены" &&
+            echo "📋 Проверяем результат:" &&
+            ps -p \(pid) -o pid,ppid,comm 2>/dev/null || echo "✅ Процесс под PID \(pid) успешно остановлен"
             """
             
             executeStopCommand(directKILLCommand)
@@ -2242,8 +2257,46 @@ class I2pdManager: ObservableObject {
                 self.executeStopCommand(self.globalStopCommand)
             }
         } else {
-            // Если нет сохранённого PID, используем только глобальную остановку
+            // Если нет ни одного PID, используем только глобальную остановку
+            addLog(.debug, "⚠️ PID не найден, используем только глобальную остановку")
             executeStopCommand(globalStopCommand)
+        }
+    }
+    
+    private func findDaemonChildProcesses() {
+        // Ищем реальный PID демона через ps aux
+        let findCommand = """
+        echo "🔍 Поиск реального PID демона..." &&
+        ps aux | grep "i2pd.*--daemon" | grep -v grep | awk '{print $2}' | head -1
+        """
+        
+        let findProcess = Process()
+        findProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+        findProcess.arguments = ["-c", findCommand]
+        
+        let pipe = Pipe()
+        findProcess.standardOutput = pipe
+        
+        do {
+            try findProcess.run()
+            findProcess.waitUntilExit()
+            
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8)
+
+            DispatchQueue.main.async { [weak self] in
+                if let pidString = output?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   let pid = Int32(pidString) {
+                    self?.daemonPID = pid
+                    self?.addLog(.debug, "✅ Найден реальный PID демона: \(pid)")
+                } else {
+                    self?.addLog(.debug, "⚠️ Не удалось найти PID демона")
+                }
+            }
+        } catch {
+            DispatchQueue.main.async { [weak self] in
+                self?.addLog(.error, "Ошибка поиска PID демона: \(error)")
+            }
         }
     }
     
@@ -2404,6 +2457,13 @@ class I2pdManager: ObservableObject {
                 self?.i2pdProcess = process
                 self?.i2pdPID = process.processIdentifier
                 self?.addLog(.debug, "🚀 Команда запущена: \(self?.executablePath ?? "unknown") \(arguments.joined(separator: " ")) с PID: \(process.processIdentifier)")
+                
+                // Для daemon режима также ищем дочерние процессы
+                if arguments.contains("--daemon") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        self?.findDaemonChildProcesses()
+                    }
+                }
             }
             
             // Читаем вывод команды
