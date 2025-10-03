@@ -839,6 +839,7 @@ struct SettingsView: View {
     @State private var displayDaemonPort = 4444
     @State private var displaySocksPort = 4447
     @State private var displayBandwidth = "L"
+    @State private var showBandwidthAlert = false
 
     
     init(i2pdManager: I2pdManager) {
@@ -1285,20 +1286,28 @@ struct SettingsView: View {
                                 HStack {
                                     Menu {
                                         Button("L (32 KB/s) - Стандартная") {
+                                            print("🔄 Пользователь выбрал L")
                                             displayBandwidth = "L"
                                             Self.writeBandwidthToConfig("L")
+                                            showBandwidthAlert = true
                                         }
                                         Button("O (256 KB/s) - Средняя") {
+                                            print("🔄 Пользователь выбрал O")
                                             displayBandwidth = "O"
                                             Self.writeBandwidthToConfig("O")
+                                            showBandwidthAlert = true
                                         }
                                         Button("P (2048 KB/s) - Высокая (рекомендуется)") {
+                                            print("🔄 Пользователь выбрал P")
                                             displayBandwidth = "P"
                                             Self.writeBandwidthToConfig("P")
+                                            showBandwidthAlert = true
                                         }
                                         Button("X (unlimited) - Максимальная") {
+                                            print("🔄 Пользователь выбрал X")
                                             displayBandwidth = "X"
                                             Self.writeBandwidthToConfig("X")
+                                            showBandwidthAlert = true
                                         }
                                         Divider()
                                         Button("Настроить произвольную скорость") {
@@ -1735,6 +1744,11 @@ struct SettingsView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .init("NSWindowDidResignKey"))) { _ in
             // Дополнительная обработка для лучшего закрытия окна
+        }
+        .alert("Bandwidth обновлен", isPresented: $showBandwidthAlert) {
+            Button("OK") { }
+        } message: {
+            Text("Пропускная способность изменена и сохранена в конфиг: \(displayBandwidth)")
         }
     }
     
