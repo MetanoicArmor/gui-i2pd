@@ -2310,9 +2310,33 @@ class I2pdManager: ObservableObject {
                     print("🔍 Результат поиска PID: \(output)")
                     
                     let lines = output.components(separatedBy: "\n")
-                    // Берем последнюю строку (которая должна содержать PID)
-                    if let lastLine = lines.last, !lastLine.isEmpty,
-                       let pid = Int32(lastLine.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                    
+                    // Поиск строки "🎯 ПОЛУЧЕНИЕ PID: XXXXX"
+                    var foundPid: Int32?
+                    for line in lines {
+                        if line.contains("🎯 ПОЛУЧЕНИЕ PID:") || line.contains("ПОЛУЧЕНИЕ PID:") {
+                            // Извлекаем PID из строки типа "ПОЛУЧЕНИЕ PID: 19822"
+                            let components = line.components(separatedBy: " ")
+                            for component in components {
+                                if let pid = Int32(component.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                                    foundPid = pid
+                                    break
+                                }
+                            }
+                            break
+                        }
+                        // Также проверяем прямые числовые значения в строках
+                        else if let pid = Int32(line.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0 {
+                            // Проверяем что это действительно процесс демона, а не случайное число
+                            let previousLines = lines[max(0, lines.firstIndex(of: line)! - 3)...]
+                            if previousLines.joined().contains("daemon") {
+                                foundPid = pid
+                                break
+                            }
+                        }
+                    }
+                    
+                    if let pid = foundPid {
                         self?.daemonPID = pid
                         self?.addLog(.debug, "✅ Найден реальный PID демона: \(pid)")
                     } else {
