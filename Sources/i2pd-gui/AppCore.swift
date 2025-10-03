@@ -1179,6 +1179,7 @@ struct SettingsView: View {
         
         // Получаем путь к текущему приложению
         let appBundle = Bundle.main.bundlePath
+        print("📱 DEBUG: Путь к приложению: \(appBundle)")
         
         // Создаем LaunchAgents директорию если она не существует
         do {
@@ -1207,6 +1208,9 @@ struct SettingsView: View {
         </dict>
         </plist>
         """
+        
+        print("📄 DEBUG: Создаем plist файл по пути: \(plistPath.path)")
+        print("📄 DEBUG: Размер содержимого: \(plistContent.utf8.count) байт")
         
         do {
             try plistContent.write(to: plistPath, atomically: true, encoding: .utf8)
