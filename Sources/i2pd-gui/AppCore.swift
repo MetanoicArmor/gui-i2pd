@@ -1573,7 +1573,7 @@ struct SettingsView: View {
                     }
                     
                     // Автоматизация
-                    SettingsSection(title: "💻 Автоматизация", icon: "laptop") {
+                    SettingsSection(title: "💻 Автоматизация", icon: "gearshape.2.fill") {
                         VStack(spacing: 16) {
                             // Показываем текущее состояние LaunchAgent
                             HStack(spacing: 12) {
@@ -1629,7 +1629,7 @@ struct SettingsView: View {
                     }
                     
                     // Интерфейс
-                    SettingsSection(title: "🎨 Интерфейс", icon: "paintpalette") {
+                    SettingsSection(title: "🎨 Интерфейс", icon: "paintpalette.fill") {
                         VStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Тема приложения")
@@ -1707,7 +1707,7 @@ struct SettingsView: View {
                     }
                     
                     // Данные
-                    SettingsSection(title: "📁 Данные", icon: "folder") {
+                    SettingsSection(title: "💾 Данные", icon: "folder.fill") {
                         VStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Путь к данным")
@@ -1748,7 +1748,7 @@ struct SettingsView: View {
                     }
                     
                     // Действия
-                    SettingsSection(title: "🔄 Действия", icon: "gear") {
+                    SettingsSection(title: "🔄 Действия", icon: "hammer.circle.fill") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
                                 Button("🔧 Сбросить настройки") {
@@ -1836,7 +1836,7 @@ struct SettingsView: View {
                     }
                     
                     // Туннели
-                    SettingsSection(title: "🚇 Туннели", icon: "tunnel.fill") {
+                    SettingsSection(title: "🚇 Туннели", icon: "network") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
                                 Text("Управление туннелями")
@@ -1947,7 +1947,7 @@ struct SettingsView: View {
                     }
                     
                     // Веб-консоль
-                    SettingsSection(title: "🌐 Веб-консоль", icon: "globe") {
+                    SettingsSection(title: "🖥️ Веб-консоль", icon: "safari.fill") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
                                 Text("Веб-интерфейс")
