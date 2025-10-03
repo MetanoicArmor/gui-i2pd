@@ -351,15 +351,39 @@ class TrayManager: NSObject, ObservableObject {
     }
     
     @objc public func quitApplication() {
-        print("🚪 ВЫХОД ИЗ ПРИЛОЖЕНИЯ из трея!")
+        print("🚪 ПЛАВНОЕ ЗАКРЫТИЕ ПРИЛОЖЕНИЯ!")
         updateStatusText("🚪 Остановка демона и выход...")
         
-        // Останавливаем демон перед выходом через основную логику
-        NotificationCenter.default.post(name: NSNotification.Name("DaemonStopRequest"), object: nil)
+        // СИНХРОННАЯ остановка демона - без async операций
+        print("🔍 Ищем демон для остановки...")
+        let findAndKillCommand = """
+        DEMON_PID=$(ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | head -1)
+        if [ -n "$DEMON_PID" ]; then
+            echo "✅ Найден демон с PID: $DEMON_PID"
+            kill -s INT $DEMON_PID 2>/dev/null
+            echo "✅ Демон остановлен синхронно"
+            sleep 0.5
+        else
+            echo "ℹ️ Демон не найден"
+        fi
+        """
         
-        // Даём время на остановку демона
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            NotificationCenter.default.post(name: NSNotification.Name("ApplicationShouldTerminate"), object: nil)
+        let killProcess = Process()
+        killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+        killProcess.arguments = ["-c", findAndKillCommand]
+        
+        do {
+            print("💀 Выполняем синхронную остановку демона...")
+            try killProcess.run()
+            killProcess.waitUntilExit()
+            print("✅ Синхронная остановка завершена")
+            
+            // Теперь закрываем приложение
+            print("🚪 Закрываем приложение...")
+            NSApplication.shared.terminate(nil)
+            
+        } catch {
+            print("❌ Ошибка остановки демона: \(error)")
             NSApplication.shared.terminate(nil)
         }
     }
