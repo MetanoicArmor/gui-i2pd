@@ -554,6 +554,25 @@ struct I2pdGUIApp: App {
         
         // Инициализируем менеджер трея
         _ = TrayManager.shared
+        
+        // Проверяем состояние настройки "скрыть из Dock" при запуске
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            I2pdGUIApp.checkAndApplyDockVisibilitySetting()
+        }
+    }
+    
+    static func checkAndApplyDockVisibilitySetting() {
+        let hideFromDock = UserDefaults.standard.bool(forKey: "hideFromDock")
+        
+        if hideFromDock {
+            // Если настройка включена, применяем политику accessory
+            NSApplication.shared.setActivationPolicy(.accessory)
+            print("📱 Применена политика accessory (скрытие из Dock) при запуске")
+        } else {
+            // Если настройка выключена, применяем политику regular
+            NSApplication.shared.setActivationPolicy(.regular)
+            print("📱 Применена политика regular (показ в Dock) при запуске")
+        }
     }
     
     var body: some Scene {
@@ -1435,6 +1454,7 @@ struct SettingsView: View {
     @AppStorage("autoLogCleanup") private var autoLogCleanup = false
     @AppStorage("addressBookAutoUpdate") private var addressBookAutoUpdate = true
     @AppStorage("addressBookInterval") private var addressBookInterval = 720 // минуты
+    @AppStorage("hideFromDock") private var hideFromDock = false
     
     // Добавляем состояние для предотвращения множественных нажатий
     @State private var isResetting = false
@@ -1652,6 +1672,36 @@ struct SettingsView: View {
                                         }
                                     }
                                 }
+                            }
+                            
+                            Divider()
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Отображение приложения")
+                                    .font(.system(.body, design: .default, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                HStack(spacing: 12) {
+                                    Text("Скрыть из Dock")
+                                        .font(.system(.body, design: .default, weight: .medium))
+                                        .foregroundColor(.primary)
+                                        .frame(minWidth: 200, alignment: .leading)
+                                    
+                                    Toggle("", isOn: $hideFromDock)
+                                        .labelsHidden()
+                                        .onChange(of: hideFromDock) { _, newValue in
+                                            toggleDockVisibility(isHidden: newValue)
+                                        }
+                                    
+                                    Spacer()
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                Text("При включении приложение скроется из Dock и станет доступно только через трей. ✅ Настройка восстанавливается при перезапуске.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             
                         }
@@ -2096,6 +2146,34 @@ struct SettingsView: View {
         }
     }
     
+    private func toggleDockVisibility(isHidden: Bool) {
+        DispatchQueue.main.async {
+            if isHidden {
+                // Скрываем из Dock: меняем политику активации на accessory (агент)
+                NSApplication.shared.setActivationPolicy(.accessory)
+                
+                // Скрываем основное окно
+                NSApplication.shared.hide(nil)
+                
+                // Политика применения сохраняется через UserDefaults при перезапуске
+                
+                // Показываем уведомление что приложение теперь в трее
+                i2pdManager.logExportComplete("📱 Приложение скрыто из Dock. Доступ через трей.")
+                
+            } else {
+                // Показываем в Dock обратно: меняем политику на regular
+                NSApplication.shared.setActivationPolicy(.regular)
+                
+                // Показываем основное окно
+                NSApplication.shared.unhide(nil)
+                
+                // Политика применения сохраняется через UserDefaults при перезапуске
+                
+                i2pdManager.logExportComplete("📱 Приложение возвращено в Dock.")
+            }
+        }
+    }
+    
     private func resetSettings() {
         isResetting = true
         
@@ -2108,6 +2186,7 @@ struct SettingsView: View {
             darkMode = true
             addressBookAutoUpdate = true
             addressBookInterval = 720
+            hideFromDock = false
             
             // Применяем тёмную тему по умолчанию безопасно
                 NSApp.appearance = NSAppearance(named: .darkAqua)
@@ -2699,6 +2778,11 @@ struct LogView: View {
             )
         }
         .frame(maxHeight: 300)
+        .onKeyPress(.escape) {
+            // Отправляем уведомление для закрытия настроек
+            NotificationCenter.default.post(name: NSNotification.Name("CloseSettings"), object: nil)
+            return .handled
+        }
     }
     
     private func logLevelColor(for level: LogLevel) -> Color {
