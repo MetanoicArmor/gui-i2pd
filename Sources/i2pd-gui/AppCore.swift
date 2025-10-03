@@ -483,7 +483,7 @@ struct I2pdGUIApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 800, height: 1000)
-        .windowResizability(.contentSize)
+        .windowResizability(.contentMinSize)
         .handlesExternalEvents(matching: ["quit"])
         
         // Settings убраны - используем NSAlert из трея
@@ -684,9 +684,9 @@ struct ContentView: View {
                 }
                     }
                 }
-                .frame(minHeight: 250, maxHeight: 350) // Больше места для логов
+                .frame(minHeight: 250, maxHeight: 400) // Адаптивная высота логов для больших экранов
             }
-            .padding(.horizontal, 16) // Адаптивные отступы
+            .padding(.horizontal, 20) // Больше места для адаптивности
             
             // Версия демона в правом нижнем углу
             Text("i2pd v2.58.0")
@@ -696,8 +696,8 @@ struct ContentView: View {
                 .padding(.trailing, 12)
                 .padding(.bottom, 8)
         }
-        .frame(minWidth: 750, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
-        .frame(maxWidth: 850) // Максимально компактная ширина
+        .frame(minWidth: 650, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
+        .frame(maxWidth: 950) // Адаптивная ширина для разных экранов
         .onAppear {
             i2pdManager.checkStatus()
             
