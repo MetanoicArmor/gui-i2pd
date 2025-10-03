@@ -835,6 +835,50 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("daemonPort") private var daemonPort = 4444
     @AppStorage("socksPort") private var socksPort = 4447
+    
+    // Функция для чтения портов из реального конфига
+    private func loadPortsFromConfig() {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        
+        guard FileManager.default.fileExists(atPath: configPath.path) else {
+            print("⚠️ i2pd.conf не найден, используем порты по умолчанию")
+            return
+        }
+        
+        do {
+            let configContent = try String(contentsOf: configPath)
+            let lines = configContent.components(separatedBy: .newlines)
+            
+            for line in lines {
+                let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+                if trimmedLine.contains("port =") && trimmedLine.contains("daemon") {
+                    if let portValue = extractPortFromLine(trimmedLine) {
+                        daemonPort = portValue
+                        print("✅ HTTP порт загружен из конфига: \(daemonPort)")
+                    }
+                } else if trimmedLine.contains("port =") && trimmedLine.contains("socksproxy") {
+                    if let portValue = extractPortFromLine(trimmedLine) {
+                        socksPort = portValue
+                        print("✅ SOCKS порт загружен из конфига: \(socksPort)")
+                    }
+                }
+            }
+        } catch {
+            print("❌ Ошибка чтения конфига: \(error)")
+        }
+    }
+    
+    private func extractPortFromLine(_ line: String) -> Int? {
+        // Парсим строку вида "port = 4444" или "port = 4444 #комментарий"
+        let components = line.components(separatedBy: "port =")
+        if components.count > 1 {
+            let portPart = components[1].trimmingCharacters(in: .whitespaces)
+            let portValue = portPart.components(separatedBy: .whitespaces).first ?? portPart
+            return Int(portValue.trimmingCharacters(in: .whitespaces))
+        }
+        return nil
+    }
     @AppStorage("autoStart") private var autoStart = false
     @AppStorage("darkMode") private var darkMode = true
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
@@ -890,7 +934,7 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                Text("4444")
+                                Text("\(daemonPort)")
                                     .font(.system(.body, design: .monospaced, weight: .medium))
                                     .foregroundColor(.secondary)
                                     .frame(width: 180, alignment: .leading)
@@ -908,7 +952,7 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                Text("4447")
+                                Text("\(socksPort)")
                                     .font(.system(.body, design: .monospaced, weight: .medium))
                                     .foregroundColor(.secondary)
                                     .frame(width: 180, alignment: .leading)
