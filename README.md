@@ -299,17 +299,8 @@ Info.plist              # Метаданные приложения
 
 **☕ Купить кофе разработчику:**
 
-<table>
-<tr>
-<td width="50%">**💎 Bitcoin (BTC)**</td>
-<td width="50%">**⚡ TON**</td>
-</tr>
-<tr>
-<td><img src="btc_donation_qr.png" width="150"></td>
-<td><img src="ton_donation_qr.png" width="150"></td>
-</tr>
-<tr>
-<td>
+**💎 Bitcoin (BTC):**
+<img src="btc_donation_qr.png" width="150">
 
 <button onclick="copyToClipboard('bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd')">
 
@@ -321,8 +312,10 @@ Info.plist              # Метаданные приложения
 bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd
 ```
 
-</td>
-<td>
+---
+
+**⚡ TON:**
+<img src="ton_donation_qr.png" width="150">
 
 <button onclick="copyToClipboard('UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY')">
 
@@ -333,10 +326,6 @@ bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd
 ```
 UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
 ```
-
-</td>
-</tr>
-</table>
 
 <script>
 function copyToClipboard(text) {
