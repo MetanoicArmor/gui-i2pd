@@ -27,12 +27,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             pkill -KILL i2pd 2>/dev/null || true &&
             
             # Дополнительный поиск через ps и kill по PID
-            ps aux | grep i2pd | grep -v grep | awk '{print \$2}' | xargs kill -TERM 2>/dev/null || true &&
+            ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs kill -TERM 2>/dev/null || true &&
             sleep 1 &&
-            ps aux | grep i2pd | grep -v grep | awk '{print \$2}' | xargs kill -KILL 2>/dev/null || true &&
+            ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs kill -KILL 2>/dev/null || true &&
             
             # Финальная проверка и логирование
-            REMAINING=\$(ps aux | grep i2pd | grep -v grep | wc -l | tr -d ' ') &&
+            REMAINING=$(ps aux | grep i2pd | grep -v grep | wc -l | tr -d ' ') &&
             if [ "$REMAINING" -eq 0 ]; then
                 echo "✅ ДЕМОН ПОЛНОСТЬЮ ОСТАНОВЛЕН при выходе из приложения"
             else
@@ -225,17 +225,17 @@ class TrayManager: NSObject, ObservableObject {
         pkill -KILL i2pd 2>/dev/null || true &&
         
         # Дополнительно ищем процессы через ps
-        ps aux | grep i2pd | grep -v grep | awk '{print \$2}' | xargs kill -TERM 2>/dev/null || true &&
+        ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs kill -TERM 2>/dev/null || true &&
         sleep 1 &&
-        ps aux | grep i2pd | grep -v grep | awk '{print \$2}' | xargs kill -KILL 2>/dev/null || true &&
+        ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs kill -KILL 2>/dev/null || true &&
         
         # Финальная проверка
         echo "✅ Финальная проверка процессов..." &&
-        REMAINING=\$(ps aux | grep i2pd | grep -v grep | wc -l) &&
+        REMAINING=$(ps aux | grep i2pd | grep -v grep | wc -l) &&
         if [ "$REMAINING" -eq 0 ]; then
             echo "✅ Все процессы i2pd остановлены"
         else
-            echo "⚠️ Остались процессы: \$REMAINING"
+            echo "⚠️ Остались процессы: $REMAINING"
             ps aux | grep i2pd | grep -v grep
         fi
         """
@@ -2085,6 +2085,7 @@ class I2pdManager: ObservableObject {
     }
     
     private var i2pdProcess: Process?
+    private var i2pdPID: Int32?
     private var logTimer: Timer?
     
     private let executablePath: String
@@ -2222,18 +2223,46 @@ class I2pdManager: ObservableObject {
     }
     
     private func stopDaemonProcess() {
-        // Радикальная остановка - убиваем ВСЕ процессы i2pd всеми возможными способами
-        let stopCommand = """
-        echo "🔍 РАДИКАЛЬНАЯ остановка i2pd daemon..." &&
+        // Сначала пробуем остановить наш сохранённый процесс
+        if let savedPID = i2pdPID {
+            let directKILLCommand = """
+            echo "🎯 КРИТИЧЕСКАЯ ОСТАНОВКА по сохранённому PID: \(savedPID)" &&
+            kill -TERM \(savedPID) 2>/dev/null || echo "TERM не сработал для PID \(savedPID)" &&
+            sleep 2 &&
+            kill -INT \(savedPID) 2>/dev/null || echo "INT не сработал для PID \(savedPID)" &&
+            sleep 2 &&
+            kill -KILL \(savedPID) 2>/dev/null || echo "KILL не сработал для PID \(savedPID)" &&
+            echo "✅ Попытки остановки PID \(savedPID) завершены"
+            """
+            
+            executeStopCommand(directKILLCommand)
+            
+            // Дополнительно делаем глобальную остановку всех процессов i2pd
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                self.executeStopCommand(self.globalStopCommand)
+            }
+        } else {
+            // Если нет сохранённого PID, используем только глобальную остановку
+            executeStopCommand(globalStopCommand)
+        }
+    }
+    
+    private var globalStopCommand: String {
+        return """
+        echo "🔍 РАДИКАЛЬНАЯ остановка ВСЕХ процессов i2pd..." &&
+        
+        # Показываем все процессы i2pd
+        echo "📋 Найденные процессы i2pd:" &&
+        ps aux | grep i2pd | grep -v grep &&
         
         # Метод 1: pkill с SIGINT
         echo "🛑 Метод 1: pkill -INT..." &&
-        pkill -INT -f "i2pd.*daemon" 2>/dev/null || true &&
+        pkill -INT i2pd 2>/dev/null || true &&
         sleep 2 &&
         
         # Метод 2: pkill с SIGKILL
         echo "💀 Метод 2: pkill -KILL..." &&
-        pkill -KILL -f "i2pd.*daemon" 2>/dev/null || true &&
+        pkill -KILL i2pd 2>/dev/null || true &&
         sleep 1 &&
         
         # Метод 3: killall по имени
@@ -2243,25 +2272,30 @@ class I2pdManager: ObservableObject {
         killall -KILL i2pd 2>/dev/null || true &&
         sleep 1 &&
         
-        # Метод 4: поиск через ps и kill по PID (упрощенный без while)
+        # Метод 4: поиск через ps и kill по PID
         echo "🎯 Метод 4: поиск и kill по PID..." &&
-        ps aux | grep "i2pd" | grep -v "grep" | grep "daemon" | awk '{print $2}' | xargs -I {} sh -c 'echo "💉 Kill PID: {}" && kill -INT {} 2>/dev/null || true && sleep 0.5 && kill -KILL {} 2>/dev/null || true' &&
+        ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs -I {} kill -TERM {} 2>/dev/null || true &&
+        sleep 1 &&
+        ps aux | grep i2pd | grep -v grep | awk '{print $2}' | xargs -I {} kill -KILL {} 2>/dev/null || true &&
         sleep 2 &&
         
         # Финальная проверка
-        FINAL_COUNT=$(ps aux | grep "i2pd.*daemon" | grep -v "grep" | wc -l | tr -d ' ') &&
+        FINAL_COUNT=$(ps aux | grep i2pd | grep -v grep | wc -l | tr -d ' ') &&
         if [ "$FINAL_COUNT" -eq 0 ]; then
-            echo "✅ i2pd daemon ПОЛНОСТЬЮ остановлен!"
+            echo "✅ ВСЕ процессы i2pd ПОЛНОСТЬЮ остановлены!"
         else
             echo "❌ ПРОЦЕССЫ НЕ ОСТАНАВЛИВАЮТСЯ! ($FINAL_COUNT шт.)" &&
             echo "Оставшиеся процессы:" &&
-            ps aux | grep "i2pd.*daemon" | grep -v "grep"
+            ps aux | grep i2pd | grep -v grep
         fi
         """
+    }
+    
+    private func executeStopCommand(_ command: String) {
         
         let killProcess = Process()
         killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
-        killProcess.arguments = ["-c", stopCommand]
+        killProcess.arguments = ["-c", command]
         
         let pipe = Pipe()
         killProcess.standardOutput = pipe
@@ -2368,7 +2402,8 @@ class I2pdManager: ObservableObject {
             
             DispatchQueue.main.async { [weak self] in
                 self?.i2pdProcess = process
-                self?.addLog(.debug, "🚀 Команда запущена: \(self?.executablePath ?? "unknown") \(arguments.joined(separator: " "))")
+                self?.i2pdPID = process.processIdentifier
+                self?.addLog(.debug, "🚀 Команда запущена: \(self?.executablePath ?? "unknown") \(arguments.joined(separator: " ")) с PID: \(process.processIdentifier)")
             }
             
             // Читаем вывод команды
