@@ -2,76 +2,51 @@ import SwiftUI
 import Foundation
 import AppKit
 
+// MARK: - Window Close Delegate для плавного закрытия
+class WindowCloseDelegate: NSObject, NSWindowDelegate {
+    static let shared = WindowCloseDelegate()
+    
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        print("🚪 Окно пытается закрыться - выполняем плавное закрытие!")
+        
+        // Вызываем плавное закрытие через трей
+        TrayManager.shared.quitApplication()
+        
+        // Предотвращаем стандартное закрытие
+        return false
+    }
+}
+
 // MARK: - App Delegate для обработки завершения приложения
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
-        print("🚪 Приложение завершается - КРИТИЧЕСКИ останавливаем демон!")
+        print("🚪 Приложение завершается...")
         
-        // Уведомляем View о завершении приложения для остановки демона
-        NotificationCenter.default.post(name: NSNotification.Name("NSApplicationWillTerminate"), object: nil)
-        
-        // СИНХРОННАЯ критическая остановка демона - БЕЗ фонового выполнения!
-        let stopCommand = """
-        echo "💀 КРИТИЧЕСКОЕ УНИЧТОЖЕНИЕ демонов при выходе..." &&
-        
-        # Показываем демоны перед уничтожением
-        echo "📋 Найденные демоны:" &&
-        ps aux | grep "i2pd.*daemon" | grep -v grep &&
-        echo "🔢 Количество демонов: $(ps aux | grep 'i2pd.*daemon' | grep -v grep | wc -l)" &&
-        
-        # КРИТИЧЕСКАЯ остановка всех демонов
-        echo "🛑 КРИТИЧЕСКАЯ ОСТАНОВКА..." &&
-        
-        # Метод 1: Прямая остановка найденных PID
-        ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | while read pid; do 
-            echo "💀 Останавливаем PID: $pid" &&
-            kill -s INT $pid 2>/dev/null && echo "✅ kill -s INT для $pid отправлен" &&
-            kill -s TERM $pid 2>/dev/null && echo "✅ kill -s TERM для $pid отправлен" &&
-            kill -KILL $pid 2>/dev/null && echo "✅ KILL для $pid отправлен"
-        done &&
-        
-        # Метод 2: Глобальная остановка
-        echo "🔫 ГЛОБАЛЬНАЯ ОСТАНОВКА..." &&
-        pkill -TERM -f "i2pd.*daemon" 2>/dev/null && echo "✅ pkill TERM выполнен" &&
-        pkill -INT -f "i2pd.*daemon" 2>/dev/null && echo "✅ pkill INT выполнен" &&
-        pkill -KILL -f "i2pd.*daemon" 2>/dev/null && echo "✅ pkill KILL выполнен" &&
-        
-        # Синхронное ожидание завершения демонов
-        for i in {1..5}; do
-            DEMON_COUNT=$(ps aux | grep "i2pd.*daemon" | grep -v grep | wc -l | tr -d ' ')
-            if [ "$DEMON_COUNT" -eq 0 ]; then
-                echo "✅ ДЕМОНЫ УНИЧТОЖЕНЫ! (проверка $i)" &&
-                break
-            else
-                echo "⏳ Ожидание завершения демонов... ($DEMON_COUNT шт., попытка $i)" &&
-                sleep 0.5
-                # Дополнительные попытки убийства
-                ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs kill -KILL 2>/dev/null || true
-            fi
-        done
-        
-        # Финальный отчет
-        FINAL_COUNT=$(ps aux | grep "i2pd.*daemon" | grep -v grep | wc -l | tr -d ' ')
-        if [ "$FINAL_COUNT" -eq 0 ]; then
-            echo "🎉 ВСЕ ДЕМОНЫ УНИЧТОЖЕНЫ! Успешный выход."
-        else
-            echo "❌ КРИТИЧЕСКАЯ ОШИБКА: $FINAL_COUNT демонов остались живы!"
-            echo "Оставшиеся демоны:"
-            ps aux | grep "i2pd.*daemon" | grep -v grep
-        fi
-        """
-        
-        let killProcess = Process()
-        killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
-        killProcess.arguments = ["-c", stopCommand]
-        
-        do {
-            print("🚨 Запускаем критическую остановку демонов...")
-            try killProcess.run()
-            killProcess.waitUntilExit()
-            print("✅ Критическая остановка демона завершена")
-        } catch {
-            print("❌ Ошибка критической остановки демона: \(error)")
+        // Простая информация о том что демон может остаться запущенным
+        DispatchQueue.global(qos: .background).async {
+            let demonCheck = Process()
+            demonCheck.executableURL = URL(fileURLWithPath: "/bin/bash")
+            demonCheck.arguments = ["-c", "ps aux | grep 'i2pd.*daemon' | grep -v grep | wc -l"]
+            
+            do {
+                try demonCheck.run()
+                demonCheck.waitUntilExit()
+                
+                let pipe = Pipe()
+                demonCheck.standardOutput = pipe
+                
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                if let output = String(data: data, encoding: .utf8),
+                   let count = Int(output.trimmingCharacters(in: .whitespacesAndNewlines)),
+                   count > 0 {
+                    print("⚠️ Приложение закрылось, но демон (\(count) шт.) остается запущенным")
+                    print("💡 Чтобы остановить демон, используйте трей или команду: ps aux | grep i2pd | awk '{print $2}' | xargs kill -s INT")
+                } else {
+                    print("✅ Демон уже остановлен или не найден")
+                }
+            } catch {
+                print("❌ Ошибка проверки демона при выходе: \(error)")
+            }
         }
     }
 }
@@ -175,6 +150,7 @@ class TrayManager: NSObject, ObservableObject {
         print("📊 Статус проверяется...")
         updateStatusText("📊 Статус обновлен")
     }
+    
     
     @objc public func startDaemon() {
         print("🚀 ========== ЗАПУСК DAEMON ИЗ ТРЕЯ! ==========")
@@ -374,12 +350,12 @@ class TrayManager: NSObject, ObservableObject {
         print("✅ Приложение свернуто в трей")
     }
     
-    @objc private func quitApplication() {
+    @objc public func quitApplication() {
         print("🚪 ВЫХОД ИЗ ПРИЛОЖЕНИЯ из трея!")
         updateStatusText("🚪 Остановка демона и выход...")
         
-        // Останавливаем демон перед выходом
-        stopDaemon()
+        // Останавливаем демон перед выходом через основную логику
+        NotificationCenter.default.post(name: NSNotification.Name("DaemonStopRequest"), object: nil)
         
         // Даём время на остановку демона
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -649,6 +625,15 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView(i2pdManager: i2pdManager)
+        }
+        .onAppear {
+            // Используем более простой подход для перехвата Cmd+Q
+            DispatchQueue.main.async {
+                // Подключаем делегат для обработки закрытия окна
+                if let window = NSApplication.shared.windows.first {
+                    window.delegate = WindowCloseDelegate.shared
+                }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSettings"))) { _ in
             showingSettings = true
