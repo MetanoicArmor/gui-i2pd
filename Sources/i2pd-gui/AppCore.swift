@@ -18,36 +18,57 @@ class WindowCloseDelegate: NSObject, NSWindowDelegate {
 }
 
 // MARK: - App Delegate для обработки завершения приложения
-class AppDelegate: NSObject, NSApplicationDelegate {
-    func applicationWillTerminate(_ notification: Notification) {
-        print("🚪 Приложение завершается...")
+class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+    
+    override init() {
+        super.init()
+        setupGlobalQuitHandler()
+    }
+    
+    private func setupGlobalQuitHandler() {
+        // Пытаемся перехватить глобальные события клавиатуры
+        NSApplication.shared.windows.first?.delegate = self
         
-        // Простая информация о том что демон может остаться запущенным
-        DispatchQueue.global(qos: .background).async {
-            let demonCheck = Process()
-            demonCheck.executableURL = URL(fileURLWithPath: "/bin/bash")
-            demonCheck.arguments = ["-c", "ps aux | grep 'i2pd.*daemon' | grep -v grep | wc -l"]
+        // Добавляем обработчик для NSApp
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applicationWillTerminate(_:)),
+            name: NSApplication.willTerminateNotification,
+            object: nil
+        )
+    }
+    
+    @objc func applicationWillTerminate(_ notification: Notification) {
+        print("🚪🚪🚪 AppDelegate.applicationWillTerminate ВЫЗВАН! 🚪🚪🚪")
+        
+        // Вызываем СИНХРОННУЮ остановку демона напрямую (без recursion)
+        let findAndKillCommand = """
+        DEMON_PID=$(ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | head -1)
+        if [ -n "$DEMON_PID" ]; then
+            echo "✅ Найден демон с PID: $DEMON_PID"
+            kill -s INT $DEMON_PID 2>/dev/null
+            echo "✅ Демон остановлен синхронно через AppDelegate"
+            sleep 0.3
+        else
+            echo "ℹ️ Демон не найден"
+        fi
+        """
+        
+        let killProcess = Process()
+        killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+        killProcess.arguments = ["-c", findAndKillCommand]
+        
+        do {
+            print("💀 AppDelegate: Выполняем синхронную остановку демона...")
+            try killProcess.run()
+            killProcess.waitUntilExit()
+            print("✅ AppDelegate: Синхронная остановка завершена")
             
-            do {
-                try demonCheck.run()
-                demonCheck.waitUntilExit()
-                
-                let pipe = Pipe()
-                demonCheck.standardOutput = pipe
-                
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                if let output = String(data: data, encoding: .utf8),
-                   let count = Int(output.trimmingCharacters(in: .whitespacesAndNewlines)),
-                   count > 0 {
-                    print("⚠️ Приложение закрылось, но демон (\(count) шт.) остается запущенным")
-                    print("💡 Чтобы остановить демон, используйте трей или команду: ps aux | grep i2pd | awk '{print $2}' | xargs kill -s INT")
-                } else {
-                    print("✅ Демон уже остановлен или не найден")
-                }
-            } catch {
-                print("❌ Ошибка проверки демона при выходе: \(error)")
-            }
+        } catch {
+            print("❌ AppDelegate: Ошибка остановки демона: \(error)")
         }
+        
+        print("🚪 AppDelegate завершил работу")
     }
 }
 
@@ -351,7 +372,8 @@ class TrayManager: NSObject, ObservableObject {
     }
     
     @objc public func quitApplication() {
-        print("🚪 ПЛАВНОЕ ЗАКРЫТИЕ ПРИЛОЖЕНИЯ!")
+        print("🚪🚪🚪 ПЛАВНОЕ ЗАКРЫТИЕ ПРИЛОЖЕНИЯ! ФУНКЦИЯ ВЫЗВАНА! 🚪🚪🚪")
+        print("📢 Время вызова: \(Date())")
         updateStatusText("🚪 Остановка демона и выход...")
         
         // СИНХРОННАЯ остановка демона - без async операций
@@ -434,6 +456,7 @@ struct I2pdGUIApp: App {
         .windowStyle(.titleBar)
         .defaultSize(width: 800, height: 900)
         .windowResizability(.contentSize)
+        .handlesExternalEvents(matching: ["quit"])
         
         // Settings убраны - используем NSAlert из трея
         
@@ -454,6 +477,7 @@ struct I2pdGUIApp: App {
                 }
                 .keyboardShortcut(",", modifiers: [.command])
             }
+            
         }
     }
 }
@@ -650,15 +674,6 @@ struct ContentView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView(i2pdManager: i2pdManager)
         }
-        .onAppear {
-            // Используем более простой подход для перехвата Cmd+Q
-            DispatchQueue.main.async {
-                // Подключаем делегат для обработки закрытия окна
-                if let window = NSApplication.shared.windows.first {
-                    window.delegate = WindowCloseDelegate.shared
-                }
-            }
-        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSettings"))) { _ in
             showingSettings = true
         }
@@ -682,7 +697,7 @@ struct ContentView: View {
                 i2pdManager.stopDaemon()
             }
         }
-        .overlay(alignment: .bottom) {
+        .overlay {
             if i2pdManager.isLoading {
                 HStack {
                     ProgressView()
@@ -2741,3 +2756,4 @@ class I2pdManager: ObservableObject {
         }
     }
 }
+
