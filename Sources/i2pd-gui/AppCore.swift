@@ -1582,7 +1582,7 @@ struct SettingsView: View {
                                     .font(.title2)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Автозапуск daemon")
+                                    Text("Автозапуск приложения")
                                         .font(.system(.body, design: .default, weight: .medium))
                                         .foregroundColor(.primary)
                                     
