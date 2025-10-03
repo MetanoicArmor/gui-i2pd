@@ -1052,6 +1052,60 @@ struct SettingsView: View {
         return bandwidthValue.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
+    // Записывает значение bandwidth в конфиг (раскомментирует строку если необходимо)
+    static func writeBandwidthToConfig(_ bandwidth: String) {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        
+        print("📋 DEBUG: Записываем bandwidth '\(bandwidth)' в конфиг")
+        
+        guard FileManager.default.fileExists(atPath: configPath.path) else {
+            print("⚠️ i2pd.conf не найден для записи bandwidth")
+            return
+        }
+        
+        do {
+            let configContent = try String(contentsOf: configPath)
+            let lines = configContent.components(separatedBy: .newlines)
+            
+            var updatedLines: [String] = []
+            var bandwidthUpdated = false
+            
+            for line in lines {
+                let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+                
+                // Ищем существующую строку с bandwidth (закомментированную или нет)
+                if Self.isBandwidthLine(trimmedLine) {
+                    // Заменяем строку на новое значение (активное)
+                    let newLine = "bandwidth = \(bandwidth)"
+                    updatedLines.append(newLine)
+                    bandwidthUpdated = true
+                    print("📋 DEBUG: Заменена строка bandwidth на: \(newLine)")
+                } else {
+                    // Оставляем строку без изменений
+                    updatedLines.append(line)
+                }
+            }
+            
+            // Если строка bandwidth не найдена, добавляем в конец конфига
+            if !bandwidthUpdated {
+                updatedLines.append("") // Пустая строка для разделения
+                updatedLines.append("## Bandwidth configuration")
+                updatedLines.append("bandwidth = \(bandwidth)")
+                print("📋 DEBUG: Добавлена новая строка bandwidth: bandwidth = \(bandwidth)")
+            }
+            
+            // Записываем обновленный конфиг обратно в файл
+            let updatedContent = updatedLines.joined(separator: "\n")
+            try updatedContent.write(to: configPath, atomically: true, encoding: .utf8)
+            
+            print("✅ Bandwidth успешно записан в конфиг: \(bandwidth)")
+            
+        } catch {
+            print("❌ Ошибка записи bandwidth в конфиг: \(error)")
+        }
+    }
+    
     // Функция для чтения настроек из реального конфига (для .onAppear)
     private func loadSettingsFromConfig() {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
@@ -1232,19 +1286,24 @@ struct SettingsView: View {
                                     Menu {
                                         Button("L (32 KB/s) - Стандартная") {
                                             displayBandwidth = "L"
+                                            Self.writeBandwidthToConfig("L")
                                         }
                                         Button("O (256 KB/s) - Средняя") {
                                             displayBandwidth = "O"
+                                            Self.writeBandwidthToConfig("O")
                                         }
                                         Button("P (2048 KB/s) - Высокая (рекомендуется)") {
                                             displayBandwidth = "P"
+                                            Self.writeBandwidthToConfig("P")
                                         }
                                         Button("X (unlimited) - Максимальная") {
                                             displayBandwidth = "X"
+                                            Self.writeBandwidthToConfig("X")
                                         }
                                         Divider()
                                         Button("Настроить произвольную скорость") {
                                             displayBandwidth = "Custom"
+                                            // TODO: Добавить поле ввода для произвольного значения
                                         }
                                     } label: {
                                         HStack {
