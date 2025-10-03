@@ -299,11 +299,7 @@ Info.plist              # Метаданные приложения (верси�
 <img src="btc_donation_qr.png" width="200">
 </div>
 
-<button onclick="copyToClipboard('bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd')">
-
-📋 Копировать BTC адрес
-
-</button>
+### 📋 BTC адрес:
 
 ```
 bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd
@@ -316,25 +312,11 @@ bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd
 <img src="ton_donation_qr.png" width="200">
 </div>
 
-<button onclick="copyToClipboard('UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY')">
-
-📋 Копировать TON адрес
-
-</button>
+### 📋 TON адрес:
 
 ```
 UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
 ```
-
-<script>
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function() {
-        alert('✅ Адрес скопирован в буфер обмена!');
-    }, function(err) {
-        console.error('Ошибка копирования: ', err);
-    });
-}
-</script>
 
 *Спасибо за поддержку! Это мотивирует продолжать работу над проектом* 🙏
 
