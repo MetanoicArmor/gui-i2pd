@@ -5,60 +5,73 @@ import AppKit
 // MARK: - App Delegate для обработки завершения приложения
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
-        print("🚪 Приложение завершается - останавливаем демон!")
+        print("🚪 Приложение завершается - КРИТИЧЕСКИ останавливаем демон!")
         
         // Уведомляем View о завершении приложения для остановки демона
         NotificationCenter.default.post(name: NSNotification.Name("NSApplicationWillTerminate"), object: nil)
         
-        // Дополнительная прямая остановка демона для надежности
-        DispatchQueue.global(qos: .background).async {
-            let stopCommand = """
-            # УНИЧТОЖЕНИЕ всех демонов при выходе приложения
-            echo "💀 УНИЧТОЖЕНИЕ всех демонов при выходе..." &&
-            
-            # Показываем ВСЕ процессы i2pd перед уничтожением
-            echo "📋 Процессы i2pd перед уничтожением:" &&
-            ps aux | grep i2pd | grep -v grep &&
-            echo "" &&
-            
-            # АГРЕССИВНОЕ уничтожение демонов
-            echo "🔫 НАЧИНАЕМ УНИЧТОЖЕНИЕ ДЕМОНОВ..." &&
-            ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | while read pid; do 
-                echo "💀 УНИЧТОЖАЕМ демон PID: $pid" &&
-                kill -TERM $pid 2>/dev/null || echo "TERM для $pid не сработал" &&
-                sleep 0.5 &&
-                kill -INT $pid 2>/dev/null || echo "INT для $pid не сработал" &&
-                sleep 0.5 &&
-                kill -KILL $pid 2>/dev/null || echo "KILL для $pid не сработал"
-            done &&
-            
-            # ДОПОЛНИТЕЛЬНО: глобальная остановка
-            pkill -TERM -f "i2pd.*daemon" 2>/dev/null || true &&
-            sleep 1 &&
-            pkill -KILL -f "i2pd.*daemon" 2>/dev/null || true &&
-            
-            # Финальная проверка
-            echo "📋 ФИНАЛЬНАЯ ПРОВЕРКА:" &&
-            ps aux | grep "i2pd.*daemon" | grep -v grep &&
-            DEMON_COUNT=$(ps aux | grep "i2pd.*daemon" | grep -v grep | wc -l | tr -d ' ') &&
+        // СИНХРОННАЯ критическая остановка демона - БЕЗ фонового выполнения!
+        let stopCommand = """
+        echo "💀 КРИТИЧЕСКОЕ УНИЧТОЖЕНИЕ демонов при выходе..." &&
+        
+        # Показываем демоны перед уничтожением
+        echo "📋 Найденные демоны:" &&
+        ps aux | grep "i2pd.*daemon" | grep -v grep &&
+        echo "🔢 Количество демонов: $(ps aux | grep 'i2pd.*daemon' | grep -v grep | wc -l)" &&
+        
+        # КРИТИЧЕСКАЯ остановка всех демонов
+        echo "🛑 КРИТИЧЕСКАЯ ОСТАНОВКА..." &&
+        
+        # Метод 1: Прямая остановка найденных PID
+        ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | while read pid; do 
+            echo "💀 Останавливаем PID: $pid" &&
+            kill -TERM $pid 2>/dev/null && echo "✅ TERM для $pid отправлен" &&
+            kill -INT $pid 2>/dev/null && echo "✅ INT для $pid отправлен" &&
+            kill -KILL $pid 2>/dev/null && echo "✅ KILL для $pid отправлен"
+        done &&
+        
+        # Метод 2: Глобальная остановка
+        echo "🔫 ГЛОБАЛЬНАЯ ОСТАНОВКА..." &&
+        pkill -TERM -f "i2pd.*daemon" 2>/dev/null && echo "✅ pkill TERM выполнен" &&
+        pkill -INT -f "i2pd.*daemon" 2>/dev/null && echo "✅ pkill INT выполнен" &&
+        pkill -KILL -f "i2pd.*daemon" 2>/dev/null && echo "✅ pkill KILL выполнен" &&
+        
+        # Синхронное ожидание завершения демонов
+        for i in {1..5}; do
+            DEMON_COUNT=$(ps aux | grep "i2pd.*daemon" | grep -v grep | wc -l | tr -d ' ')
             if [ "$DEMON_COUNT" -eq 0 ]; then
-                echo "✅ ВСЕ ДЕМОНЫ УНИЧТОЖЕНЫ при выходе!"
+                echo "✅ ДЕМОНЫ УНИЧТОЖЕНЫ! (проверка $i)" &&
+                break
             else
-                echo "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: демоны НЕ уничтожены ($DEMON_COUNT шт.)"
+                echo "⏳ Ожидание завершения демонов... ($DEMON_COUNT шт., попытка $i)" &&
+                sleep 0.5
+                # Дополнительные попытки убийства
+                ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs kill -KILL 2>/dev/null || true
             fi
-            """
-            
-            let killProcess = Process()
-            killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
-            killProcess.arguments = ["-c", stopCommand]
-            
-            do {
-                try killProcess.run()
-                killProcess.waitUntilExit()
-                print("✅ Демон остановлен при завершении приложения")
-            } catch {
-                print("❌ Ошибка остановки демона при выходе: \(error)")
-            }
+        done
+        
+        # Финальный отчет
+        FINAL_COUNT=$(ps aux | grep "i2pd.*daemon" | grep -v grep | wc -l | tr -d ' ')
+        if [ "$FINAL_COUNT" -eq 0 ]; then
+            echo "🎉 ВСЕ ДЕМОНЫ УНИЧТОЖЕНЫ! Успешный выход."
+        else
+            echo "❌ КРИТИЧЕСКАЯ ОШИБКА: $FINAL_COUNT демонов остались живы!"
+            echo "Оставшиеся демоны:"
+            ps aux | grep "i2pd.*daemon" | grep -v grep
+        fi
+        """
+        
+        let killProcess = Process()
+        killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+        killProcess.arguments = ["-c", stopCommand]
+        
+        do {
+            print("🚨 Запускаем критическую остановку демонов...")
+            try killProcess.run()
+            killProcess.waitUntilExit()
+            print("✅ Критическая остановка демона завершена")
+        } catch {
+            print("❌ Ошибка критической остановки демона: \(error)")
         }
     }
 }
@@ -2311,11 +2324,21 @@ class I2pdManager: ObservableObject {
                     
                     let lines = output.components(separatedBy: "\n")
                     
-                    // Поиск строки "🎯 ПОЛУЧЕНИЕ PID: XXXXX"
+                    // ПРОСТОЙ И НАДЕЖНЫЙ поиск PID
                     var foundPid: Int32?
-                    for line in lines {
-                        if line.contains("🎯 ПОЛУЧЕНИЕ PID:") || line.contains("ПОЛУЧЕНИЕ PID:") {
-                            // Извлекаем PID из строки типа "ПОЛУЧЕНИЕ PID: 19822"
+                    
+                    // Ищем строку с "ПОЛУЧЕНИЕ PID:" и извлекаем число из следующего элемента
+                    for (index, line) in lines.enumerated() {
+                        if line.contains("ПОЛУЧЕНИЕ PID:") {
+                            // Берем следующую строку после "ПОЛУЧЕНИЕ PID:"
+                            if index + 1 < lines.count {
+                                let nextLine = lines[index + 1]
+                                if let pid = Int32(nextLine.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                                    foundPid = pid
+                                    break
+                                }
+                            }
+                            // Попробуем также найти в той же строке
                             let components = line.components(separatedBy: " ")
                             for component in components {
                                 if let pid = Int32(component.trimmingCharacters(in: .whitespacesAndNewlines)) {
@@ -2324,15 +2347,6 @@ class I2pdManager: ObservableObject {
                                 }
                             }
                             break
-                        }
-                        // Также проверяем прямые числовые значения в строках
-                        else if let pid = Int32(line.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0 {
-                            // Проверяем что это действительно процесс демона, а не случайное число
-                            let previousLines = lines[max(0, lines.firstIndex(of: line)! - 3)...]
-                            if previousLines.joined().contains("daemon") {
-                                foundPid = pid
-                                break
-                            }
                         }
                     }
                     
