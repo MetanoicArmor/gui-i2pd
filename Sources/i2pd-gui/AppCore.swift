@@ -1311,7 +1311,7 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                TextField("Порт", value: $displayDaemonPort, format: .number)
+                                TextField("Порт", value: $displayDaemonPort, format: .number.grouping(.never))
                                     .textFieldStyle(.plain)
                                     .font(.system(.body, design: .monospaced, weight: .medium))
                                     .frame(width: 120)
@@ -1337,7 +1337,7 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                TextField("Порт", value: $displaySocksPort, format: .number)
+                                TextField("Порт", value: $displaySocksPort, format: .number.grouping(.never))
                                     .textFieldStyle(.plain)
                                     .font(.system(.body, design: .monospaced, weight: .medium))
                                     .frame(width: 120)
