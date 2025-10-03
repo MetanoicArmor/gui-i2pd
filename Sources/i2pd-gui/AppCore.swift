@@ -838,7 +838,76 @@ struct SettingsView: View {
     @State private var displayDaemonPort = 4444
     @State private var displaySocksPort = 4447
     
-    // Функция для чтения портов из реального конфига
+    init(i2pdManager: I2pdManager) {
+        self.i2pdManager = i2pdManager
+        // Инициализируем порты из конфига при создании view
+        _displayDaemonPort = State(initialValue: Self.loadDaemonPortFromConfig())
+        _displaySocksPort = State(initialValue: Self.loadSocksPortFromConfig())
+    }
+    
+    // Статические функции для чтения портов из конфига при инициализации
+    static private func loadDaemonPortFromConfig() -> Int {
+        return Self.loadPortFromConfigForSection("httpproxy") ?? 4444
+    }
+    
+    static private func loadSocksPortFromConfig() -> Int {
+        return Self.loadPortFromConfigForSection("socksproxy") ?? 4447
+    }
+    
+    static private func loadPortFromConfigForSection(_ sectionName: String) -> Int? {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        
+        guard FileManager.default.fileExists(atPath: configPath.path) else {
+            print("⚠️ i2pd.conf не найден для секции \(sectionName)")
+            return nil
+        }
+        
+        do {
+            let configContent = try String(contentsOf: configPath)
+            let lines = configContent.components(separatedBy: .newlines)
+            
+            var currentSection = ""
+            
+            for line in lines {
+                let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+                
+                // Определяем текущую секцию
+                if trimmedLine.hasPrefix("[") && trimmedLine.hasSuffix("]") {
+                    currentSection = trimmedLine.lowercased()
+                }
+                
+                // Ищем порты в соответствующей секции
+                if (trimmedLine.contains(" port = ") || trimmedLine.contains("# port = ")) && currentSection.contains(sectionName) {
+                    return Self.extractPortFromLineStatic(trimmedLine)
+                }
+            }
+        } catch {
+            print("❌ Ошибка чтения конфига для секции \(sectionName): \(error)")
+        }
+        
+        return nil
+    }
+    
+    static private func extractPortFromLineStatic(_ line: String) -> Int? {
+        // Парсим строку вида "port = 4444" или "# port = 4444" или "port = 4444 #комментарий"
+        let cleanLine = line.trimmingCharacters(in: .whitespaces)
+        
+        // Убираем символ # из начала если есть
+        let processedLine = cleanLine.hasPrefix("#") ? String(cleanLine.dropFirst()).trimmingCharacters(in: .whitespaces) : cleanLine
+        
+        let components = processedLine.components(separatedBy: "port =")
+        
+        if components.count > 1 {
+            let portPart = components[1].trimmingCharacters(in: .whitespaces)
+            // Берем значение до первого пробела (может быть комментарий)
+            let portValue = portPart.components(separatedBy: .whitespaces).first ?? portPart
+            return Int(portValue.trimmingCharacters(in: .whitespaces))
+        }
+        return nil
+    }
+    
+    // Функция для чтения портов из реального конфига (для .onAppear)
     private func loadPortsFromConfig() {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
@@ -1391,6 +1460,7 @@ struct SettingsView: View {
         .frame(minWidth: 750, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
         .onAppear {
             // Загружаем актуальные порты из конфига при открытии настроек
+            print("🔄 SettingsView opened - loading ports from config...")
             loadPortsFromConfig()
         }
         .onReceive(NotificationCenter.default.publisher(for: .init("NSWindowDidResignKey"))) { _ in
