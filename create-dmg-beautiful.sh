@@ -76,9 +76,9 @@ for i in range(4):
 
 # Убираем лишние области - оставляем только чистый фон
 
-# Добавляем красивую стрелку по центру между иконками
+# Добавляем красивую стрелку точно по центру между иконками
 arrow_start_x = width // 2
-arrow_start_y = 280  # Примерно между иконками
+arrow_start_y = 300  # Точное позиционирование между иконками
 
 # Тень стрелки
 shadow_points = [
@@ -177,11 +177,11 @@ tell application "Finder"
         set icon size of theViewOptions to 128
         set background picture of theViewOptions to file ".background:background.png"
         
-        -- Позиционируем иконку приложения по центру сверху
-        set position of item "${APP_NAME}.app" of container window to {350, 150}
+        -- Позиционируем иконку приложения точно по центру сверху
+        set position of item "${APP_NAME}.app" of container window to {400, 120}
         
-        -- Позиционируем Applications по центру снизу
-        set position of item "Applications" of container window to {350, 400}
+        -- Позиционируем Applications точно по центру снизу
+        set position of item "Applications" of container window to {400, 420}
         
         -- Обновляем вид
         update without registering applications
