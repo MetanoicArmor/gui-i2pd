@@ -66,9 +66,9 @@ echo "🔨 Сборка приложения..."
 ./build-app-simple.sh
 
 # Архивируем приложение
-APP_FILE="I2P-GUI-v$I2PD_VERSION.app.zip"
+APP_FILE="I2P-Daemon-GUI-v$I2PD_VERSION.app.zip"
 echo "📦 Архивирование: $APP_FILE"
-zip -r "$APP_FILE" I2P-GUI.app/
+zip -r "$APP_FILE" "I2P Daemon GUI.app/"
 
 # Создаем релиз на GitHub
 echo "📋 Создание релиза..."

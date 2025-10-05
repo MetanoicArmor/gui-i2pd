@@ -4,7 +4,7 @@ echo "🍎 Создание macOS .app через Swift Package Manager"
 echo "================================================"
 
 # Переменные
-APP_NAME="I2P-GUI"
+APP_NAME="I2P Daemon GUI"
 BUNDLE_ID="com.example.i2pd-gui"
 
 # Автоматически определяем версию из бинарника i2pd
@@ -60,25 +60,25 @@ RESOURCES_DIR="${CONTENTS_DIR}/Resources"
 
 echo "📁 Создание структуры .app..."
 
-rm -rf ${APP_DIR}
-mkdir -p ${MACOS_DIR}
-mkdir -p ${RESOURCES_DIR}
+rm -rf "${APP_DIR}"
+mkdir -p "${MACOS_DIR}"
+mkdir -p "${RESOURCES_DIR}"
 
 # Копируем исполняемый файл
-cp ${SWIFT_BUILD_DIR}/${EXECUTABLE_NAME} ${MACOS_DIR}/${APP_NAME}
+cp "${SWIFT_BUILD_DIR}/${EXECUTABLE_NAME}" "${MACOS_DIR}/${APP_NAME}"
 
 # Копируем бинарник i2pd
 if [ -f "i2pd" ]; then
-    cp "i2pd" ${RESOURCES_DIR}/i2pd
+    cp "i2pd" "${RESOURCES_DIR}/i2pd"
     echo "✅ Бинарник i2pd скопирован"
 else
     echo "⚠️  Бинарник i2pd не найден"
-    touch ${RESOURCES_DIR}/i2pd
+    touch "${RESOURCES_DIR}/i2pd"
 fi
 
 # Копируем иконку приложения
 if [ -f "I2P-GUI.icns" ]; then
-    cp "I2P-GUI.icns" ${RESOURCES_DIR}/I2P-GUI.icns
+    cp "I2P-GUI.icns" "${RESOURCES_DIR}/I2P-GUI.icns"
     echo "✅ Иконка приложения скопирована"
 else
     echo "⚠️  Иконка I2P-GUI.icns не найдена"
@@ -89,7 +89,7 @@ echo "📋 Копирование конфигурационных файлов.
 
 # subscriptions.txt
 if [ -f "subscriptions.txt" ]; then
-    cp "subscriptions.txt" ${RESOURCES_DIR}/subscriptions.txt
+    cp "subscriptions.txt" "${RESOURCES_DIR}/subscriptions.txt"
     echo "✅ subscriptions.txt скопирован"
 else
     echo "⚠️  subscriptions.txt не найден"
@@ -97,7 +97,7 @@ fi
 
 # i2pd.conf
 if [ -f "i2pd.conf" ]; then
-    cp "i2pd.conf" ${RESOURCES_DIR}/i2pd.conf
+    cp "i2pd.conf" "${RESOURCES_DIR}/i2pd.conf"
     echo "✅ i2pd.conf скопирован"
 else
     echo "⚠️  i2pd.conf не найден"
@@ -105,7 +105,7 @@ fi
 
 # tunnels.conf
 if [ -f "tunnels.conf" ]; then
-    cp "tunnels.conf" ${RESOURCES_DIR}/tunnels.conf
+    cp "tunnels.conf" "${RESOURCES_DIR}/tunnels.conf"
     echo "✅ tunnels.conf скопирован"
 else
     echo "⚠️  tunnels.conf не найден"
@@ -114,7 +114,7 @@ fi
 # Localizations (.lproj)
 if [ -d "Resources" ]; then
     echo "🌐 Копирование локализаций (.lproj)..."
-    cp -R Resources/*.lproj ${RESOURCES_DIR}/ 2>/dev/null || true
+    cp -R Resources/*.lproj "${RESOURCES_DIR}/" 2>/dev/null || true
     echo "✅ Локализации скопированы"
 else
     echo "ℹ️ Папка Resources отсутствует, пропускаем локализации"
@@ -126,7 +126,7 @@ echo "🔧 Используем системные иконки трея по у
 # Создаем Info.plist
 echo "📋 Создание Info.plist..."
 
-cat > ${CONTENTS_DIR}/Info.plist << EOF
+cat > "${CONTENTS_DIR}/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -168,21 +168,21 @@ cat > ${CONTENTS_DIR}/Info.plist << EOF
 EOF
 
 # Устанавливаем права доступа
-chmod +x ${MACOS_DIR}/${APP_NAME}
-chmod +x ${RESOURCES_DIR}/i2pd
+chmod +x "${MACOS_DIR}/${APP_NAME}"
+chmod +x "${RESOURCES_DIR}/i2pd"
 
 echo "✅ Права доступа установлены"
 
 # Удаляем проблемные атрибуты macOS
 echo "🧹 Очистка атрибутов macOS..."
-xattr -cr ${APP_DIR} 2>/dev/null || true
+xattr -cr "${APP_DIR}" 2>/dev/null || true
 echo "✅ Атрибуты очищены"
 
 # Подписываем приложение для macOS
 echo "🔐 Подпись приложения..."
-codesign --force --options runtime --sign - ${APP_DIR} 2>/dev/null || {
+codesign --force --options runtime --sign - "${APP_DIR}" 2>/dev/null || {
     echo "⚠️  Автоматическая подпись недоступна, используйте ручную подпись"
-    echo "   Для удаленной подписи используйте: codesign --sign \"Your Certificate\" ${APP_DIR}"
+    echo "   Для удаленной подписи используйте: codesign --sign \"Your Certificate\" \"${APP_DIR}\""
 }
 echo "✅ Подпись завершена"
 
@@ -192,8 +192,8 @@ echo "🎉 Приложение .app создано успешно!"
 echo ""
 echo "📊 Информация:"
 echo "   📍 Путь: $(pwd)/${APP_DIR}"
-echo "   📦 Размер: $(du -sh ${APP_DIR} | cut -f1)"
-echo "   🔧 Исполняемый файл: $(du -sh ${MACOS_DIR}/${APP_NAME} | cut -f1)"
+echo "   📦 Размер: $(du -sh \"${APP_DIR}\" | cut -f1)"
+echo "   🔧 Исполняемый файл: $(du -sh \"${MACOS_DIR}/${APP_NAME}\" | cut -f1)"
 echo "   📋 ID: ${BUNDLE_ID}"
 echo "   📱 Версия: ${APP_VERSION}"
 echo ""

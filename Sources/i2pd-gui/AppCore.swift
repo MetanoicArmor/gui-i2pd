@@ -1445,7 +1445,7 @@ struct SettingsView: View {
         
         // Получаем путь к исполняемому файлу внутри .app пакета
         let appBundle = Bundle.main.bundlePath
-        let executablePath = appBundle + "/Contents/MacOS/I2P-GUI"
+        let executablePath = appBundle + "/Contents/MacOS/I2P Daemon GUI"
         print("📱 DEBUG: Путь к приложению: \(appBundle)")
         print("📱 DEBUG: Путь к исполняемому файлу: \(executablePath)")
         
