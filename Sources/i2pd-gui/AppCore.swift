@@ -2105,7 +2105,6 @@ struct SettingsView: View {
                                     openTunnelManager()
                                 }
                                 .buttonStyle(.borderless)
-                                .disabled(!i2pdManager.isRunning)
                                 
                                 Spacer()
                             }
