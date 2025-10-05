@@ -74,52 +74,11 @@ for i in range(4):
     draw.ellipse([cloud_x + 30, cloud_y + 5, cloud_x + 70, cloud_y + 25], 
                 fill=(255, 255, 255, 80))
 
-# Определяем области для элементов
-app_area_y = 120
-app_area_height = 180
-apps_area_y = 350
-apps_area_height = 120
+# Убираем лишние области - оставляем только чистый фон
 
-# Рисуем область для приложения с современным дизайном
-app_rect = [width//2-120, app_area_y-30, width//2+120, app_area_y+app_area_height-30]
-
-# Тень области приложения
-shadow_rect = [width//2-118, app_area_y-28, width//2+122, app_area_y+app_area_height-28]
-draw.rectangle(shadow_rect, fill=(0, 0, 0, 40))
-
-# Градиент для области приложения
-for y in range(app_area_y-30, app_area_y+app_area_height-30):
-    alpha = int(255 - (y - (app_area_y-30)) * 0.2)
-    r = int(255 - (y - (app_area_y-30)) * 0.05)
-    g = int(248 - (y - (app_area_y-30)) * 0.02)
-    b = int(255)
-    draw.line([(width//2-120, y), (width//2+120, y)], fill=(r, g, b))
-
-# Рамка области приложения с градиентом
-draw.rectangle(app_rect, outline='#007AFF', width=4)
-
-# Рисуем область для Applications
-apps_rect = [width//2-100, apps_area_y-20, width//2+100, apps_area_y+apps_area_height-20]
-
-# Тень области Applications
-shadow_rect = [width//2-98, apps_area_y-18, width//2+102, apps_area_y+apps_area_height-18]
-draw.rectangle(shadow_rect, fill=(0, 0, 0, 40))
-
-# Градиент для области Applications
-for y in range(apps_area_y-20, apps_area_y+apps_area_height-20):
-    alpha = int(255 - (y - (apps_area_y-20)) * 0.2)
-    r = int(240 - (y - (apps_area_y-20)) * 0.02)
-    g = int(255 - (y - (apps_area_y-20)) * 0.05)
-    b = int(240 - (y - (apps_area_y-20)) * 0.02)
-    draw.line([(width//2-100, y), (width//2+100, y)], fill=(r, g, b))
-
-# Рамка области Applications
-draw.rectangle(apps_rect, outline='#28a745', width=4)
-
-# Добавляем красивую стрелку между областями
+# Добавляем красивую стрелку по центру между иконками
 arrow_start_x = width // 2
-arrow_start_y = app_area_y + app_area_height - 50
-arrow_end_y = apps_area_y - 30
+arrow_start_y = 280  # Примерно между иконками
 
 # Тень стрелки
 shadow_points = [
@@ -160,18 +119,7 @@ except:
         subtitle_font = ImageFont.load_default()
         instruction_font = ImageFont.load_default()
 
-# Текст для Applications с тенью
-apps_text = "Applications"
-bbox = draw.textbbox((0, 0), apps_text, font=subtitle_font)
-text_width = bbox[2] - bbox[0]
-
-# Тень текста
-draw.text((width//2 - text_width//2 + 2, apps_area_y + 20 + 2), 
-          apps_text, fill='#000000', font=subtitle_font)
-
-# Основной текст
-draw.text((width//2 - text_width//2, apps_area_y + 20), 
-          apps_text, fill='#28a745', font=subtitle_font)
+# Текст для Applications с тенью (убираем, так как он будет под иконкой)
 
 # Добавляем красивую инструкцию внизу
 instruction_text = "Перетащите приложение в папку Applications"
@@ -229,11 +177,11 @@ tell application "Finder"
         set icon size of theViewOptions to 128
         set background picture of theViewOptions to file ".background:background.png"
         
-        -- Позиционируем иконку приложения
-        set position of item "${APP_NAME}.app" of container window to {200, 150}
+        -- Позиционируем иконку приложения по центру сверху
+        set position of item "${APP_NAME}.app" of container window to {350, 150}
         
-        -- Позиционируем Applications
-        set position of item "Applications" of container window to {200, 400}
+        -- Позиционируем Applications по центру снизу
+        set position of item "Applications" of container window to {350, 400}
         
         -- Обновляем вид
         update without registering applications
