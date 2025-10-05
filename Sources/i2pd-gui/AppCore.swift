@@ -661,14 +661,14 @@ class TrayManager: NSObject, ObservableObject {
             guard let self = self else { return }
             
             if isRunning {
-                // Демон запущен
-                self.startItem?.title = "✓ " + L("Запустить daemon") // Добавляем галочку
-                self.stopItem?.title = L("Остановить daemon")
+                // Демон запущен - галочка на "Остановить daemon"
+                self.startItem?.title = L("Запустить daemon")
+                self.stopItem?.title = "✓ " + L("Остановить daemon") // Галочка на остановке
                 self.statusItem?.title = L("Статус: Запущен")
             } else {
-                // Демон остановлен
-                self.startItem?.title = L("Запустить daemon")
-                self.stopItem?.title = "✓ " + L("Остановить daemon") // Можно остановить
+                // Демон остановлен - галочка на "Запустить daemon"
+                self.startItem?.title = "✓ " + L("Запустить daemon") // Галочка на запуске
+                self.stopItem?.title = L("Остановить daemon")
                 self.statusItem?.title = L("Статус: Остановлен")
             }
             
@@ -957,6 +957,11 @@ struct ContentView: View {
         .frame(maxWidth: 950) // Адаптивная ширина для разных экранов
         .onAppear {
             i2pdManager.checkStatus()
+            
+            // Инициализируем состояние трея на основе текущего состояния демона
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                TrayManager.shared.updateMenuState(isRunning: i2pdManager.isRunning)
+            }
             
             // Проверяем и автоматически запускаем демон если включено
             if autoStartDaemon && !i2pdManager.isRunning {
