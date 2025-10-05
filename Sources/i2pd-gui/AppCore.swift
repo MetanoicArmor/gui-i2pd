@@ -262,6 +262,9 @@ class TrayManager: NSObject, ObservableObject {
     private var stopItem: NSMenuItem?
     private var restartItem: NSMenuItem?
     
+    // Состояние перезапуска демона
+    private var isRestarting = false
+    
     private override init() {
         super.init()
         setupStatusBar()
@@ -466,9 +469,18 @@ class TrayManager: NSObject, ObservableObject {
     @objc public func restartDaemon() {
         print("🔄 ПЕРЕЗАПУСК DAEMON из трея!")
         updateStatusText("🔄 Перезапуск daemon...")
-        stopDaemon()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            self.startDaemon()
+        
+        // Устанавливаем флаг перезапуска
+        isRestarting = true
+        updateMenuState(isRunning: false) // Обновляем меню с флагом перезапуска (предполагаем что демон остановлен)
+        
+        // Делегируем перезапуск к I2pdManager через уведомление
+        NotificationCenter.default.post(name: NSNotification.Name("DaemonRestartRequest"), object: nil)
+        
+        // Сбрасываем флаг перезапуска через некоторое время
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            self.isRestarting = false
+            self.updateMenuState(isRunning: true) // Предполагаем что демон запустился
         }
     }
     
@@ -665,18 +677,29 @@ class TrayManager: NSObject, ObservableObject {
                 // Демон запущен - галочка на "Запустить daemon" (показывает текущее состояние)
                 self.startItem?.title = "✓ " + L("Запустить daemon") // Галочка показывает что запущен
                 self.stopItem?.title = L("Остановить daemon")
-                self.restartItem?.title = "✓ " + L("Перезапустить daemon") // Галочка на перезапуске
+                self.restartItem?.title = L("Перезапустить daemon") // Без галочки когда не перезапускается
                 self.statusItem?.title = L("Статус: Запущен")
             } else {
                 // Демон остановлен - галочка на "Остановить daemon" (показывает текущее состояние)
                 self.startItem?.title = L("Запустить daemon")
                 self.stopItem?.title = "✓ " + L("Остановить daemon") // Галочка показывает что остановлен
-                self.restartItem?.title = "✓ " + L("Перезапустить daemon") // Галочка на перезапуске
+                self.restartItem?.title = L("Перезапустить daemon") // Без галочки когда не перезапускается
                 self.statusItem?.title = L("Статус: Остановлен")
             }
             
-            print("🏷️ Обновлено состояние меню трея: демон \(isRunning ? "запущен" : "остановлен")")
+            // Если идет перезапуск - показываем галочку на "Перезапустить daemon"
+            if self.isRestarting {
+                self.restartItem?.title = "✓ " + L("Перезапустить daemon") // Галочка во время перезапуска
+                self.statusItem?.title = L("Статус: Перезапуск...")
+            }
+            
+            print("🏷️ Обновлено состояние меню трея: демон \(isRunning ? "запущен" : "остановлен"), перезапуск: \(self.isRestarting)")
         }
+    }
+    
+    // Установка флага перезапуска извне
+    func setRestarting(_ restarting: Bool) {
+        isRestarting = restarting
     }
 }
 
@@ -1006,6 +1029,23 @@ struct ContentView: View {
             if i2pdManager.isRunning {
                 i2pdManager.stopDaemon()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonRestartRequest"))) { _ in
+            // Обрабатываем запрос перезапуска демона из трея
+            print("🔄 Получен запрос перезапуска демона из трея")
+            i2pdManager.restartDaemon()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonRestarting"))) { _ in
+            // Уведомляем трей о начале перезапуска
+            print("🔄 Уведомляем трей о начале перезапуска")
+            TrayManager.shared.setRestarting(true)
+            TrayManager.shared.updateMenuState(isRunning: i2pdManager.isRunning)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonRestartComplete"))) { _ in
+            // Уведомляем трей о завершении перезапуска
+            print("✅ Уведомляем трей о завершении перезапуска")
+            TrayManager.shared.setRestarting(false)
+            TrayManager.shared.updateMenuState(isRunning: i2pdManager.isRunning)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NSApplicationWillTerminate"))) { _ in
             // Останавливаем демон при закрытии приложения через I2pdManager
@@ -3343,11 +3383,21 @@ class I2pdManager: ObservableObject {
     }
     
     func restartDaemon() {
+        addLog(.info, L("🔄 ПЕРЕЗАПУСК ДЕМОНА ИЗ I2pdManager НАЧАТ!"))
+        
+        // Уведомляем трей о начале перезапуска
+        NotificationCenter.default.post(name: NSNotification.Name("DaemonRestarting"), object: nil)
+        
         stopDaemon()
         
         // Ждем немного перед перезапуском
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             self?.startDaemon()
+            
+            // Уведомляем трей о завершении перезапуска
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                NotificationCenter.default.post(name: NSNotification.Name("DaemonRestartComplete"), object: nil)
+            }
         }
     }
     

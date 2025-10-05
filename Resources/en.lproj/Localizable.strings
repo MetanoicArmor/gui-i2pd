@@ -145,7 +145,7 @@
 "Выйти" = "Quit";
 "Статус: Готов" = "Status: Ready";
 "Статус: Запущен" = "Status: Running";
-"Статус: Остановлен" = "Status: Stopped";
+"Статус: Перезапуск..." = "Status: Restarting...";
 
 /* About Window */
 "Современный GUI для управления I2P Daemon" = "Modern GUI for managing I2P Daemon";
