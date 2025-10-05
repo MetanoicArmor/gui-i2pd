@@ -102,11 +102,11 @@ arrow_start_x = width // 2
 arrow_start_y = app_area_y + app_area_height - 20
 arrow_end_y = apps_area_y - 20
 
-# Рисуем стрелку
+# Рисуем стрелку (направлена вниз)
 arrow_points = [
-    (arrow_start_x, arrow_start_y),
-    (arrow_start_x - 15, arrow_start_y + 20),
-    (arrow_start_x + 15, arrow_start_y + 20)
+    (arrow_start_x, arrow_start_y + 20),
+    (arrow_start_x - 15, arrow_start_y),
+    (arrow_start_x + 15, arrow_start_y)
 ]
 draw.polygon(arrow_points, fill='#6c757d')
 
@@ -118,12 +118,7 @@ except:
     title_font = ImageFont.load_default()
     subtitle_font = ImageFont.load_default()
 
-# Текст для приложения
-app_text = "I2P Daemon GUI"
-bbox = draw.textbbox((0, 0), app_text, font=title_font)
-text_width = bbox[2] - bbox[0]
-draw.text((width//2 - text_width//2, app_area_y + 20), 
-          app_text, fill='#007AFF', font=title_font)
+# Текст для приложения убран по просьбе пользователя
 
 # Текст для Applications
 apps_text = "Applications"
