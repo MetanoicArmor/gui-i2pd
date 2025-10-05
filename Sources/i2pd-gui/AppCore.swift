@@ -260,6 +260,7 @@ class TrayManager: NSObject, ObservableObject {
     private var statusItem: NSMenuItem?
     private var startItem: NSMenuItem?
     private var stopItem: NSMenuItem?
+    private var restartItem: NSMenuItem?
     
     private override init() {
         super.init()
@@ -316,11 +317,11 @@ class TrayManager: NSObject, ObservableObject {
             print("🔧 stopItem создан с target: \(String(describing: stopItem?.target)), action: \(String(describing: stopItem?.action))")
             menu.addItem(stopItem!)
             
-            let restartItem = NSMenuItem(title: L("Перезапустить daemon"), action: #selector(restartDaemon), keyEquivalent: "")
-            restartItem.target = self
-            restartItem.tag = 3
-            print("🔧 restartItem создан с target: \(String(describing: restartItem.target)), action: \(String(describing: restartItem.action))")
-            menu.addItem(restartItem)
+            restartItem = NSMenuItem(title: L("Перезапустить daemon"), action: #selector(restartDaemon), keyEquivalent: "")
+            restartItem?.target = self
+            restartItem?.tag = 3
+            print("🔧 restartItem создан с target: \(String(describing: restartItem?.target)), action: \(String(describing: restartItem?.action))")
+            menu.addItem(restartItem!)
             menu.addItem(NSMenuItem.separator())
             
             // Функции
@@ -664,11 +665,13 @@ class TrayManager: NSObject, ObservableObject {
                 // Демон запущен - галочка на "Запустить daemon" (показывает текущее состояние)
                 self.startItem?.title = "✓ " + L("Запустить daemon") // Галочка показывает что запущен
                 self.stopItem?.title = L("Остановить daemon")
+                self.restartItem?.title = "✓ " + L("Перезапустить daemon") // Галочка на перезапуске
                 self.statusItem?.title = L("Статус: Запущен")
             } else {
                 // Демон остановлен - галочка на "Остановить daemon" (показывает текущее состояние)
                 self.startItem?.title = L("Запустить daemon")
                 self.stopItem?.title = "✓ " + L("Остановить daemon") // Галочка показывает что остановлен
+                self.restartItem?.title = "✓ " + L("Перезапустить daemon") // Галочка на перезапуске
                 self.statusItem?.title = L("Статус: Остановлен")
             }
             
