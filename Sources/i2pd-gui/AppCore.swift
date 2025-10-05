@@ -285,8 +285,9 @@ class TrayManager: NSObject, ObservableObject {
             var image: NSImage?
             
             // Театральные маски из SF Symbols 7 - символично для I2P (анонимность/трагедия)
-            image = NSImage(systemSymbolName: "theatermasks.fill", accessibilityDescription: "I2P Daemon")
-            print("🎭 Используются театральные маски для трея")
+            // По умолчанию используем контурную иконку (демон остановлен)
+            image = NSImage(systemSymbolName: "theatermasks", accessibilityDescription: "I2P Daemon")
+            print("🎭 Используются театральные маски для трея (контурная иконка по умолчанию)")
             
             // Устанавливаем оптимальный размер иконки для сбалансированности
             if let image = image {
@@ -400,8 +401,8 @@ class TrayManager: NSObject, ObservableObject {
     
     private func checkIfStillRunning() {
         print("🔍 Проверяем, остановился ли daemon...")
-        // БЕЗОПАСНО: ищем только процессы с --daemon
-        let checkCommand = "ps aux | grep 'i2pd.*--daemon' | grep -v grep | wc -l"
+        // Используем ту же команду проверки, что и в I2pdManager
+        let checkCommand = "ps aux | grep \"i2pd.*daemon\" | grep -v \"grep\" | wc -l | tr -d ' '"
         
         let checkProcess = Process()
         checkProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -668,10 +669,25 @@ class TrayManager: NSObject, ObservableObject {
         print("📱 Обновлен статус трея: \(text)")
     }
     
+    // Обновление иконки трея в зависимости от статуса демона
+    private func updateTrayIcon(isRunning: Bool) {
+        guard let statusBarItem = statusBarItem else { return }
+        
+        let symbolName = isRunning ? "theatermasks.fill" : "theatermasks"
+        if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "I2P Daemon") {
+            image.size = NSSize(width: 18, height: 18)
+            statusBarItem.button?.image = image
+            print("🎭 Иконка трея обновлена: \(isRunning ? "активна (fill)" : "неактивна")")
+        }
+    }
+    
     // Обновление состояния элементов меню на основе состояния демона
     func updateMenuState(isRunning: Bool) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+            
+            // Обновляем иконку трея
+            self.updateTrayIcon(isRunning: isRunning)
             
             if isRunning {
                 // Демон запущен - галочка на "Запустить daemon" (показывает текущее состояние)
@@ -700,6 +716,36 @@ class TrayManager: NSObject, ObservableObject {
     // Установка флага перезапуска извне
     func setRestarting(_ restarting: Bool) {
         isRestarting = restarting
+    }
+    
+    // Проверка начального статуса демона при запуске приложения
+    func checkInitialDaemonStatus() {
+        print("🔍 Проверяем начальный статус демона для трея...")
+        let checkProcess = Process()
+        checkProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+        // Используем ту же команду, что и в I2pdManager.checkDaemonStatus()
+        checkProcess.arguments = ["-c", "ps aux | grep \"i2pd.*daemon\" | grep -v \"grep\" | wc -l | tr -d ' '"]
+        
+        let pipe = Pipe()
+        checkProcess.standardOutput = pipe
+        
+        do {
+            try checkProcess.run()
+            checkProcess.waitUntilExit()
+            
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8) ?? "0"
+            let count = Int(output.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+            
+            let isRunning = count > 0
+            print("🎭 Начальный статус демона: \(isRunning ? "запущен" : "остановлен") (найдено процессов: \(count))")
+            
+            DispatchQueue.main.async { [weak self] in
+                self?.updateMenuState(isRunning: isRunning)
+            }
+        } catch {
+            print("❌ Ошибка проверки начального статуса: \(error)")
+        }
     }
 }
 
@@ -982,6 +1028,9 @@ struct ContentView: View {
         .frame(minWidth: 650, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         .frame(maxWidth: min(1200, NSScreen.main?.frame.width ?? 1200 * 0.8)) // Адаптивная ширина: 80% от ширины экрана, но не более 1200px
         .onAppear {
+            // Сначала проверяем начальный статус демона для корректного отображения в трее
+            TrayManager.shared.checkInitialDaemonStatus()
+            
             i2pdManager.checkStatus()
             
             // Инициализируем состояние трея на основе текущего состояния демона
@@ -3289,10 +3338,12 @@ class I2pdManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                self?.addLog(.info, L("📱 Daemon запущен из трея - обновляем статус"))
-                // Обновляем состояние меню трея
-                TrayManager.shared.updateMenuState(isRunning: true)
+            // Немедленно обновляем иконку трея
+            TrayManager.shared.updateMenuState(isRunning: true)
+            self?.addLog(.info, L("📱 Daemon запущен - иконка трея обновлена"))
+            
+            // Обновляем статус с небольшой задержкой
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self?.checkStatus()
                 self?.fetchDaemonVersion()
             }
@@ -3303,10 +3354,12 @@ class I2pdManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                self?.addLog(.info, L("📱 Daemon остановлен из трея - обновляем статус"))
-                // Обновляем состояние меню трея
-                TrayManager.shared.updateMenuState(isRunning: false)
+            // Немедленно обновляем иконку трея
+            TrayManager.shared.updateMenuState(isRunning: false)
+            self?.addLog(.info, L("📱 Daemon остановлен - иконка трея обновлена"))
+            
+            // Обновляем статус с небольшой задержкой
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self?.checkStatus()
             }
         }
@@ -3756,13 +3809,17 @@ class I2pdManager: ObservableObject {
                 let wasRunning = self?.isRunning ?? false
                 let count = Int(output.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
                 self?.isRunning = count > 0
+                let currentStatus = self?.isRunning ?? false
                 
-                if self?.isRunning != wasRunning {
-                    let status = self?.isRunning == true ? L("started") : L("stopped")
+                // ВСЕГДА синхронизируем трей с текущим статусом
+                TrayManager.shared.updateMenuState(isRunning: currentStatus)
+                
+                if currentStatus != wasRunning {
+                    let status = currentStatus ? L("started") : L("stopped")
                     self?.addLog(.info, L("Daemon") + " \(status)")
                     
                     // Отправляем уведомления об изменении состояния демона
-                    if self?.isRunning == true {
+                    if currentStatus {
                         NotificationCenter.default.post(name: NSNotification.Name("DaemonStarted"), object: nil)
                     } else {
                         NotificationCenter.default.post(name: NSNotification.Name("DaemonStopped"), object: nil)
@@ -3772,7 +3829,7 @@ class I2pdManager: ObservableObject {
                 self?.isLoading = false
                 self?.operationInProgress = false
                 
-                if self?.isRunning == true {
+                if currentStatus {
                     self?.startStatusMonitoring()
                 } else {
                     self?.stopStatusMonitoring()
