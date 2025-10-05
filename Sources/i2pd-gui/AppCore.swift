@@ -661,14 +661,14 @@ class TrayManager: NSObject, ObservableObject {
             guard let self = self else { return }
             
             if isRunning {
-                // Демон запущен - галочка на "Остановить daemon"
-                self.startItem?.title = L("Запустить daemon")
-                self.stopItem?.title = "✓ " + L("Остановить daemon") // Галочка на остановке
+                // Демон запущен - галочка на "Запустить daemon" (показывает текущее состояние)
+                self.startItem?.title = "✓ " + L("Запустить daemon") // Галочка показывает что запущен
+                self.stopItem?.title = L("Остановить daemon")
                 self.statusItem?.title = L("Статус: Запущен")
             } else {
-                // Демон остановлен - галочка на "Запустить daemon"
-                self.startItem?.title = "✓ " + L("Запустить daemon") // Галочка на запуске
-                self.stopItem?.title = L("Остановить daemon")
+                // Демон остановлен - галочка на "Остановить daemon" (показывает текущее состояние)
+                self.startItem?.title = L("Запустить daemon")
+                self.stopItem?.title = "✓ " + L("Остановить daemon") // Галочка показывает что остановлен
                 self.statusItem?.title = L("Статус: Остановлен")
             }
             
