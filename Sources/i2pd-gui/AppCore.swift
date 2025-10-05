@@ -497,7 +497,7 @@ class TrayManager: NSObject, ObservableObject {
         let configPath = getI2pdConfigDirectory()
         let url = configPath
         
-        if FileManager.default.fileExists(atPath: configPath) {
+        if FileManager.default.fileExists(atPath: configPath.path) {
             NSWorkspace.shared.open(url)
             updateStatusText("📁 Папка конфигурации открыта")
         } else {
