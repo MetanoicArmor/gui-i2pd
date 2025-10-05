@@ -7,6 +7,12 @@ func L(_ key: String) -> String {
     return NSLocalizedString(key, comment: "")
 }
 
+// MARK: - Configuration Path Helper
+func getI2pdConfigDirectory() -> URL {
+    let homeDir = FileManager.default.homeDirectoryForCurrentUser
+    return homeDir.appendingPathComponent("Library/Application Support/i2pd")
+}
+
 // MARK: - Window Close Delegate для корректного сворачивания в трей
 class WindowCloseDelegate: NSObject, NSWindowDelegate {
     static let shared = WindowCloseDelegate()
@@ -488,8 +494,8 @@ class TrayManager: NSObject, ObservableObject {
     private func openConfigFolder() {
         print("📁 Открываем папку конфигурации...")
         
-        let configPath = NSHomeDirectory() + "/.i2pd"
-        let url = URL(fileURLWithPath: configPath)
+        let configPath = getI2pdConfigDirectory()
+        let url = configPath
         
         if FileManager.default.fileExists(atPath: configPath) {
             NSWorkspace.shared.open(url)
@@ -517,12 +523,12 @@ class TrayManager: NSObject, ObservableObject {
             Настройки приложения:
             
             🎨 Темная тема: Включено по умолчанию
-            📁 Путь к конфигурации: ~/.i2pd/
+            📁 Путь к конфигурации: ~/Library/Application Support/i2pd/
             🌐 Веб-консоль: http://127.0.0.1:7070
             🔧 Бинарник i2pd: Встроен в приложение
             
             Для редактирования настроек используйте текстовый редактор:
-            ~/.i2pd/i2pd.conf
+            ~/Library/Application Support/i2pd/i2pd.conf
             
             📁 Открыть папку с настройками
             """
@@ -1136,8 +1142,7 @@ struct SettingsView: View {
     }
     
     static private func loadPortFromConfigForSection(_ sectionName: String) -> Int? {
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        let configPath = getI2pdConfigDirectory().appendingPathComponent("i2pd.conf")
         
         print("📋 DEBUG: Ищем порт для секции '\(sectionName)' в \(configPath.path)")
         
@@ -1242,8 +1247,7 @@ struct SettingsView: View {
     
     // Загружает значение bandwidth из конфига
     static private func loadBandwidthFromConfigSection(_ settingName: String) -> String? {
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        let configPath = getI2pdConfigDirectory().appendingPathComponent("i2pd.conf")
         
         print("📋 DEBUG: Ищем bandwidth в \(configPath.path)")
         
@@ -1321,8 +1325,7 @@ struct SettingsView: View {
     
     // Записывает значение bandwidth в конфиг (раскомментирует строку если необходимо)
     static func writeBandwidthToConfig(_ bandwidth: String) {
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        let configPath = getI2pdConfigDirectory().appendingPathComponent("i2pd.conf")
         
         print("📋 DEBUG: Записываем bandwidth '\(bandwidth)' в конфиг")
         
@@ -1375,8 +1378,7 @@ struct SettingsView: View {
 
     // Записывает значение порта в соответствующую секцию конфига (раскомментирует строку если необходимо)
     static func writePortToConfig(port: Int, service: String) {
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        let configPath = getI2pdConfigDirectory().appendingPathComponent("i2pd.conf")
         
         print("📋 DEBUG: Записываем порт \(port) для \(service) в конфиг")
         
@@ -1517,8 +1519,7 @@ struct SettingsView: View {
 
     // Функция для чтения настроек из реального конфига (для .onAppear)
     private func loadSettingsFromConfig() {
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        let configPath = getI2pdConfigDirectory().appendingPathComponent("i2pd.conf")
         
         guard FileManager.default.fileExists(atPath: configPath.path) else {
             print("⚠️ i2pd.conf не найден, используем порты по умолчанию")
@@ -1971,7 +1972,7 @@ struct SettingsView: View {
                                     .fontWeight(.medium)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                 HStack {
-                                    Text("~/.i2pd")
+                                    Text("~/Library/Application Support/i2pd")
                                         .foregroundColor(.secondary)
                                         .font(.system(.caption, design: .monospaced))
                                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -2504,8 +2505,7 @@ struct SettingsView: View {
     }
     
     private func openConfigFile() {
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let configPath = homeDir.appendingPathComponent(".i2pd/i2pd.conf")
+        let configPath = getI2pdConfigDirectory().appendingPathComponent("i2pd.conf")
         
         if FileManager.default.fileExists(atPath: configPath.path) {
             NSWorkspace.shared.open(configPath)
@@ -2586,13 +2586,13 @@ port = 7650
     
     
     private func openLogsDirectory() {
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let logsDir = homeDir.appendingPathComponent(".i2pd")
+        let logsDir = getI2pdConfigDirectory()
         
         if FileManager.default.fileExists(atPath: logsDir.path) {
             NSWorkspace.shared.open(logsDir)
         } else {
             // Текущая директория логов
+            let homeDir = FileManager.default.homeDirectoryForCurrentUser
             NSWorkspace.shared.open(homeDir)
         }
         
@@ -2600,8 +2600,7 @@ port = 7650
     }
     
     private func openTunnelManager() {
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let tunnelsConf = homeDir.appendingPathComponent(".i2pd/tunnels.conf")
+        let tunnelsConf = getI2pdConfigDirectory().appendingPathComponent("tunnels.conf")
         
         if !FileManager.default.fileExists(atPath: tunnelsConf.path) {
             // Создаем файл с примерами туннелей
@@ -2748,8 +2747,7 @@ outbound.length = 3
     }
     
     private func openAddressBookSubscriptions() {
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let subscriptionsPath = homeDir.appendingPathComponent(".i2pd/subscriptions.txt")
+        let subscriptionsPath = getI2pdConfigDirectory().appendingPathComponent("subscriptions.txt")
         
         if FileManager.default.fileExists(atPath: subscriptionsPath.path) {
             NSWorkspace.shared.open(subscriptionsPath)
@@ -3879,11 +3877,10 @@ class I2pdManager: ObservableObject {
     }
     
     private func setupConfigFiles() {
-        // Получаем путь к домашней директории пользователя
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let i2pdDir = homeDir.appendingPathComponent(".i2pd")
+        // Получаем путь к директории конфигурации
+        let i2pdDir = getI2pdConfigDirectory()
         
-        // Создаем директорию .i2pd если ее нет
+        // Создаем директорию конфигурации если ее нет
         try? FileManager.default.createDirectory(at: i2pdDir, withIntermediateDirectories: true)
         
         let bundle = Bundle.main
