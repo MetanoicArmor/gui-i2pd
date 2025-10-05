@@ -739,7 +739,7 @@ struct I2pdGUIApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 900, height: 700)
-        .windowResizability(.contentMinSize)
+        .windowResizability(.contentSize)
         .handlesExternalEvents(matching: ["quit"])
         
         // Settings убраны - используем NSAlert из трея
@@ -954,7 +954,7 @@ struct ContentView: View {
                 .padding(.bottom, 8)
         }
         .frame(minWidth: 650, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
-        .frame(maxWidth: 950) // Адаптивная ширина для разных экранов
+        .frame(maxWidth: min(1200, NSScreen.main?.frame.width ?? 1200 * 0.8)) // Адаптивная ширина: 80% от ширины экрана, но не более 1200px
         .onAppear {
             i2pdManager.checkStatus()
             
