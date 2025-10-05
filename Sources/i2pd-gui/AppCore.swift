@@ -3388,15 +3388,30 @@ class I2pdManager: ObservableObject {
         // Уведомляем трей о начале перезапуска
         NotificationCenter.default.post(name: NSNotification.Name("DaemonRestarting"), object: nil)
         
-        stopDaemon()
+        // Устанавливаем флаг операции для перезапуска
+        operationInProgress = true
+        isLoading = true
         
-        // Ждем немного перед перезапуском
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-            self?.startDaemon()
+        // Останавливаем демон напрямую без установки operationInProgress
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            self?.stopDaemonProcess()
             
-            // Уведомляем трей о завершении перезапуска
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                NotificationCenter.default.post(name: NSNotification.Name("DaemonRestartComplete"), object: nil)
+            // Обновляем состояние после остановки
+            DispatchQueue.main.async {
+                self?.isRunning = false
+                self?.addLog(.info, L("✅ Демон остановлен, начинаем запуск..."))
+                
+                // Ждем немного перед перезапуском
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    // Сбрасываем флаг операции перед запуском
+                    self?.operationInProgress = false
+                    self?.startDaemon()
+                    
+                    // Уведомляем трей о завершении перезапуска
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        NotificationCenter.default.post(name: NSNotification.Name("DaemonRestartComplete"), object: nil)
+                    }
+                }
             }
         }
     }
