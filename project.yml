@@ -11,14 +11,14 @@ targets:
       - path: Sources/i2pd-gui
     buildSettings:
       MACOSX_DEPLOYMENT_TARGET: "14.0"
-      PRODUCT_BUNDLE_IDENTIFIER: com.example.i2pd-gui
+      PRODUCT_BUNDLE_IDENTIFIER: com.i2pd.daemon-gui
       CODE_SIGN_IDENTITY: ""
       PRODUCT_NAME: I2P-GUI
       INFOPLIST_FILE: Info.plist
     info:
       path: Info.plist
       properties:
-        CFBundleIdentifier: com.example.i2pd-gui
+        CFBundleIdentifier: com.i2pd.daemon-gui
         CFBundleName: I2P Daemon GUI
         CFBundleVersion: "1"
         CFBundleShortVersionString: "1.0"

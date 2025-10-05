@@ -1441,7 +1441,7 @@ struct SettingsView: View {
     static func createLaunchAgent() -> Bool {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         let launchAgentsDir = homeDir.appendingPathComponent("Library/LaunchAgents")
-        let plistPath = launchAgentsDir.appendingPathComponent("com.example.i2pd-gui.plist")
+        let plistPath = launchAgentsDir.appendingPathComponent("com.i2pd.daemon-gui.plist")
         
         // Получаем путь к исполняемому файлу внутри .app пакета
         let appBundle = Bundle.main.bundlePath
@@ -1464,7 +1464,7 @@ struct SettingsView: View {
         <plist version="1.0">
         <dict>
             <key>Label</key>
-            <string>com.example.i2pd-gui</string>
+            <string>com.i2pd.daemon-gui</string>
             <key>ProgramArguments</key>
             <array>
                 <string>\(executablePath)</string>
@@ -1493,7 +1493,7 @@ struct SettingsView: View {
     static func removeLaunchAgent() -> Bool {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         let launchAgentsDir = homeDir.appendingPathComponent("Library/LaunchAgents")
-        let plistPath = launchAgentsDir.appendingPathComponent("com.example.i2pd-gui.plist")
+        let plistPath = launchAgentsDir.appendingPathComponent("com.i2pd.daemon-gui.plist")
         
         do {
             if FileManager.default.fileExists(atPath: plistPath.path) {
@@ -1512,7 +1512,7 @@ struct SettingsView: View {
     static func launchAgentExists() -> Bool {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         let launchAgentsDir = homeDir.appendingPathComponent("Library/LaunchAgents")
-        let plistPath = launchAgentsDir.appendingPathComponent("com.example.i2pd-gui.plist")
+        let plistPath = launchAgentsDir.appendingPathComponent("com.i2pd.daemon-gui.plist")
         
         return FileManager.default.fileExists(atPath: plistPath.path)
     }
