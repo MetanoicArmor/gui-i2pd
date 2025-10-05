@@ -10,7 +10,7 @@
 
 **Modern GUI for managing I2P daemon on macOS with full internationalization**
 
-[![Download](https://img.shields.io/badge/📥%20Download-I2P--GUI.app-brightgreen.svg)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-GUI-v2.58.0.app.zip)
+[![Download](https://img.shields.io/badge/📥%20Download-I2P%20Daemon%20GUI.app-brightgreen.svg)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-Daemon-GUI-v2.58.0.app.zip)
 [![Build Status](https://img.shields.io/badge/🔧%20Build-Passing-success.svg)](https://github.com/MetanoicArmor/gui-i2pd/actions)
 
 </div>
@@ -44,18 +44,18 @@
 1. **📥 Download the ready application:**
    ```bash
    # Direct link to .app ZIP archive
-   curl -L https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-GUI-v2.58.0.app.zip -o I2P-GUI-v2.58.0.app.zip
+   curl -L https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-Daemon-GUI-v2.58.0.app.zip -o I2P-Daemon-GUI-v2.58.0.app.zip
    ```
 
 2. **📁 Extract and install:**
    ```bash
-   unzip I2P-GUI-v2.58.0.app.zip
-   mv I2P-GUI.app /Applications/
+   unzip I2P-Daemon-GUI-v2.58.0.app.zip
+   mv "I2P Daemon GUI.app" /Applications/
    ```
 
 3. **🚀 Launch the application:**
    ```bash
-   open /Applications/I2P-GUI.app
+   open "/Applications/I2P Daemon GUI.app"
    ```
 
 ### 📋 **System Requirements:**
@@ -151,11 +151,11 @@
 
 ### 📦 **Application Structure:**
 ```
-I2P-GUI.app/
+I2P Daemon GUI.app/
 ├── Contents/
 │   ├── Info.plist              # Metadata (version 2.58.0)
 │   ├── MacOS/
-│   │   └── I2P-GUI              # GUI executable (1.5MB)
+│   │   └── I2P Daemon GUI       # GUI executable (1.5MB)
 │   └── Resources/
 │       ├── I2P-GUI.icns         # Application icon
 │       ├── i2pd                  # Daemon binary (29MB)
@@ -204,7 +204,7 @@ swift --version
 
 3. **🚀 Launch the application:**
    ```bash
-   open I2P-GUI.app
+   open "I2P Daemon GUI.app"
    ```
 
 ### 📜 **Available Commands:**
@@ -219,7 +219,7 @@ swift --version
 ### ❌ **Daemon Issues:**
 
 **Daemon won't start:**
-- ✅ Check executable permissions: `ls -la I2P-GUI.app/Contents/Resources/i2pd`
+- ✅ Check executable permissions: `ls -la I2P Daemon GUI.app/Contents/Resources/i2pd`
 - ✅ Ensure port is not occupied: `lsof -i :4444`
 - ✅ Check application logs for detailed information
 
@@ -388,7 +388,7 @@ UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
 <div align="center">
 
 ### 🚀 Direct Download:
-[![Download I2P-GUI.app](https://img.shields.io/badge/📦%20Download-I2P--GUI.app-ff6b6b.svg?style=for-the-badge)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-GUI-v2.58.0.app.zip)
+[![Download I2P Daemon GUI.app](https://img.shields.io/badge/📦%20Download-I2P%20Daemon%20GUI.app-ff6b6b.svg?style=for-the-badge)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-Daemon-GUI-v2.58.0.app.zip)
 
 ---
 
