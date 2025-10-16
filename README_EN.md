@@ -72,7 +72,7 @@
 ### 📸 **Demonstration:**
 
 #### 🇺🇸 **English Interface:**
-![I2P GUI Main Interface](screenshots/screenshoot1_en.png)
+![I2P GUI Main Interface](screenshots/screenshot1_en.png)
 *Main application interface with status monitoring*
 
 ![I2P GUI Settings](screenshots/screenshoot2_en.png)  
@@ -101,37 +101,6 @@
 
 ![I2P GUI X25519 Keys](screenshots/screenshoot10_en.png)
 *X25519 key generation for encrypted leasesets*
-
-#### 🇷🇺 **Russian Interface:**
-![I2P GUI Основной интерфейс](screenshots/screenshot1_ru.png)
-*Основной интерфейс приложения с мониторингом статуса*
-
-![I2P GUI Настройки](screenshots/screenshot2_ru.png)  
-*Окно настроек с интерактивными портами HTTP/SOCKS5, управлением пропускной способностью и автозапуском*
-
-![I2P GUI Расширенные настройки](screenshots/screenshot3_ru.png)
-*Расширенное окно настроек с конфигурацией туннелей, управлением Address Book и подписками адресной книги*
-
-![I2P GUI Трей меню](screenshots/screenshot4_ru.png)
-*Трей меню с галочками, показывающими текущее состояние демона*
-
-![I2P GUI Модуль Утилит](screenshots/screenshot5_ru.png)
-*Встроенный модуль Утилит с комплексным набором I2P утилит*
-
-![I2P GUI Генерация ключей](screenshots/screenshoot6_ru.png)
-*Утилита генерации ключей с выбором типа подписи*
-
-![I2P GUI Майнинг адресов](screenshots/screenshoot7_ru.png)
-*Утилита майнинга адресов для vanity адресов*
-
-![I2P GUI Регистрация доменов](screenshots/screenshoot8_ru.png)
-*Утилита регистрации доменов для доменов .i2p*
-
-![I2P GUI Интерактивный терминал](screenshots/screenshoot9_ru.png)
-*Интерактивный терминал для утилиты autoconf*
-
-![I2P GUI X25519 ключи](screenshots/screenshoot10_ru.png)
-*Генерация X25519 ключей для зашифрованных лизсетов*
 
 ### 🖥️ **Main Window:**
 - **📊 Server Status**: shows daemon state (running/stopped)
