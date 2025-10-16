@@ -1984,7 +1984,9 @@ struct SettingsView: View {
     
     private func changeLanguage(to language: String) {
         print("🌐 Смена языка на: \(language)")
-        UserDefaults.standard.set([language], forKey: "AppleLanguages")
+        
+        // Сохраняем выбранный язык
+        UserDefaults.standard.set(language, forKey: "appLanguage")
         UserDefaults.standard.synchronize()
         
         let languageName = language == "ru" ? "русский 🇷🇺" : "English 🇬🇧"

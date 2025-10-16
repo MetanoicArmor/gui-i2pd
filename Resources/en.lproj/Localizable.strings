@@ -8,6 +8,7 @@
 "Stopped" = "Stopped";
 "Running" = "Running";
 "Работает" = "Running";
+"Запущен" = "Running";
 "Остановлен" = "Stopped";
 "Статус: неактивен" = "Status: inactive";
 "Статус: активен" = "Status: active";
@@ -231,7 +232,7 @@
 "🔍 Файл существует:" = "🔍 File exists:";
 "да" = "yes";
 "нет" = "no";
-"📱 Daemon запущен из трея - обновляем статус" = "📱 Daemon started from tray - updating status";
+"📱 Daemon запущен - иконка трея обновлена" = "📱 Daemon started - tray icon updated";
 "📱 Daemon остановлен из трея - обновляем статус" = "📱 Daemon stopped from tray - updating status";
 "📱 Статус обновлен из трея" = "📱 Status updated from tray";
 "Операция уже выполняется, пропускаем..." = "Operation already in progress, skipping...";
