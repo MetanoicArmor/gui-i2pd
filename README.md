@@ -93,32 +93,32 @@
 ![I2P GUI Main Interface](screenshots/screenshot1_en.png)
 *Main application interface with status monitoring*
 
-![I2P GUI Settings](screenshots/screenshoot2_en.png)  
+![I2P GUI Settings](screenshots/screenshot2_en.png)  
 *Settings window with interactive HTTP/SOCKS5 ports, bandwidth management and auto-start*
 
-![I2P GUI Advanced Settings](screenshots/screenshoot3_en.png)
+![I2P GUI Advanced Settings](screenshots/screenshot3_en.png)
 *Advanced settings window with tunnel configuration, Address Book management and address book subscriptions*
 
-![I2P GUI Tray Menu](screenshots/screenshoot4_en.png)
+![I2P GUI Tray Menu](screenshots/screenshot4_en.png)
 *Tray menu with checkmarks showing current daemon state*
 
-<img src="screenshots/screenshoot5_en.png" alt="I2P GUI Tools Module" width="400">
+<img src="screenshots/screenshot5_en.png" alt="I2P GUI Tools Module" width="400">
 
 *Built-in Tools module with comprehensive I2P utilities*
 
-![I2P GUI Key Generation](screenshots/screenshoot6_en.png)
+![I2P GUI Key Generation](screenshots/screenshot6_en.png)
 *Key generation utility with signature type selection*
 
-![I2P GUI Address Mining](screenshots/screenshoot7_en.png)
+![I2P GUI Address Mining](screenshots/screenshot7_en.png)
 *Address mining utility for vanity addresses*
 
-![I2P GUI Domain Registration](screenshots/screenshoot8_en.png)
+![I2P GUI Domain Registration](screenshots/screenshot8_en.png)
 *Domain registration utility for .i2p domains*
 
-![I2P GUI Interactive Terminal](screenshots/screenshoot9_en.png)
+![I2P GUI Interactive Terminal](screenshots/screenshot9_en.png)
 *Interactive terminal for autoconf utility*
 
-![I2P GUI X25519 Keys](screenshots/screenshoot10_en.png)
+![I2P GUI X25519 Keys](screenshots/screenshot10_en.png)
 *X25519 key generation for encrypted leasesets*
 
 ### 🖥️ **Main Window:**
