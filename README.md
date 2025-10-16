@@ -8,407 +8,434 @@
 ![I2P](https://img.shields.io/badge/I2P-2.58.0-purple.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-**Современный GUI для управления I2P daemon на macOS с полной интернационализацией**
+**Modern GUI for managing I2P daemon on macOS with full internationalization**
 
-[![Download](https://img.shields.io/badge/📥%20Скачать-I2P%20Daemon%20GUI.app-brightgreen.svg)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-Daemon-GUI-v2.58.0.app.zip)
-[![Build Status](https://img.shields.io/badge/🔧%20Сборка-Passing-success.svg)](https://github.com/MetanoicArmor/gui-i2pd/actions)
-
-</div>
-
----
-
-## 🌐 Language / Язык
-
-<div align="center">
-
-### 🇺🇸 **English Documentation**
-[![English README](https://img.shields.io/badge/📖%20English%20README-blue.svg)](README_EN.md)
-
-**Full English documentation with screenshots and features**
-
-### 🇷🇺 **Русская документация**
-[![Русский README](https://img.shields.io/badge/📖%20Русский%20README-red.svg)](README_RU.md)
-
-**Полная русская документация со скриншотами и функциями**
+[![Download](https://img.shields.io/badge/📥%20Download-I2P%20Daemon%20GUI.app-brightgreen.svg)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-Daemon-GUI-v2.58.0.app.zip)
+[![Build Status](https://img.shields.io/badge/🔧%20Build-Passing-success.svg)](https://github.com/MetanoicArmor/gui-i2pd/actions)
 
 </div>
 
 ---
 
-## 🎯 Описание
+## 🎯 Description
 
-**I2P Daemon GUI** - это элегантное нативное приложение для macOS, позволяющее легко управлять I2P daemon через современный SwiftUI интерфейс. Больше никакой командной строки - все управление в несколько кликов!
+**I2P Daemon GUI** is an elegant native macOS application that allows you to easily manage I2P daemon through a modern SwiftUI interface. No more command line - all management in just a few clicks!
 
-### ✨ **Ключевые особенности:**
-- 🖥️ **Современный SwiftUI интерфейс** с адаптивной темой
-- 🌐 **Полная интернационализация** (Русский/English) с умным перезапуском
-- 🚀 **Одношаговый запуск/остановка** daemon
-- 📊 **Режим реального времени** мониторинга статуса
-- 📋 **Комплексная статистика** сервера и сети
-- ⚙️ **Интерактивные настройки** с управлением портами и пропускной способностью
-- 🔧 **Автозапуск через LaunchAgent** для автоматического старта при входе в систему
-- 📝 **Подробное логирование** всех операций  
-- 🎛️ **Системный трей** с галочками состояния демона и быстрым управлением
-- 🔄 **Умный выход** с корректной остановкой демона (Cmd+Q, трей, смена языка)
-- 🌐 **Динамическое чтение конфигурации** с автоматическим парсингом настроек
-- 📱 **Запуск свернутым** - приложение стартует в трее без показа окна
-- 🛠️ **Встроенный модуль Утилит** - комплексный набор I2P утилит с интерактивным терминалом
+### ✨ **Key Features:**
+- 🖥️ **Modern SwiftUI interface** with adaptive theme
+- 🌐 **Full internationalization** (Russian/English) with smart restart
+- 🚀 **One-click start/stop** daemon management
+- 📊 **Real-time monitoring** of daemon status
+- 📋 **Comprehensive statistics** of server and network
+- ⚙️ **Interactive settings** with port and bandwidth management
+- 🔧 **Auto-start via LaunchAgent** for automatic startup on system login
+- 📝 **Detailed logging** of all operations  
+- 🎛️ **System tray** with daemon state indicators and quick controls
+- 🔄 **Smart exit** with proper daemon shutdown (Cmd+Q, tray, language change)
+- 🌐 **Dynamic configuration reading** with automatic settings parsing
+- 📱 **Start minimized** - application starts in tray without showing window
+- 🛠️ **Built-in Tools module** - comprehensive set of I2P utilities with interactive terminal
 
 ---
 
-## 📥 Скачивание и установка
+## 📥 Download and Installation
 
-### 🎯 **Быстрый старт (рекомендуется):**
+### 🎯 **Quick Start (recommended):**
 
-1. **📥 Скачайте готовое приложение:**
+1. **📥 Download the ready application:**
    ```bash
-   # Прямая ссылка на .app ZIP архив
+   # Direct link to .app ZIP archive
    curl -L https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-Daemon-GUI-v2.58.0.app.zip -o I2P-Daemon-GUI-v2.58.0.app.zip
    ```
 
-2. **📁 Распакуйте и установите:**
+2. **📁 Extract and install:**
    ```bash
    unzip I2P-Daemon-GUI-v2.58.0.app.zip
    mv "I2P Daemon GUI.app" /Applications/
    ```
 
-3. **🚀 Запустите приложение:**
+3. **🚀 Launch the application:**
    ```bash
    open "/Applications/I2P Daemon GUI.app"
    ```
 
-### 📋 **Системные требования:**
-- **macOS**: 14.0 или новее
-- **Процессор**: Intel x64 или Apple Silicon (M1/M2/M3/M4)
-- **Память**: 100+ MB свободной RAM
-- **Место на диске**: 35+ MB
+### 📋 **System Requirements:**
+- **macOS**: 14.0 or newer
+- **Processor**: Intel x64 or Apple Silicon (M1/M2/M3/M4)
+- **Memory**: 100+ MB free RAM
+- **Disk Space**: 35+ MB
 
 ---
 
-## 🎨 Интерфейс и функции
+## 🎨 Interface and Features
 
-### 📸 **Демонстрация:**
+### 📸 **Demonstration:**
 
-#### 🇷🇺 **Русский интерфейс:**
-![I2P GUI Основной интерфейс](screenshots/screenshot1_ru.png)
-*Основной интерфейс приложения с мониторингом статуса*
+#### 🇺🇸 **English Interface:**
+![I2P GUI Main Interface](screenshots/screenshot1_en.png)
+*Main application interface with status monitoring*
 
-![I2P GUI Настройки](screenshots/screenshot2_ru.png)  
-*Окно настроек с интерактивными портами HTTP/SOCKS5, управлением пропускной способностью и автозапуском*
+![I2P GUI Settings](screenshots/screenshoot2_en.png)  
+*Settings window with interactive HTTP/SOCKS5 ports, bandwidth management and auto-start*
 
-![I2P GUI Расширенные настройки](screenshots/screenshot3_ru.png)
-*Расширенное окно настроек с конфигурацией туннелей, управлением Address Book и подписками адресной книги*
+![I2P GUI Advanced Settings](screenshots/screenshoot3_en.png)
+*Advanced settings window with tunnel configuration, Address Book management and address book subscriptions*
 
-![I2P GUI Трей меню](screenshots/screenshot4_ru.png)
-*Трей меню с галочками, показывающими текущее состояние демона*
+![I2P GUI Tray Menu](screenshots/screenshoot4_en.png)
+*Tray menu with checkmarks showing current daemon state*
 
-![I2P GUI Модуль Утилит](screenshots/screenshot5_ru.png)
-*Встроенный модуль Утилит с комплексным набором I2P утилит*
+![I2P GUI Tools Module](screenshots/screenshoot5_en.png)
+*Built-in Tools module with comprehensive I2P utilities*
 
-![I2P GUI Генерация ключей](screenshots/screenshoot6_ru.png)
-*Утилита генерации ключей с выбором типа подписи*
+![I2P GUI Key Generation](screenshots/screenshoot6_en.png)
+*Key generation utility with signature type selection*
 
-![I2P GUI Майнинг адресов](screenshots/screenshoot7_ru.png)
-*Утилита майнинга адресов для vanity адресов*
+![I2P GUI Address Mining](screenshots/screenshoot7_en.png)
+*Address mining utility for vanity addresses*
 
-![I2P GUI Регистрация доменов](screenshots/screenshoot8_ru.png)
-*Утилита регистрации доменов для доменов .i2p*
+![I2P GUI Domain Registration](screenshots/screenshoot8_en.png)
+*Domain registration utility for .i2p domains*
 
-![I2P GUI Интерактивный терминал](screenshots/screenshoot9_ru.png)
-*Интерактивный терминал для утилиты autoconf*
+![I2P GUI Interactive Terminal](screenshots/screenshoot9_en.png)
+*Interactive terminal for autoconf utility*
 
-![I2P GUI X25519 ключи](screenshots/screenshoot10_ru.png)
-*Генерация X25519 ключей для зашифрованных лизсетов*
+![I2P GUI X25519 Keys](screenshots/screenshoot10_en.png)
+*X25519 key generation for encrypted leasesets*
 
-### 🖥️ **Основное окно:**
-- **📊 Статус сервера**: показывает состояние daemon (работает/остановлен)
-- **⏱️ Время работы**: uptime I2P daemon
-- **🤝 Пиры**: количество активных соединений
-- **🌐 Сетевая статистика**: трафик входящий/исходящий, туннели, роутеры
+### 🖥️ **Main Window:**
+- **📊 Server Status**: shows daemon state (running/stopped)
+- **⏱️ Uptime**: I2P daemon uptime
+- **🤝 Peers**: number of active connections
+- **🌐 Network Statistics**: incoming/outgoing traffic, tunnels, routers
 
-### 🎛️ **Панель управления:**
-- **▶️ Запуск** - старт I2P daemon одной кнопкой
-- **⏹️ Остановка** - корректная остановка daemon
-- **🔄 Перезапуск** - перезапуск сервиса
-- **🔄 Обновить статус** - проверка текущего состояния
-- **⚙️ Настройки** - конфигурация daemon
-- **🗑️ Очистить логи** - очистка истории логов
-- **🛠️ Утилиты** - доступ к встроенным I2P утилитам
+### 🎛️ **Control Panel:**
+- **▶️ Start** - start I2P daemon with one click
+- **⏹️ Stop** - proper daemon shutdown
+- **🔄 Restart** - restart service
+- **🔄 Refresh Status** - check current state
+- **⚙️ Settings** - daemon configuration
+- **🗑️ Clear Logs** - clear log history
+- **🛠️ Tools** - access built-in I2P utilities
 
-### ⚙️ **Настройки:**
-- **🌐 Сетевая конфигурация**: управление портами HTTP и SOCKS5 прокси
-- **⚡ Пропускная способность**: выбор скорости сети (L/O/P/X)
-- **🔧 Автоматизация**: настройка автозапуска демона через LaunchAgent
-- **🎨 Интерфейс**: управление языком интерфейса (Русский/English)
-- **📱 Запуск свернутым**: приложение стартует в трее без показа окна
-- **📊 Динамические значения**: загрузка настроек напрямую из конфиг файлов
+### ⚙️ **Settings:**
+- **🌐 Network Configuration**: HTTP and SOCKS5 proxy port management
+- **⚡ Bandwidth**: network speed selection (L/O/P/X)
+- **🔧 Automation**: daemon auto-start configuration via LaunchAgent
+- **🎨 Interface**: interface language management (Russian/English)
+- **📱 Start Minimized**: application starts in tray without showing window
+- **📊 Dynamic Values**: direct settings loading from config files
 
-### 📝 **Логирование:**
-- **📋 История операций**: подробный журнал всех действий
-- **🔍 Фильтрация**: поиск по типу сообщений
-- **💾 Экспорт**: сохранение логов в файл
-- **🗑️ Очистка**: быстрая очистка истории
+### 📝 **Logging:**
+- **📋 Operation History**: detailed log of all actions
+- **🔍 Filtering**: search by message type
+- **💾 Export**: save logs to file
+- **🗑️ Clear**: quick history cleanup
 
-### 🛠️ **Встроенный модуль Утилит:**
-- **🔑 Генерация ключей**: создание ключей назначения I2P с выбором типа подписи
-- **⛏️ Майнинг адресов**: генерация vanity адресов с пользовательскими префиксами
-- **🔍 Информация о ключах**: анализ существующих ключей и получение адресов назначения
-- **📧 B33 Адрес**: вычисление B33 адресов для зашифрованных лизсетов
-- **🌐 Регистрация доменов**: генерация регистрационных строк для доменов .i2p
-- **🏷️ Регистрация 3LD**: трехшаговая регистрация доменов третьего уровня
-- **🔄 Алиас домена**: перепривязка доменов к новым ключам
-- **⏰ Офлайн ключи**: создание временных ключей с ограниченным сроком действия
-- **📊 Информация о роутере**: анализ файлов RouterInfo с флагами портов/файрвола/IPv6
-- **🔐 X25519 ключи**: генерация ключей шифрования для авторизованных лизсетов
-- **📝 Base64 кодирование**: кодирование/декодирование Base64 специфичное для I2P
-- **👥 Инструмент Family**: управление сертификатами family для организации роутеров
-- **✅ Проверка хоста**: проверка подписей записей хостов
-- **⚙️ Автоконфигурация**: интерактивный терминал для генерации i2pd.conf
-
----
-
-## 🌐 Интернационализация
-
-### 🎯 **Поддерживаемые языки:**
-- **🇷🇺 Русский** - основной язык интерфейса
-- **🇺🇸 English** - полная локализация на английский
-
-### 🔄 **Умная смена языка:**
-- **Автоматический перезапуск** при смене языка
-- **Сохранение работы демона** - демон продолжает работать при перезапуске
-- **Корректное закрытие окон** - все модальные окна закрываются автоматически
-- **Мгновенное применение** - новый язык применяется сразу после перезапуска
-
-### 📋 **Локализованные элементы:**
-- ✅ Все элементы интерфейса (кнопки, меню, подписи)
-- ✅ Сообщения в логах
-- ✅ Настройки пропускной способности
-- ✅ Меню трея
-- ✅ Диалоги и уведомления
+### 🛠️ **Built-in Tools Module:**
+- **🔑 Key Generation**: create I2P destination keys with signature type selection
+- **⛏️ Address Mining**: generate vanity addresses with custom prefixes
+- **🔍 Key Information**: analyze existing keys and get destination addresses
+- **📧 B33 Address**: calculate B33 addresses for encrypted leasesets
+- **🌐 Domain Registration**: generate registration strings for .i2p domains
+- **🏷️ 3LD Registration**: three-step registration for third-level domains
+- **🔄 Domain Alias**: rebind domains to new keys
+- **⏰ Offline Keys**: create temporary keys with limited validity
+- **📊 Router Info**: analyze RouterInfo files with port/firewall/IPv6 flags
+- **🔐 X25519 Keys**: generate encryption keys for authorized leasesets
+- **📝 Base64 Encoding**: I2P-specific Base64 encoding/decoding
+- **👥 Family Tool**: manage family certificates for router organization
+- **✅ Host Verification**: verify signatures of host records
+- **⚙️ Auto Configuration**: interactive terminal for i2pd.conf generation
 
 ---
 
-## 🏗️ Техническая архитектура
+## 🌐 Internationalization
 
-### 🛠️ **Технологический стек:**
+### 🎯 **Supported Languages:**
+- **🇷🇺 Russian** - primary interface language
+- **🇺🇸 English** - full English localization
+
+### 🔄 **Smart Language Switching:**
+- **Automatic restart** when changing language
+- **Daemon preservation** - daemon continues running during restart
+- **Proper window closing** - all modal windows close automatically
+- **Instant application** - new language applies immediately after restart
+
+### 📋 **Localized Elements:**
+- ✅ All interface elements (buttons, menus, labels)
+- ✅ Log messages
+- ✅ Bandwidth settings
+- ✅ Tray menu
+- ✅ Dialogs and notifications
+
+---
+
+## 🏗️ Technical Architecture
+
+### 🛠️ **Technology Stack:**
 - **UI**: SwiftUI + macOS Design Guidelines
-- **Язык**: Swift 5.7+
-- **Менеджер сборки**: Swift Package Manager
-- **Daemon**: i2pd 2.58.0 (встроенный бинарник)
-- **Зависимости**: Нативные API macOS
-- **Локализация**: NSLocalizedString + .lproj bundles
+- **Language**: Swift 5.7+
+- **Build Manager**: Swift Package Manager
+- **Daemon**: i2pd 2.58.0 (embedded binary)
+- **Dependencies**: Native macOS APIs
+- **Localization**: NSLocalizedString + .lproj bundles
 
-### 📦 **Структура приложения:**
+### 📦 **Application Structure:**
 ```
 I2P Daemon GUI.app/
 ├── Contents/
-│   ├── Info.plist              # Метаданные (версия 2.58.0)
+│   ├── Info.plist              # Metadata (version 2.58.0)
 │   ├── MacOS/
-│   │   └── I2P Daemon GUI       # Исполняемый файл GUI (1.5MB)
+│   │   └── I2P Daemon GUI       # GUI executable (1.5MB)
 │   └── Resources/
-│       ├── I2P-GUI.icns         # Иконка приложения
-│       ├── i2pd                  # Бинарник daemon (29MB)
-│       ├── ru.lproj/            # Русская локализация
+│       ├── I2P-GUI.icns         # Application icon
+│       ├── i2pd                  # Daemon binary (29MB)
+│       ├── tools/                # Built-in I2P utilities
+│       │   ├── keygen            # Key generation utility
+│       │   ├── vain              # Address mining utility
+│       │   ├── keyinfo           # Key information utility
+│       │   ├── b33address        # B33 address calculator
+│       │   ├── regaddr           # Domain registration utility
+│       │   ├── regaddr_3ld       # Third-level domain registration
+│       │   ├── regaddralias      # Domain alias utility
+│       │   ├── offlinekeys       # Offline keys utility
+│       │   ├── routerinfo        # Router info analyzer
+│       │   ├── x25519            # X25519 key generator
+│       │   ├── i2pbase64         # Base64 encoder/decoder
+│       │   ├── famtool           # Family certificate tool
+│       │   ├── verifyhost        # Host verification utility
+│       │   └── autoconf          # Interactive config generator
+│       ├── ru.lproj/            # Russian localization
 │       │   └── Localizable.strings
-│       └── en.lproj/            # Английская локализация
+│       └── en.lproj/            # English localization
 │           └── Localizable.strings
 ```
 
-**Общий размер пакета:** ~30MB
+**Total package size:** ~35MB
 
-### 🔧 **Компоненты системы:**
-- **I2pdManager**: менеджер жизненного цикла daemon с динамическим получением версии
-- **ContentView**: основной интерфейс приложения с локализацией
-- **SettingsView**: панель конфигурации с умным перезапуском
-- **StatusCard**: карточка статуса системы
-- **LogView**: система логирования с локализованными сообщениями
-- **TrayManager**: системный трей с локализованным меню
-- **AppDelegate**: обработка жизненного цикла приложения и умного выхода
+### 🔧 **System Components:**
+- **I2pdManager**: daemon lifecycle manager with dynamic version fetching
+- **ContentView**: main application interface with localization
+- **SettingsView**: configuration panel with smart restart
+- **StatusCard**: system status card
+- **LogView**: logging system with localized messages
+- **TrayManager**: system tray with localized menu
+- **AppDelegate**: application lifecycle handling and smart exit
+- **ToolsManager**: built-in utilities manager with process handling
+- **ToolsView**: comprehensive tools interface with interactive terminal
 
 ---
 
-## 🔨 Сборка из исходников
+## 🔨 Building from Source
 
-### 📋 **Предварительные требования:**
+### 📋 **Prerequisites:**
 ```bash
-# Установить Xcode Command Line Tools
+# Install Xcode Command Line Tools
 xcode-select --install
 
-# Проверить версию Swift
+# Check Swift version
 swift --version
 ```
 
-### 🚀 **Инструкции сборки:**
+### 🚀 **Build Instructions:**
 
-1. **📥 Клонируйте репозиторий:**
+1. **📥 Clone the repository:**
    ```bash
    git clone https://github.com/MetanoicArmor/gui-i2pd.git
    cd gui-i2pd
    ```
 
-2. **🔨 Соберите проект:**
+2. **🔨 Build the project:**
    ```bash
    ./build-app-simple.sh
    ```
 
-3. **🚀 Запустите приложение:**
+3. **🚀 Launch the application:**
    ```bash
    open "I2P Daemon GUI.app"
    ```
 
-### 📜 **Доступные команды:**
-- `./build-app-simple.sh` - полная сборка пакета .app с локализацией
-- `swift build` - только компиляция исходного кода
-- `swift test` - запуск тестов (если есть)
+### 📜 **Available Commands:**
+- `./build-app-simple.sh` - full .app package build with localization
+- `swift build` - source code compilation only
+- `swift test` - run tests (if available)
 
 ---
 
-## 🔧 Устранение проблем
+## 🔧 Troubleshooting
 
-### ❌ **Проблемы с daemon:**
+### ❌ **Daemon Issues:**
 
-**Daemon не запускается:**
-- ✅ Проверьте права на исполняемый файл: `ls -la I2P Daemon GUI.app/Contents/Resources/i2pd`
-- ✅ Убедитесь что порт не занят: `lsof -i :4444`
-- ✅ Проверьте логи в приложении для подробной информации
+**Daemon won't start:**
+- ✅ Check executable permissions: `ls -la I2P Daemon GUI.app/Contents/Resources/i2pd`
+- ✅ Ensure port is not occupied: `lsof -i :4444`
+- ✅ Check application logs for detailed information
 
-**Daemon не останавливается:**
-- ✅ Используйте кнопку "Остановить" в приложении
-- ✅ Позвольте daemon корректно завершиться (несколько секунд)
-- ✅ В крайнем случае: `sudo pkill -f i2pd`
+**Daemon won't stop:**
+- ✅ Use "Stop" button in the application
+- ✅ Allow daemon to properly terminate (few seconds)
+- ✅ As last resort: `sudo pkill -f i2pd`
 
-### ❌ **Проблемы с приложением:**
+### ❌ **Application Issues:**
 
-**Приложение не запускается:**
-- ✅ Проверьте минимальную версию macOS (14.0+)
-- ✅ Установите обновления системы: `softwareupdate -i -a`
-- ✅ Переустановите Xcode Command Line Tools
+**Application won't start:**
+- ✅ Check minimum macOS version (14.0+)
+- ✅ Install system updates: `softwareupdate -i -a`
+- ✅ Reinstall Xcode Command Line Tools
 
-**Интерфейс не отображается:**
-- ✅ Проверьте разрешения доступа к сети в Системных настройках
-- ✅ Перезапустите приложение
-- ✅ Проверьте совместимость с моделью Mac
+**Interface not displaying:**
+- ✅ Check network access permissions in System Preferences
+- ✅ Restart the application
+- ✅ Check Mac model compatibility
 
-**Проблемы с локализацией:**
-- ✅ Перезапустите приложение после смены языка
-- ✅ Проверьте наличие файлов .lproj в Resources
-- ✅ Убедитесь что выбранный язык поддерживается
+**Localization Issues:**
+- ✅ Restart application after language change
+- ✅ Check for .lproj files in Resources
+- ✅ Ensure selected language is supported
 
 ---
 
-## 📊 Статистика проекта
+## 📊 Project Statistics
 
-| Метрика | Значение |
+| Metric | Value |
 |---------|----------|
-| **Строки кода** | ~4,000 Swift |
-| **Файлы исходного кода** | 1 (AppCore.swift) |
-| **Размер репозитория** | ~1.2MB |
-| **Время сборки** | ~30 секунд |
-| **Совместимость** | macOS 14.0+ |
-| **Версия UI фреймворка** | SwiftUI |
-| **Статус трея** | ✅ Стабильно работает |
-| **Функции парсинга** | ✅ Полностью функциональны |
-| **Локализация** | ✅ Русский + English |
-| **Строк локализации** | 300+ ключей |
+| **Lines of Code** | ~6,000 Swift |
+| **Source Files** | 2 (AppCore.swift, ToolsView.swift) |
+| **Repository Size** | ~1.5MB |
+| **Build Time** | ~45 seconds |
+| **Compatibility** | macOS 14.0+ |
+| **UI Framework Version** | SwiftUI |
+| **Tray Status** | ✅ Stable |
+| **Parsing Functions** | ✅ Fully functional |
+| **Localization** | ✅ Russian + English |
+| **Localization Keys** | 500+ keys |
+| **Built-in Tools** | ✅ 13 utilities |
+| **Interactive Terminal** | ✅ Real-time I/O |
 
 ---
 
-## 🗺️ История версий
+## 🗺️ Version History
 
-### 🏆 **v2.58.0 (Current)** - Стабильная версия с полным функционалом и интернационализацией
-- ✅ Полная интернационализация (Русский/English) с умным перезапуском
-- ✅ Динамическое получение версии демона из веб-консоли
-- ✅ Умный выход с корректной остановкой демона (Cmd+Q, трей, смена языка)
-- ✅ Настройка "Запускать свернутым" для автозапуска в трее
-- ✅ Стабильный системный трей с корректным отображением
-- ✅ Интерактивные настройки портов HTTP/SOCKS5 с сохранением в конфиг
-- ✅ Управление пропускной способностью (L/O/P/X) с автоматическим парсингом
-- ✅ Автозапуск через LaunchAgent с визуальным статусом включения
-- ✅ Динамическое чтение всех настроек из i2pd.conf при запуске
-- ✅ Исправленная работа с конфигурационными файлами (без перезаписи)
+### 🏆 **v2.58.0 (Current)** - Stable version with full functionality, internationalization and built-in tools
+- ✅ Full internationalization (Russian/English) with smart restart
+- ✅ Dynamic daemon version fetching from web console
+- ✅ Smart exit with proper daemon shutdown (Cmd+Q, tray, language change)
+- ✅ "Start minimized" setting for auto-start in tray
+- ✅ Stable system tray with proper display
+- ✅ Interactive HTTP/SOCKS5 port settings with config saving
+- ✅ Bandwidth management (L/O/P/X) with automatic parsing
+- ✅ Auto-start via LaunchAgent with visual enable status
+- ✅ Dynamic reading of all settings from i2pd.conf on startup
+- ✅ Fixed work with configuration files (no overwriting)
+- ✅ **Built-in Tools module** with 13 comprehensive I2P utilities
+- ✅ **Interactive terminal** for autoconf with real-time I/O
+- ✅ **Memory leak prevention** with proper process management
+- ✅ **Centralized path management** for cross-platform compatibility
 
-### 🎯 **Продвинутые возможности** - Сложная функциональность
-- ✅ Динамическое чтение портов из i2pd.conf секций [httpproxy] и [socksproxy] 
-- ✅ Автоматический парсинг строк с комментариями (# port = 4444) и без
-- ✅ Сохранение изменений портов обратно в конфигурационный файл
-- ✅ Парсинг и управление bandwidth настройками в реальном времени
-- ✅ Создание и удаление LaunchAgent .plist файлов в ~/Library/LaunchAgents/
-- ✅ Предотвращение перезаписи пользовательских конфигураций при каждом запуске
-- ✅ Полная локализация всех элементов интерфейса и сообщений
-- ✅ Умный перезапуск при смене языка без остановки демона
+### 🎯 **Advanced Features** - Complex functionality
+- ✅ Dynamic port reading from i2pd.conf [httpproxy] and [socksproxy] sections
+- ✅ Automatic parsing of lines with comments (# port = 4444) and without
+- ✅ Saving port changes back to configuration file
+- ✅ Real-time bandwidth parsing and management
+- ✅ Creating and deleting LaunchAgent .plist files in ~/Library/LaunchAgents/
+- ✅ Preventing user configuration overwriting on each startup
+- ✅ Full localization of all interface elements and messages
+- ✅ Smart restart on language change without daemon stop
 
 ---
 
-## 🤝 Разработка и контрибуция
+## 🤝 Development and Contribution
 
-### 🔧 **Структура для разработчиков:**
+### 🔧 **Structure for Developers:**
 ```bash
 Sources/i2pd-gui/
-└── AppCore.swift        # Все исходники в одном файле (4,000+ строк)
-                        # - ContentView: основной интерфейс с адаптивностью и локализацией
-                        # - SettingsView: интерактивные настройки портов и скорости
-                        # - I2pdManager: управление daemon и LaunchAgent с динамической версией
-                        # - Система логирования с темами оформления и локализацией
-                        # - TrayManager: стабильный системный трей с локализованным меню
-                        # - Парсинг конфигурационных файлов i2pd.conf
-                        # - Управление портами HTTP/SOCKS5 и bandwidth
-                        # - AppDelegate: умный выход и обработка жизненного цикла
+├── AppCore.swift        # Main application core (4,000+ lines)
+│                        # - ContentView: main interface with adaptability and localization
+│                        # - SettingsView: interactive port and speed settings
+│                        # - I2pdManager: daemon and LaunchAgent management with dynamic version
+│                        # - Logging system with themes and localization
+│                        # - TrayManager: stable system tray with localized menu
+│                        # - i2pd.conf configuration file parsing
+│                        # - HTTP/SOCKS5 port and bandwidth management
+│                        # - AppDelegate: smart exit and application lifecycle handling
+└── ToolsView.swift      # Built-in tools module (2,000+ lines)
+                        # - ToolsManager: utilities process management
+                        # - 13 individual tool interfaces
+                        # - Interactive terminal for autoconf
+                        # - Memory leak prevention
+                        # - Centralized path management
 
 Resources/
-├── ru.lproj/           # Русская локализация (300+ ключей)
+├── ru.lproj/           # Russian localization (500+ keys)
 │   └── Localizable.strings
-└── en.lproj/           # Английская локализация (300+ ключей)
+└── en.lproj/           # English localization (500+ keys)
     └── Localizable.strings
 
-Package.swift            # Swift Package Manager конфигурация  
-build-app-simple.sh      # Скрипт сборки .app пакета с код-сигнатурой и локализацией
-Info.plist              # Метаданные приложения (версия 2.58.0)
+tools/                   # Built-in I2P utilities (13 binaries)
+├── keygen              # Key generation utility
+├── vain                # Address mining utility
+├── keyinfo             # Key information utility
+├── b33address          # B33 address calculator
+├── regaddr             # Domain registration utility
+├── regaddr_3ld         # Third-level domain registration
+├── regaddralias        # Domain alias utility
+├── offlinekeys         # Offline keys utility
+├── routerinfo          # Router info analyzer
+├── x25519              # X25519 key generator
+├── i2pbase64           # Base64 encoder/decoder
+├── famtool             # Family certificate tool
+├── verifyhost          # Host verification utility
+└── autoconf            # Interactive config generator
+
+Package.swift            # Swift Package Manager configuration  
+build-app-simple.sh      # .app package build script with code signing and localization
+Info.plist              # Application metadata (version 2.58.0)
 ```
 
-### 📝 **Готовность к разработке:**
-- ✅ Минимальное количество файлов
-- ✅ Все в одном месте - легко понять код
-- ✅ Современный Swift + SwiftUI архитектура
-- ✅ Четкая структура компонентов
-- ✅ Подробные комментарии на русском языке
-- ✅ Полная интернационализация
+### 📝 **Development Ready:**
+- ✅ Minimal file count
+- ✅ Everything in one place - easy to understand code
+- ✅ Modern Swift + SwiftUI architecture
+- ✅ Clear component structure
+- ✅ Detailed comments in Russian
+- ✅ Full internationalization
 
-### 🎯 **Принципы кода:**
-- **Читаемость**: понятные имена функций и переменных
-- **Компактность**: высокая плотность функциональности
-- **Современность**: использование новейших SwiftUI паттернов
-- **Надежность**: обработка ошибок и крайних случаев
-- **Локализация**: все строки вынесены в Localizable.strings
+### 🎯 **Code Principles:**
+- **Readability**: clear function and variable names
+- **Compactness**: high functionality density
+- **Modernity**: using latest SwiftUI patterns
+- **Reliability**: error handling and edge cases
+- **Localization**: all strings extracted to Localizable.strings
 
 ---
 
-## 📄 Лицензия и правовая информация
+## 📄 License and Legal Information
 
-Проект распространяется под лицензией **MIT License**. Подробности в файле `LICENSE`.
+The project is distributed under **MIT License**. Details in the `LICENSE` file.
 
-### 🌐 **Использованные технологии:**
-- **I2P сеть**: https://geti2p.net/ - анонимная сеть
-- **i2pd daemon**: https://i2pd.website - официальная реализация протокола I2P
-- **Swift**: язык программирования Apple
-- **SwiftUI**: фреймворк интерфейсов Apple
-- **NSLocalizedString**: система локализации Apple
+### 🌐 **Technologies Used:**
+- **I2P Network**: https://geti2p.net/ - anonymous network
+- **i2pd daemon**: https://i2pd.website - official I2P protocol implementation
+- **Swift**: Apple programming language
+- **SwiftUI**: Apple interface framework
+- **NSLocalizedString**: Apple localization system
  
 ---
 
-## ☕ Поддержка разработчика
+## ☕ Developer Support
 
-Если вам нравится этот проект и он приносит пользу, вы можете поддержать его разработку покупкой виртуального кофе:
+If you like this project and it brings value, you can support its development by buying a virtual coffee:
 
 <div align="center">
 
-**☕ Купить кофе разработчику:**
+**☕ Buy developer a coffee:**
 
 **💎 Bitcoin (BTC):**
 <div align="center">
 <img src="btc_donation_qr.png" width="200">
 </div>
 
-### 📋 BTC адрес:
+### 📋 BTC Address:
 
 ```
 bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd
@@ -421,28 +448,28 @@ bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd
 <img src="ton_donation_qr.png" width="200">
 </div>
 
-### 📋 TON адрес:
+### 📋 TON Address:
 
 ```
 UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
 ```
 
-*Спасибо за поддержку! Это мотивирует продолжать работу над проектом* 🙏
+*Thank you for your support! It motivates to continue working on the project* 🙏
 
 </div>
 
 ---
-## 🎉 Проект готов к использованию!
+## 🎉 Project Ready to Use!
 
 <div align="center">
 
-### 🚀 Прямое скачивание:
-[![Download I2P Daemon GUI.app](https://img.shields.io/badge/📦%20Скачать-I2P%20Daemon%20GUI.app-ff6b6b.svg?style=for-the-badge)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-Daemon-GUI-v2.58.0.app.zip)
+### 🚀 Direct Download:
+[![Download I2P Daemon GUI.app](https://img.shields.io/badge/📦%20Download-I2P%20Daemon%20GUI.app-ff6b6b.svg?style=for-the-badge)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-Daemon-GUI-v2.58.0.app.zip)
 
 ---
 
-**I2P Daemon GUI** - элегантное решение для macOS с минимальной настройкой и максимальной функциональностью.
+**I2P Daemon GUI** - elegant solution for macOS with minimal setup and maximum functionality.
 
-*Создано с ❤️ для сообщества приватности и анонимности*
+*Created with ❤️ for privacy and anonymity community*
 
 </div>
