@@ -489,6 +489,8 @@ UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
 
 **I2P Daemon GUI** - elegant solution for macOS with minimal setup and maximum functionality.
 
-*Created with ❤️ for privacy and anonymity community*
+*Created with ❤️ by Vade for privacy and anonymity community*
+
+© 2025 Vade
 
 </div>
