@@ -34,6 +34,7 @@
 - 🔄 **Smart exit** with proper daemon shutdown (Cmd+Q, tray, language change)
 - 🌐 **Dynamic configuration reading** with automatic settings parsing
 - 📱 **Start minimized** - application starts in tray without showing window
+- 🛠️ **Built-in Tools module** - comprehensive set of I2P utilities with interactive terminal
 
 ---
 
@@ -71,22 +72,35 @@
 ### 📸 **Demonstration:**
 
 #### 🇺🇸 **English Interface:**
-![I2P GUI Main Interface](screenshots/screenshoot1_en.png)
+![I2P GUI Main Interface](screenshots/screenshoot1_en.jpg)
 *Main application interface with status monitoring*
 
-![I2P GUI Settings](screenshots/screenshoot2_en.png)  
+![I2P GUI Settings](screenshots/screenshoot2_en.jpg)  
 *Settings window with interactive HTTP/SOCKS5 ports, bandwidth management and auto-start*
 
-![I2P GUI Advanced Settings](screenshots/screenshoot3_en.png)
+![I2P GUI Advanced Settings](screenshots/screenshoot3_en.jpg)
 *Advanced settings window with tunnel configuration, Address Book management and address book subscriptions*
 
-![I2P GUI Tray Menu](screenshots/screenshoot4_en.png)
+![I2P GUI Tray Menu](screenshots/screenshoot4_en.jpg)
 *Tray menu with checkmarks showing current daemon state*
 
-<div align="center">
-<img src="screenshots/screenshoot5_en.png" width="30%">
-</div>
-*Logs window with detailed daemon operation information*
+![I2P GUI Tools Module](screenshots/screenshoot5_en.jpg)
+*Built-in Tools module with comprehensive I2P utilities*
+
+![I2P GUI Key Generation](screenshots/screenshoot6_en.jpg)
+*Key generation utility with signature type selection*
+
+![I2P GUI Address Mining](screenshots/screenshoot7_en.jpg)
+*Address mining utility for vanity addresses*
+
+![I2P GUI Domain Registration](screenshots/screenshoot8_en.jpg)
+*Domain registration utility for .i2p domains*
+
+![I2P GUI Interactive Terminal](screenshots/screenshoot9_en.jpg)
+*Interactive terminal for autoconf utility*
+
+![I2P GUI X25519 Keys](screenshots/screenshoot10_en.jpg)
+*X25519 key generation for encrypted leasesets*
 
 ### 🖥️ **Main Window:**
 - **📊 Server Status**: shows daemon state (running/stopped)
@@ -101,6 +115,7 @@
 - **🔄 Refresh Status** - check current state
 - **⚙️ Settings** - daemon configuration
 - **🗑️ Clear Logs** - clear log history
+- **🛠️ Tools** - access built-in I2P utilities
 
 ### ⚙️ **Settings:**
 - **🌐 Network Configuration**: HTTP and SOCKS5 proxy port management
@@ -115,6 +130,22 @@
 - **🔍 Filtering**: search by message type
 - **💾 Export**: save logs to file
 - **🗑️ Clear**: quick history cleanup
+
+### 🛠️ **Built-in Tools Module:**
+- **🔑 Key Generation**: create I2P destination keys with signature type selection
+- **⛏️ Address Mining**: generate vanity addresses with custom prefixes
+- **🔍 Key Information**: analyze existing keys and get destination addresses
+- **📧 B33 Address**: calculate B33 addresses for encrypted leasesets
+- **🌐 Domain Registration**: generate registration strings for .i2p domains
+- **🏷️ 3LD Registration**: three-step registration for third-level domains
+- **🔄 Domain Alias**: rebind domains to new keys
+- **⏰ Offline Keys**: create temporary keys with limited validity
+- **📊 Router Info**: analyze RouterInfo files with port/firewall/IPv6 flags
+- **🔐 X25519 Keys**: generate encryption keys for authorized leasesets
+- **📝 Base64 Encoding**: I2P-specific Base64 encoding/decoding
+- **👥 Family Tool**: manage family certificates for router organization
+- **✅ Host Verification**: verify signatures of host records
+- **⚙️ Auto Configuration**: interactive terminal for i2pd.conf generation
 
 ---
 
@@ -159,13 +190,28 @@ I2P Daemon GUI.app/
 │   └── Resources/
 │       ├── I2P-GUI.icns         # Application icon
 │       ├── i2pd                  # Daemon binary (29MB)
+│       ├── tools/                # Built-in I2P utilities
+│       │   ├── keygen            # Key generation utility
+│       │   ├── vain              # Address mining utility
+│       │   ├── keyinfo           # Key information utility
+│       │   ├── b33address        # B33 address calculator
+│       │   ├── regaddr           # Domain registration utility
+│       │   ├── regaddr_3ld       # Third-level domain registration
+│       │   ├── regaddralias      # Domain alias utility
+│       │   ├── offlinekeys       # Offline keys utility
+│       │   ├── routerinfo        # Router info analyzer
+│       │   ├── x25519            # X25519 key generator
+│       │   ├── i2pbase64         # Base64 encoder/decoder
+│       │   ├── famtool           # Family certificate tool
+│       │   ├── verifyhost        # Host verification utility
+│       │   └── autoconf          # Interactive config generator
 │       ├── ru.lproj/            # Russian localization
 │       │   └── Localizable.strings
 │       └── en.lproj/            # English localization
 │           └── Localizable.strings
 ```
 
-**Total package size:** ~30MB
+**Total package size:** ~35MB
 
 ### 🔧 **System Components:**
 - **I2pdManager**: daemon lifecycle manager with dynamic version fetching
@@ -175,6 +221,8 @@ I2P Daemon GUI.app/
 - **LogView**: logging system with localized messages
 - **TrayManager**: system tray with localized menu
 - **AppDelegate**: application lifecycle handling and smart exit
+- **ToolsManager**: built-in utilities manager with process handling
+- **ToolsView**: comprehensive tools interface with interactive terminal
 
 ---
 
@@ -251,22 +299,24 @@ swift --version
 
 | Metric | Value |
 |---------|----------|
-| **Lines of Code** | ~4,000 Swift |
-| **Source Files** | 1 (AppCore.swift) |
-| **Repository Size** | ~1.2MB |
-| **Build Time** | ~30 seconds |
+| **Lines of Code** | ~6,000 Swift |
+| **Source Files** | 2 (AppCore.swift, ToolsView.swift) |
+| **Repository Size** | ~1.5MB |
+| **Build Time** | ~45 seconds |
 | **Compatibility** | macOS 14.0+ |
 | **UI Framework Version** | SwiftUI |
 | **Tray Status** | ✅ Stable |
 | **Parsing Functions** | ✅ Fully functional |
 | **Localization** | ✅ Russian + English |
-| **Localization Keys** | 300+ keys |
+| **Localization Keys** | 500+ keys |
+| **Built-in Tools** | ✅ 13 utilities |
+| **Interactive Terminal** | ✅ Real-time I/O |
 
 ---
 
 ## 🗺️ Version History
 
-### 🏆 **v2.58.0 (Current)** - Stable version with full functionality and internationalization
+### 🏆 **v2.58.0 (Current)** - Stable version with full functionality, internationalization and built-in tools
 - ✅ Full internationalization (Russian/English) with smart restart
 - ✅ Dynamic daemon version fetching from web console
 - ✅ Smart exit with proper daemon shutdown (Cmd+Q, tray, language change)
@@ -277,6 +327,10 @@ swift --version
 - ✅ Auto-start via LaunchAgent with visual enable status
 - ✅ Dynamic reading of all settings from i2pd.conf on startup
 - ✅ Fixed work with configuration files (no overwriting)
+- ✅ **Built-in Tools module** with 13 comprehensive I2P utilities
+- ✅ **Interactive terminal** for autoconf with real-time I/O
+- ✅ **Memory leak prevention** with proper process management
+- ✅ **Centralized path management** for cross-platform compatibility
 
 ### 🎯 **Advanced Features** - Complex functionality
 - ✅ Dynamic port reading from i2pd.conf [httpproxy] and [socksproxy] sections
@@ -295,21 +349,43 @@ swift --version
 ### 🔧 **Structure for Developers:**
 ```bash
 Sources/i2pd-gui/
-└── AppCore.swift        # All source code in one file (4,000+ lines)
-                        # - ContentView: main interface with adaptability and localization
-                        # - SettingsView: interactive port and speed settings
-                        # - I2pdManager: daemon and LaunchAgent management with dynamic version
-                        # - Logging system with themes and localization
-                        # - TrayManager: stable system tray with localized menu
-                        # - i2pd.conf configuration file parsing
-                        # - HTTP/SOCKS5 port and bandwidth management
-                        # - AppDelegate: smart exit and application lifecycle handling
+├── AppCore.swift        # Main application core (4,000+ lines)
+│                        # - ContentView: main interface with adaptability and localization
+│                        # - SettingsView: interactive port and speed settings
+│                        # - I2pdManager: daemon and LaunchAgent management with dynamic version
+│                        # - Logging system with themes and localization
+│                        # - TrayManager: stable system tray with localized menu
+│                        # - i2pd.conf configuration file parsing
+│                        # - HTTP/SOCKS5 port and bandwidth management
+│                        # - AppDelegate: smart exit and application lifecycle handling
+└── ToolsView.swift      # Built-in tools module (2,000+ lines)
+                        # - ToolsManager: utilities process management
+                        # - 13 individual tool interfaces
+                        # - Interactive terminal for autoconf
+                        # - Memory leak prevention
+                        # - Centralized path management
 
 Resources/
-├── ru.lproj/           # Russian localization (300+ keys)
+├── ru.lproj/           # Russian localization (500+ keys)
 │   └── Localizable.strings
-└── en.lproj/           # English localization (300+ keys)
+└── en.lproj/           # English localization (500+ keys)
     └── Localizable.strings
+
+tools/                   # Built-in I2P utilities (13 binaries)
+├── keygen              # Key generation utility
+├── vain                # Address mining utility
+├── keyinfo             # Key information utility
+├── b33address          # B33 address calculator
+├── regaddr             # Domain registration utility
+├── regaddr_3ld         # Third-level domain registration
+├── regaddralias        # Domain alias utility
+├── offlinekeys         # Offline keys utility
+├── routerinfo          # Router info analyzer
+├── x25519              # X25519 key generator
+├── i2pbase64           # Base64 encoder/decoder
+├── famtool             # Family certificate tool
+├── verifyhost          # Host verification utility
+└── autoconf            # Interactive config generator
 
 Package.swift            # Swift Package Manager configuration  
 build-app-simple.sh      # .app package build script with code signing and localization
