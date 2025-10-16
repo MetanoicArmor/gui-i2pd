@@ -17,6 +17,24 @@
 
 ---
 
+## 🌐 Language / Язык
+
+<div align="center">
+
+### 🇺🇸 **English Documentation**
+[![English README](https://img.shields.io/badge/📖%20English%20README-blue.svg)](README.md)
+
+**Full English documentation with screenshots and features**
+
+### 🇷🇺 **Русская документация**
+[![Русский README](https://img.shields.io/badge/📖%20Русский%20README-red.svg)](README_RU.md)
+
+**Полная русская документация со скриншотами и функциями**
+
+</div>
+
+---
+
 ## 🎯 Description
 
 **I2P Daemon GUI** is an elegant native macOS application that allows you to easily manage I2P daemon through a modern SwiftUI interface. No more command line - all management in just a few clicks!

@@ -22,7 +22,7 @@
 <div align="center">
 
 ### 🇺🇸 **English Documentation**
-[![English README](https://img.shields.io/badge/📖%20English%20README-blue.svg)](README_EN.md)
+[![English README](https://img.shields.io/badge/📖%20English%20README-blue.svg)](README.md)
 
 **Full English documentation with screenshots and features**
 
