@@ -3014,7 +3014,7 @@ class I2pdManager: ObservableObject {
         
         // ПРОСТОЙ И НАДЕЖНЫЙ поиск и остановка демона
         let simpleStopCommand = """
-        echo "🔍 Поиск демона i2pd..." &&
+        echo "🔍 " + L("Поиск демона i2pd...") + " " &&
         DEMON_PID=$(ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | head -1) &&
         
         if [ -n "$DEMON_PID" ]; then
@@ -3168,7 +3168,7 @@ class I2pdManager: ObservableObject {
     }
     
     private func executeStopCommand(_ command: String) {
-        addLog(.debug, "🚀 Запускаем команду остановки демона...")
+        addLog(.debug, L("🚀 Запускаем команду остановки демона..."))
         
         let killProcess = Process()
         killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
