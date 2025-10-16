@@ -102,7 +102,7 @@
 ![I2P GUI Tray Menu](screenshots/screenshoot4_en.png)
 *Tray menu with checkmarks showing current daemon state*
 
-<img src="screenshots/screenshoot5_en.png" alt="I2P GUI Tools Module" width="60%">
+<img src="screenshots/screenshoot5_en.png" alt="I2P GUI Tools Module" width="400">
 
 *Built-in Tools module with comprehensive I2P utilities*
 
