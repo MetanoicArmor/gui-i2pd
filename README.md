@@ -105,6 +105,52 @@
 ![I2P GUI Модуль Утилит](screenshots/screenshot5_ru.jpg)
 *Встроенный модуль Утилит с комплексным набором I2P утилит*
 
+![I2P GUI Генерация ключей](screenshots/screenshoot6_ru.jpg)
+*Утилита генерации ключей с выбором типа подписи*
+
+![I2P GUI Майнинг адресов](screenshots/screenshoot7_ru.jpg)
+*Утилита майнинга адресов для vanity адресов*
+
+![I2P GUI Регистрация доменов](screenshots/screenshoot8_ru.jpg)
+*Утилита регистрации доменов для доменов .i2p*
+
+![I2P GUI Интерактивный терминал](screenshots/screenshoot9_ru.jpg)
+*Интерактивный терминал для утилиты autoconf*
+
+![I2P GUI X25519 ключи](screenshots/screenshoot10_ru.jpg)
+*Генерация X25519 ключей для зашифрованных лизсетов*
+
+#### 🇺🇸 **English Interface:**
+![I2P GUI Main Interface](screenshots/screenshoot1_en.jpg)
+*Main application interface with status monitoring*
+
+![I2P GUI Settings](screenshots/screenshoot2_en.jpg)  
+*Settings window with interactive HTTP/SOCKS5 ports, bandwidth management and auto-start*
+
+![I2P GUI Advanced Settings](screenshots/screenshoot3_en.jpg)
+*Advanced settings window with tunnel configuration, Address Book management and address book subscriptions*
+
+![I2P GUI Tray Menu](screenshots/screenshoot4_en.jpg)
+*Tray menu with checkmarks showing current daemon state*
+
+![I2P GUI Tools Module](screenshots/screenshoot5_en.jpg)
+*Built-in Tools module with comprehensive I2P utilities*
+
+![I2P GUI Key Generation](screenshots/screenshoot6_en.jpg)
+*Key generation utility with signature type selection*
+
+![I2P GUI Address Mining](screenshots/screenshoot7_en.jpg)
+*Address mining utility for vanity addresses*
+
+![I2P GUI Domain Registration](screenshots/screenshoot8_en.jpg)
+*Domain registration utility for .i2p domains*
+
+![I2P GUI Interactive Terminal](screenshots/screenshoot9_en.jpg)
+*Interactive terminal for autoconf utility*
+
+![I2P GUI X25519 Keys](screenshots/screenshoot10_en.jpg)
+*X25519 key generation for encrypted leasesets*
+
 ### 🖥️ **Основное окно:**
 - **📊 Статус сервера**: показывает состояние daemon (работает/остановлен)
 - **⏱️ Время работы**: uptime I2P daemon
