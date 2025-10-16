@@ -102,7 +102,8 @@
 ![I2P GUI Трей меню](screenshots/screenshot4_ru.png)
 *Трей меню с галочками, показывающими текущее состояние демона*
 
-![I2P GUI Модуль Утилит](screenshots/screenshot5_ru.png){: style="width: 60%;"}
+<img src="screenshots/screenshot5_ru.png" alt="I2P GUI Модуль Утилит" width="60%">
+
 *Встроенный модуль Утилит с комплексным набором I2P утилит*
 
 ![I2P GUI Генерация ключей](screenshots/screenshoot6_ru.png)
