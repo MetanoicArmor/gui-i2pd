@@ -366,6 +366,7 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var showingTools = false
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
+    @State private var manualStop: Bool? = false // Флаг ручной остановки для предотвращения автозапуска
     
     
     var body: some View {
@@ -461,7 +462,8 @@ struct ContentView: View {
             ControlButtons(
                 i2pdManager: i2pdManager,
                 showingSettings: $showingSettings,
-                showingTools: $showingTools
+                showingTools: $showingTools,
+                manualStop: $manualStop
             )
             .padding(.horizontal, 8)
             
@@ -560,8 +562,8 @@ struct ContentView: View {
                 TrayManager.shared.updateMenuState(isRunning: i2pdManager.isRunning)
             }
             
-            // Проверяем и автоматически запускаем демон если включено
-            if autoStartDaemon && !i2pdManager.isRunning {
+            // Проверяем и автоматически запускаем демон если включено и не было ручной остановки
+            if autoStartDaemon && !i2pdManager.isRunning && !(manualStop ?? false) {
                 print("🚀 Автоматический запуск демона включен - запускаем i2pd")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     i2pdManager.startDaemon()
@@ -575,7 +577,7 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsView(i2pdManager: i2pdManager)
+            SettingsView(i2pdManager: i2pdManager, manualStop: $manualStop)
         }
         .sheet(isPresented: $showingTools) {
             ToolsView()
@@ -598,6 +600,7 @@ struct ContentView: View {
             // Обрабатываем запрос запуска демона из трея
             print("🚀 Получен запрос запуска демона из трея")
             if !i2pdManager.isRunning {
+                manualStop = false // Сбрасываем флаг при ручном запуске
                 i2pdManager.startDaemon()
             }
         }
@@ -605,12 +608,14 @@ struct ContentView: View {
             // Обрабатываем запрос остановки демона из трея
             print("⏹️ Получен запрос остановки демона из трея")
             if i2pdManager.isRunning {
+                manualStop = true // Устанавливаем флаг ручной остановки
                 i2pdManager.stopDaemon()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonRestartRequest"))) { _ in
             // Обрабатываем запрос перезапуска демона из трея
             print("🔄 Получен запрос перезапуска демона из трея")
+            manualStop = false // Сбрасываем флаг при перезапуске
             i2pdManager.restartDaemon()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonRestarting"))) { _ in
@@ -728,20 +733,13 @@ struct AboutView: View {
 // MARK: - Settings View
 struct SettingsView: View {
     @ObservedObject var i2pdManager: I2pdManager
+    @Binding var manualStop: Bool?
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("daemonPort") private var daemonPort = 4444
-    @AppStorage("socksPort") private var socksPort = 4447
-    @AppStorage("bandwidth") private var bandwidth = "L"
-    @State private var displayDaemonPort = 4444
-    @State private var displaySocksPort = 4447
-    @State private var displayBandwidth = "L"
-    @State private var showBandwidthAlert = false
-    @State private var showHttpPortAlert = false
-    @State private var showSocksPortAlert = false
-
     
-    init(i2pdManager: I2pdManager) {
+    init(i2pdManager: I2pdManager, manualStop: Binding<Bool?>? = nil) {
         self.i2pdManager = i2pdManager
+        self._manualStop = manualStop ?? .constant(nil)
+        
         // Инициализируем значения из конфига при создании view
         let daemonPort = Self.loadDaemonPortFromConfig()
         let socksPort = Self.loadSocksPortFromConfig()
@@ -753,6 +751,17 @@ struct SettingsView: View {
         _displaySocksPort = State(initialValue: socksPort)
         _displayBandwidth = State(initialValue: bandwidthValue)
     }
+    @AppStorage("daemonPort") private var daemonPort = 4444
+    @AppStorage("socksPort") private var socksPort = 4447
+    @AppStorage("bandwidth") private var bandwidth = "L"
+    @State private var displayDaemonPort = 4444
+    @State private var displaySocksPort = 4447
+    @State private var displayBandwidth = "L"
+    @State private var showBandwidthAlert = false
+    @State private var showHttpPortAlert = false
+    @State private var showSocksPortAlert = false
+
+    
     
     // Статические функции для чтения портов из конфига при инициализации
     static private func loadDaemonPortFromConfig() -> Int {
@@ -1424,6 +1433,9 @@ struct SettingsView: View {
                                     .labelsHidden()
                                     .onChange(of: autoStartDaemon) { _, newValue in
                                         print("🔄 Настройка автозапуска демона изменена: \(newValue)")
+                                        if newValue {
+                                            manualStop? = false // Сбрасываем флаг при включении автозапуска
+                                        }
                                     }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -2578,12 +2590,14 @@ struct ControlButtons: View {
     @ObservedObject var i2pdManager: I2pdManager
     @Binding var showingSettings: Bool
     @Binding var showingTools: Bool
+    @Binding var manualStop: Bool?
     
     var body: some View {
         VStack(spacing: 16) {
             // Основные кнопки
             HStack(spacing: 16) {
                 Button(NSLocalizedString("Перезапустить", comment: "Restart button")) {
+                    manualStop = false // Сбрасываем флаг при перезапуске
                     i2pdManager.restartDaemon()
                 }
                 .lineLimit(1)
@@ -2594,8 +2608,10 @@ struct ControlButtons: View {
                 
                 Button(action: {
                     if i2pdManager.isRunning {
+                        manualStop = true // Устанавливаем флаг ручной остановки
                         i2pdManager.stopDaemon()
                     } else {
+                        manualStop = false // Сбрасываем флаг при ручном запуске
                         i2pdManager.startDaemon()
                     }
                 }) {
