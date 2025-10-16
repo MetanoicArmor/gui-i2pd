@@ -10,7 +10,7 @@
 
 **Современный GUI для управления I2P daemon на macOS с полной интернационализацией**
 
-[![Download](https://img.shields.io/badge/📥%20Скачать-I2P%20Daemon%20GUI.app-brightgreen.svg)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0-tools/I2P-Daemon-GUI-v2.58.0-tools.zip)
+[![Download](https://img.shields.io/badge/📥%20Скачать-I2P%20Daemon%20GUI.app-brightgreen.svg)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-Daemon-GUI-v2.58.0.app.zip)
 [![Build Status](https://img.shields.io/badge/🔧%20Сборка-Passing-success.svg)](https://github.com/MetanoicArmor/gui-i2pd/actions)
 
 </div>
@@ -63,12 +63,12 @@
 1. **📥 Скачайте готовое приложение:**
    ```bash
    # Прямая ссылка на .app ZIP архив
-   curl -L https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0-tools/I2P-Daemon-GUI-v2.58.0-tools.zip -o I2P-Daemon-GUI-v2.58.0-tools.zip
+   curl -L https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-Daemon-GUI-v2.58.0.app.zip -o I2P-Daemon-GUI-v2.58.0.app.zip
    ```
 
 2. **📁 Распакуйте и установите:**
    ```bash
-   unzip I2P-Daemon-GUI-v2.58.0-tools.zip
+   unzip I2P-Daemon-GUI-v2.58.0.app.zip
    mv "I2P Daemon GUI.app" /Applications/
    ```
 
@@ -468,7 +468,7 @@ UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
 <div align="center">
 
 ### 🚀 Прямое скачивание:
-[![Download I2P Daemon GUI.app](https://img.shields.io/badge/📦%20Скачать-I2P%20Daemon%20GUI.app-ff6b6b.svg?style=for-the-badge)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0-tools/I2P-Daemon-GUI-v2.58.0-tools.zip)
+[![Download I2P Daemon GUI.app](https://img.shields.io/badge/📦%20Скачать-I2P%20Daemon%20GUI.app-ff6b6b.svg?style=for-the-badge)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.58.0/I2P-Daemon-GUI-v2.58.0.app.zip)
 
 ---
 
