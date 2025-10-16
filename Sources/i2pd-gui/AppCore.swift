@@ -2932,6 +2932,8 @@ class I2pdManager: ObservableObject {
     }
     
     func startDaemon() {
+        addLog(.debug, "🔍 startDaemon() вызван - начинаем запуск")
+        
         guard !operationInProgress else {
             addLog(.warn, L("Операция уже выполняется, пропускаем..."))
             return
@@ -2967,6 +2969,7 @@ class I2pdManager: ObservableObject {
     
     func stopDaemon() {
         addLog(.info, L("🚫 ОСТАНОВКА ДЕМОНА ИЗ I2pdManager НАЧАТА!"))
+        addLog(.debug, "🔍 stopDaemon() вызван - начинаем остановку")
         
         guard !operationInProgress else {
             addLog(.warn, "⚠️ Операция уже выполняется, пропускаем...")
@@ -3030,7 +3033,7 @@ class I2pdManager: ObservableObject {
         
         // ПРОСТОЙ И НАДЕЖНЫЙ поиск и остановка демона
         let simpleStopCommand = """
-        echo "🔍 " + L("Поиск демона i2pd...") + " " &&
+        echo "🔍 Поиск демона i2pd..." &&
         DEMON_PID=$(ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | head -1) &&
         
         if [ -n "$DEMON_PID" ]; then
@@ -3185,6 +3188,7 @@ class I2pdManager: ObservableObject {
     
     private func executeStopCommand(_ command: String) {
         addLog(.debug, L("🚀 Запускаем команду остановки демона..."))
+        addLog(.debug, "🔍 Команда остановки: \(command)")
         
         let killProcess = Process()
         killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -3346,6 +3350,8 @@ class I2pdManager: ObservableObject {
     }
     
     private func checkDaemonStatus() {
+        addLog(.debug, "🔍 checkDaemonStatus() вызван - проверяем статус демона")
+        
         // Проверяем, запущен ли процесс через pgrep или аналогичную команду
         let checkProcess = Process()
         checkProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -3399,6 +3405,14 @@ class I2pdManager: ObservableObject {
                 self?.operationInProgress = false
             }
         }
+    }
+    
+    // Новая функция для проверки статуса с учетом флага manualStop
+    private func checkDaemonStatusWithManualStopFlag() {
+        // Получаем текущий флаг manualStop из ContentView
+        let manualStopFlag = NotificationCenter.default.post(name: NSNotification.Name("GetManualStopFlag"), object: nil)
+        
+        checkDaemonStatus()
     }
     
     private func startStatusMonitoring() {
