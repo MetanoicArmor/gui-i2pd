@@ -46,7 +46,15 @@ class TrayManager: NSObject, ObservableObject {
                 print("📏 Оптимальный размер иконки установлен: 18x18 пикселей")
             }
             
-            statusBarItem.button?.image = image
+            // Настраиваем кнопку, чтобы она не создавала невидимое окно, блокирующее клики
+            if let button = statusBarItem.button {
+                button.image = image
+                // Убеждаемся, что кнопка не блокирует клики
+                button.isEnabled = true
+                button.appearsDisabled = false
+                // Важно: отключаем возможность кнопки создавать отдельное окно
+                button.wantsLayer = false
+            }
             
             let menu = NSMenu()
             
@@ -289,8 +297,14 @@ class TrayManager: NSObject, ObservableObject {
     @objc func showMainWindow() {
         print("⚙️ ПОКАЗ ОКНА из трея!")
         
+        // Убеждаемся, что приложение может показывать окна
+        NSApplication.shared.setActivationPolicy(.regular)
+        
         // Показываем окна без изменения политики приложения
         for window in NSApplication.shared.windows {
+            // Убеждаемся, что окно не блокирует клики
+            window.ignoresMouseEvents = false
+            window.level = .normal
             window.makeKeyAndOrderFront(nil)
             // Убеждаемся, что у окна правильный делегат
             if window.delegate === nil || !(window.delegate is WindowCloseDelegate) {
@@ -305,7 +319,12 @@ class TrayManager: NSObject, ObservableObject {
     @objc func hideMainWindow() {
         print("❌ СВОРАЧИВАНИЕ В ТРЕЙ из трея!")
         for window in NSApplication.shared.windows {
+            // Полностью скрываем окно и убираем его из списка окон, чтобы оно не блокировало клики
             window.orderOut(nil)
+            window.isReleasedWhenClosed = false
+            // Убеждаемся, что окно не может блокировать клики
+            window.ignoresMouseEvents = false
+            window.level = .normal
         }
         
         // Возвращаем приложение в accessory режим если настройка включена
@@ -389,7 +408,12 @@ class TrayManager: NSObject, ObservableObject {
         let symbolName = isRunning ? "theatermasks.fill" : "theatermasks"
         if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "I2P Daemon") {
             image.size = NSSize(width: 18, height: 18)
-            statusBarItem.button?.image = image
+            // Обновляем иконку безопасно, не создавая невидимых окон
+            if let button = statusBarItem.button {
+                button.image = image
+                // Убеждаемся, что кнопка не блокирует клики
+                button.wantsLayer = false
+            }
             print("🎭 Иконка трея обновлена: \(isRunning ? "активна (fill)" : "неактивна")")
         }
     }
