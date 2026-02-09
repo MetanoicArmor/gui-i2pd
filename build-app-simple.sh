@@ -10,20 +10,20 @@ BUNDLE_ID="com.i2pd.daemon-gui"
 # Автоматически определяем версию из бинарника i2pd
 echo "🔍 Определение версии из бинарника i2pd..."
 if [ -f "./i2pd" ]; then
-    # Извлекаем версию из бинарника
-    VERSION_OUTPUT=$(./i2pd --version 2>&1)
-    APP_VERSION=$(echo "$VERSION_OUTPUT" | grep -o "i2pd version [0-9]\+\.[0-9]\+\.[0-9]\+" | grep -o "[0-9]\+\.[0-9]\+\.[0-9]\+" | head -1)
+    # Извлекаем версию из бинарника (формат: `i2pd version 2.59.0 (0.9.68)`)
+    VERSION_OUTPUT=$(./i2pd --version 2>&1 || true)
+    # Универсальный парсер: просто берем первую подстроку вида X.Y.Z
+    APP_VERSION=$(echo "$VERSION_OUTPUT" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
     
     if [ -z "$APP_VERSION" ]; then
-        echo "❌ Не удалось определить версию из бинарника"
-        APP_VERSION="2.58.0"
-        echo "⚠️ Используем версию по умолчанию: $APP_VERSION"
+        echo "❌ Не удалось определить версию из бинарника, используем запасную 2.59.0"
+        APP_VERSION="2.59.0"
     else
         echo "✅ Версия i2pd: $APP_VERSION"
     fi
 else
-    echo "⚠️ Бинарник i2pd не найден, используем версию по умолчанию"
-    APP_VERSION="2.58.0"
+    echo "⚠️ Бинарник i2pd не найден, используем версию по умолчанию 2.59.0"
+    APP_VERSION="2.59.0"
 fi
 
 echo "📱 Версия приложения: $APP_VERSION"
@@ -155,7 +155,7 @@ cat > "${CONTENTS_DIR}/Info.plist" << EOF
     <key>CFBundleShortVersionString</key>
     <string>${APP_VERSION}</string>
     <key>CFBundleVersion</key>
-    <string>2580</string>
+    <string>${APP_VERSION}</string>
     <key>CFBundleSignature</key>
     <string>I2PD</string>
     <key>LSMinimumSystemVersion</key>
