@@ -446,6 +446,6 @@ UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
 
 *Создано с ❤️ Vade для сообщества приватности и анонимности*
 
-© 2025 Vade
+© 2026 Vade
 
 </div>

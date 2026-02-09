@@ -161,7 +161,7 @@ cat > "${CONTENTS_DIR}/Info.plist" << EOF
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>NSHumanReadableCopyright</key>
-    <string>© 2025 Vade</string>
+    <string>© 2026 Vade</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>LSUIElement</key>
