@@ -122,10 +122,12 @@
 ![I2P GUI X25519 Keys](screenshots/screenshot10_en.png)
 *X25519 key generation for encrypted leasesets*
 
-![I2P GUI Chat — setup (EN)](screenshots/screenshot11_en.png)
+<img src="screenshots/screenshot11_en.png" alt="I2P GUI Chat — setup (EN)" width="520">
+
 *I2P Chat window — key entry / setup (English)*
 
-![I2P GUI Chat — conversation (EN)](screenshots/screenshot12_en.png)
+<img src="screenshots/screenshot12_en.png" alt="I2P GUI Chat — conversation (EN)" width="520">
+
 *I2P Chat window — P2P conversation (English)*
 
 ### 💬 **I2P Chat (termchat-i2p):**

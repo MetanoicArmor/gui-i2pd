@@ -122,10 +122,12 @@
 ![I2P GUI X25519 ключи](screenshots/screenshot10_ru.png)
 *Генерация X25519 ключей для зашифрованных лизсетов*
 
-![I2P GUI Chat — setup](screenshots/screenshot11_en.png)
+<img src="screenshots/screenshot11_en.png" alt="I2P GUI Chat — setup" width="520">
+
 *Окно чата I2P — ввод ключей*
 
-![I2P GUI Chat — conversation](screenshots/screenshot12_en.png)
+<img src="screenshots/screenshot12_en.png" alt="I2P GUI Chat — conversation" width="520">
+
 *Окно чата I2P — P2P переписка*
 
 ### 💬 **Чат I2P (termchat-i2p):**
