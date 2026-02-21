@@ -97,6 +97,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // Флаг для отслеживания перезапуска приложения (не останавливать демон)
     static var isRestarting = false
     
+    private var windowToggleMonitor: Any?
+    
     override init() {
         super.init()
         setupGlobalQuitHandler()
@@ -108,10 +110,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         
         if startMinimized {
             print("🔽 Запускаем приложение свернутым в трей")
-            // Скрываем все окна
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                NSApp.hide(nil)
+                TrayManager.shared.hideMainWindow()
             }
+        }
+        setupWindowToggleShortcut()
+    }
+    
+    private func setupWindowToggleShortcut() {
+        windowToggleMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            let isCmdW = event.modifierFlags.contains(.command)
+                && (event.characters == "w" || event.charactersIgnoringModifiers == "w" || event.keyCode == 13)
+            guard isCmdW else { return event }
+            DispatchQueue.main.async {
+                TrayManager.shared.toggleMainWindow()
+            }
+            return nil
         }
     }
     
@@ -339,13 +353,8 @@ struct I2pdGUIApp: App {
         
         .commands {
             CommandGroup(after: .windowArrangement) {
-                Button(L("Свернуть в трей (⌘H)")) {
-                    TrayManager.shared.hideMainWindow()
-                }
-                .keyboardShortcut("h", modifiers: [.command])
-                
-                Button(L("Показать главное окно")) {
-                    TrayManager.shared.showMainWindow()
+                Button(L("Окно (⌘W)")) {
+                    TrayManager.shared.toggleMainWindow()
                 }
                 .keyboardShortcut("w", modifiers: [.command])
                 
@@ -358,6 +367,11 @@ struct I2pdGUIApp: App {
                     NotificationCenter.default.post(name: NSNotification.Name("OpenTools"), object: nil)
                 }
                 .keyboardShortcut("t", modifiers: [.command])
+                
+                Button(L("Чат (⇧⌘C)")) {
+                    NotificationCenter.default.post(name: NSNotification.Name("OpenChat"), object: nil)
+                }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
             }
             
         }

@@ -16,6 +16,9 @@ class TrayManager: NSObject, ObservableObject {
     // Состояние перезапуска демона
     private var isRestarting = false
     
+    /// Явное состояние главного окна (для корректного переключения по ⌘W)
+    private var isMainWindowVisible = true
+    
     private override init() {
         super.init()
         setupStatusBar()
@@ -68,26 +71,30 @@ class TrayManager: NSObject, ObservableObject {
             let startAction = #selector(TrayManager.startDaemon)
             print("🔧 Селектор для start: \(String(describing: startAction))")
             
-            startItem = NSMenuItem(title: L("Запустить daemon"), action: startAction, keyEquivalent: "")
+            startItem = NSMenuItem(title: L("Запустить daemon"), action: startAction, keyEquivalent: "1")
             startItem?.target = self
             startItem?.tag = 1
             print("🔧 startItem создан с target: \(String(describing: startItem?.target)), action: \(String(describing: startItem?.action))")
             menu.addItem(startItem!)
             
-            stopItem = NSMenuItem(title: L("Остановить daemon"), action: #selector(stopDaemon), keyEquivalent: "")
+            stopItem = NSMenuItem(title: L("Остановить daemon"), action: #selector(stopDaemon), keyEquivalent: "0")
             stopItem?.target = self
             stopItem?.tag = 2
             print("🔧 stopItem создан с target: \(String(describing: stopItem?.target)), action: \(String(describing: stopItem?.action))")
             menu.addItem(stopItem!)
             
-            restartItem = NSMenuItem(title: L("Перезапустить daemon"), action: #selector(restartDaemon), keyEquivalent: "")
+            restartItem = NSMenuItem(title: L("Перезапустить daemon"), action: #selector(restartDaemon), keyEquivalent: "r")
             restartItem?.target = self
             restartItem?.tag = 3
             print("🔧 restartItem создан с target: \(String(describing: restartItem?.target)), action: \(String(describing: restartItem?.action))")
             menu.addItem(restartItem!)
             menu.addItem(NSMenuItem.separator())
             
-            // Функции
+            // Главное окно и функции
+            let windowItem = NSMenuItem(title: L("Главное окно"), action: #selector(toggleMainWindow), keyEquivalent: "w")
+            windowItem.target = self
+            menu.addItem(windowItem)
+            
             let settingsItem = NSMenuItem(title: L("Настройки"), action: #selector(openSettings), keyEquivalent: ",")
             settingsItem.target = self
             print("🔧 Создан settingsItem с target: \(String(describing: settingsItem.target)), action: \(String(describing: settingsItem.action))")
@@ -97,24 +104,17 @@ class TrayManager: NSObject, ObservableObject {
             toolsItem.target = self
             menu.addItem(toolsItem)
             
-            let chatItem = NSMenuItem(title: L("Чат"), action: #selector(openChat), keyEquivalent: "")
+            let chatItem = NSMenuItem(title: L("Чат"), action: #selector(openChat), keyEquivalent: "c")
+            chatItem.keyEquivalentModifierMask = [.command, .shift]
             chatItem.target = self
             menu.addItem(chatItem)
             
-            let webItem = NSMenuItem(title: L("Веб-консоль"), action: #selector(openWebConsole), keyEquivalent: "")
+            let webItem = NSMenuItem(title: L("Веб-консоль"), action: #selector(openWebConsole), keyEquivalent: "w")
+            webItem.keyEquivalentModifierMask = [.command, .shift]
             webItem.target = self
             menu.addItem(webItem)
             
-            let showItem = NSMenuItem(title: L("Показать окно"), action: #selector(showMainWindow), keyEquivalent: "")
-            showItem.target = self
-            menu.addItem(showItem)
-            menu.addItem(NSMenuItem.separator())
-            
-            let hideItem = NSMenuItem(title: L("Свернуть в трей"), action: #selector(hideMainWindow), keyEquivalent: "")
-            hideItem.target = self
-            menu.addItem(hideItem)
-            
-            let quitItem = NSMenuItem(title: L("Выйти"), action: #selector(quitApplication), keyEquivalent: "")
+            let quitItem = NSMenuItem(title: L("Выйти"), action: #selector(quitApplication), keyEquivalent: "q")
             quitItem.target = self
             menu.addItem(quitItem)
             
@@ -324,7 +324,8 @@ class TrayManager: NSObject, ObservableObject {
             }
         }
         NSApplication.shared.activate(ignoringOtherApps: true)
-        self.updateStatusText("⚙️ Главное окно открыто")
+        isMainWindowVisible = true
+        self.updateStatusText("⚙️ " + L("Главное окно открыто"))
         print("✅ Главное окно показано")
     }
     
@@ -345,8 +346,17 @@ class TrayManager: NSObject, ObservableObject {
             NSApplication.shared.setActivationPolicy(.accessory)
         }
         
-        updateStatusText("📱 Свернуто в трей")
+        isMainWindowVisible = false
+        updateStatusText("📱 " + L("Свернуто в трей"))
         print("✅ Приложение свернуто в трей")
+    }
+    
+    @objc func toggleMainWindow() {
+        if isMainWindowVisible {
+            hideMainWindow()
+        } else {
+            showMainWindow()
+        }
     }
     
     @objc public func quitApplication() {

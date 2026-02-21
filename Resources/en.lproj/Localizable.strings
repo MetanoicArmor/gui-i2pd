@@ -27,6 +27,8 @@
 "Настройки" = "Settings";
 "Обновить статус" = "Refresh Status";
 "Свернуть в трей" = "Minimize to Tray";
+"Свернуто в трей" = "Minimized to tray";
+"Главное окно открыто" = "Main window open";
 "Очистить логи" = "Clear Logs";
 
 /* Settings window */
@@ -211,6 +213,9 @@
 "Обновить статус" = "Refresh Status";
 "Свернуть в трей (⌘H)" = "Minimize to Tray (⌘H)";
 "Показать главное окно" = "Show Main Window";
+"Окно" = "Window";
+"Окно (⌘W)" = "Window (⌘W)";
+"Главное окно" = "Main Window";
 "Настройки (⌘,)" = "Settings (⌘,)";
 
 /* Network Statistics */
