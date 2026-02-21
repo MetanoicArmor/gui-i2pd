@@ -325,7 +325,11 @@ struct ChatWindowView: View {
             }
         }
         .onDisappear {
+            runner.stop()
             NotificationCenter.default.post(name: NSNotification.Name("ChatWindowDidClose"), object: nil)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ApplicationWillTerminate"))) { _ in
+            runner.stop()
         }
     }
 }

@@ -158,8 +158,19 @@ final class PTYRunner: ObservableObject {
     }
     
     func stop() {
-        process?.terminate()
+        guard let proc = process else {
+            processDidTerminate()
+            return
+        }
+        let pid = proc.processIdentifier
+        proc.terminate()
         processDidTerminate()
+        // Если процесс не завершится за 2 сек — принудительно SIGKILL (защита от зависших termchat-i2p)
+        DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
+            if pid > 0 && kill(pid, 0) == 0 {
+                kill(pid, SIGKILL)
+            }
+        }
     }
     
     private func processDidTerminate() {
