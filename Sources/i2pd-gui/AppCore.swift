@@ -48,9 +48,16 @@ class WindowCloseDelegate: NSObject, NSWindowDelegate {
             return true
         }
         
+        // Окно чата и другие вторичные окна — разрешаем закрытие по крестику (завершатся по onDisappear)
+        let title = sender.title
+        if title.contains("Чат") || title.contains("Chat") || title.contains("I2P Chat") {
+            print("🚪 Закрытие окна чата — разрешаем")
+            return true
+        }
+        
         print("🚪 Главное окно закрывается - сворачиваем в трей")
         
-        // Сначала сворачиваем окно в трей, а не закрываем приложение
+        // Только главное окно: сворачиваем в трей, а не закрываем приложение
         TrayManager.shared.hideMainWindow()
         
         // Предотвращаем стандартное закрытие окна - приложение остается работать в трее

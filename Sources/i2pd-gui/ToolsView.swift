@@ -1,5 +1,6 @@
 import SwiftUI
 import Foundation
+import Darwin
 
 // MARK: - Tools Manager
 class ToolsManager: ObservableObject {
@@ -183,24 +184,19 @@ class ToolsManager: ObservableObject {
     }
     
     func stopCurrentTool() {
-        guard let process = process else { return }
+        guard let proc = process else { return }
+        let pid = proc.processIdentifier
+        proc.terminate()
         
-        // Принудительно завершаем процесс
-        process.terminate()
-        
-        // Ждём завершения с коротким таймаутом
         let timeout: TimeInterval = 2.0
         let startTime = Date()
-        
-        while process.isRunning && Date().timeIntervalSince(startTime) < timeout {
-            usleep(50000) // 0.05 секунды
+        while proc.isRunning && Date().timeIntervalSince(startTime) < timeout {
+            usleep(50000)
         }
         
-        // Если процесс всё ещё работает, принудительно убиваем его
-        if process.isRunning {
-            process.terminate()
+        if proc.isRunning && pid > 0 {
+            kill(pid, SIGKILL)
         }
-        
         self.process = nil
         isRunning = false
         currentTool = ""

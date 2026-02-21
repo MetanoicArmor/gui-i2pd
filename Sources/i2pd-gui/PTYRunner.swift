@@ -181,28 +181,36 @@ final class PTYRunner: ObservableObject {
     
     func stop() {
         guard let proc = process else {
-            processDidTerminate()
+            processDidTerminate(removePidFromSet: true)
             return
         }
         let pid = proc.processIdentifier
         proc.terminate()
-        processDidTerminate()
-        // Если процесс не завершится за 2 сек — принудительно SIGKILL (защита от зависших termchat-i2p)
-        DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
+        // Не удаляем PID из knownChatPids сразу — иначе при быстром выходе из приложения
+        // killAllKnownChatProcesses() не убьёт процесс. Удалим после SIGKILL в отложенном блоке.
+        processDidTerminate(removePidFromSet: false)
+        DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak self] in
             if pid > 0 && kill(pid, 0) == 0 {
                 kill(pid, SIGKILL)
+            }
+            Self.pidLock.lock()
+            Self.knownChatPids.remove(pid)
+            Self.pidLock.unlock()
+            DispatchQueue.main.async {
+                self?.process = nil
+                self?.isRunning = false
             }
         }
     }
     
-    private func processDidTerminate() {
+    private func processDidTerminate(removePidFromSet: Bool = true) {
         readSource?.cancel()
         readSource = nil
         if masterFD >= 0 {
             close(masterFD)
             masterFD = -1
         }
-        if let pid = process?.processIdentifier {
+        if removePidFromSet, let pid = process?.processIdentifier {
             Self.pidLock.lock()
             Self.knownChatPids.remove(pid)
             Self.pidLock.unlock()
