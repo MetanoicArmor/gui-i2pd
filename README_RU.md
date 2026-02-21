@@ -122,8 +122,18 @@
 ![I2P GUI X25519 ключи](screenshots/screenshot10_ru.png)
 *Генерация X25519 ключей для зашифрованных лизсетов*
 
-![I2P GUI Чат](screenshots/screenshot11.png)
-*Окно встроенного чата I2P (termchat-i2p) — P2P терминальный чат поверх I2P*
+![I2P GUI Чат — настройка (RU)](screenshots/screenshot11_ru.png)
+*Окно чата I2P — ввод ключей (русский)*
+
+![I2P GUI Чат — переписка (RU)](screenshots/screenshot12_ru.png)
+*Окно чата I2P — P2P переписка (русский)*
+
+#### 🇺🇸 **English interface (Chat):**
+![I2P GUI Chat — setup (EN)](screenshots/screenshot11_en.png)
+*I2P Chat window — key entry / setup (English)*
+
+![I2P GUI Chat — conversation (EN)](screenshots/screenshot12_en.png)
+*I2P Chat window — P2P conversation (English)*
 
 ### 💬 **Чат I2P (termchat-i2p):**
 В приложение встроен **termchat-i2p** — P2P чат для сети I2P с терминальным интерфейсом. Открывается в отдельном окне, ввод через PTY, поддержка ANSI-цветов и многострочных сообщений (Shift+Enter — новая строка, Enter — отправить).

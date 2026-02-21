@@ -429,9 +429,11 @@
 "Интерактивный терминал" = "Interactive Terminal";
 "Нажмите 'Запустить autoconf' для начала" = "Press 'Start autoconf' to begin";
 "Введите ответ..." = "Enter answer...";
+"Введите сообщение..." = "Enter message...";
 "Запустить autoconf" = "Start autoconf";
 "Остановить" = "Stop";
 "Очистить" = "Clear";
+"Отправить" = "Send";
 "Процесс выполняется..." = "Process running...";
 "Пути" = "Paths";
 

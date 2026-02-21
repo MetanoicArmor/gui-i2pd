@@ -3,6 +3,20 @@ import Darwin
 
 /// Запуск процесса в псевдо-терминале (PTY) для интерактивного TUI.
 final class PTYRunner: ObservableObject {
+    /// PID запущенных чат-процессов (для гарантированного завершения при выходе из приложения)
+    private static var knownChatPids: Set<pid_t> = []
+    private static let pidLock = NSLock()
+    
+    static func killAllKnownChatProcesses() {
+        pidLock.lock()
+        let pids = knownChatPids
+        knownChatPids.removeAll()
+        pidLock.unlock()
+        for pid in pids where pid > 0 {
+            if kill(pid, 0) == 0 { kill(pid, SIGKILL) }
+        }
+    }
+    
     @Published private(set) var output = ""
     @Published private(set) var isRunning = false
     @Published var errorMessage: String?
@@ -88,6 +102,9 @@ final class PTYRunner: ObservableObject {
             close(slave)
             process = proc
             isRunning = true
+            Self.pidLock.lock()
+            Self.knownChatPids.insert(proc.processIdentifier)
+            Self.pidLock.unlock()
         } catch {
             close(slave)
             close(master)
@@ -157,6 +174,11 @@ final class PTYRunner: ObservableObject {
         write("\r\n")
     }
     
+    /// Очистить буфер вывода (для кнопки «Очистить» в UI)
+    func clearOutput() {
+        output = ""
+    }
+    
     func stop() {
         guard let proc = process else {
             processDidTerminate()
@@ -179,6 +201,11 @@ final class PTYRunner: ObservableObject {
         if masterFD >= 0 {
             close(masterFD)
             masterFD = -1
+        }
+        if let pid = process?.processIdentifier {
+            Self.pidLock.lock()
+            Self.knownChatPids.remove(pid)
+            Self.pidLock.unlock()
         }
         process = nil
         isRunning = false

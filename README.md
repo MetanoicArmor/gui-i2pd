@@ -122,8 +122,18 @@
 ![I2P GUI X25519 Keys](screenshots/screenshot10_en.png)
 *X25519 key generation for encrypted leasesets*
 
-![I2P GUI Chat](screenshots/screenshot11.png)
-*Built-in I2P Chat window (termchat-i2p) — P2P terminal chat over I2P*
+![I2P GUI Chat — setup (EN)](screenshots/screenshot11_en.png)
+*I2P Chat window — key entry / setup (English)*
+
+![I2P GUI Chat — conversation (EN)](screenshots/screenshot12_en.png)
+*I2P Chat window — P2P conversation (English)*
+
+#### 🇷🇺 **Russian interface (Chat):**
+![I2P GUI Чат — настройка (RU)](screenshots/screenshot11_ru.png)
+*Окно чата I2P — ввод ключей (русский)*
+
+![I2P GUI Чат — переписка (RU)](screenshots/screenshot12_ru.png)
+*Окно чата I2P — P2P переписка (русский)*
 
 ### 💬 **I2P Chat (termchat-i2p):**
 The app includes **termchat-i2p**, a terminal-based P2P chat that runs over the I2P network. It opens in a separate window with PTY-based input, ANSI colors, and supports multi-line messages (Shift+Enter for new line, Enter to send).

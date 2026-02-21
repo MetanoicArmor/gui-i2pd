@@ -233,8 +233,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             return
         }
         
-        // Уведомляем о завершении процессов Tools
+        // Уведомляем о завершении процессов Tools и чата
         NotificationCenter.default.post(name: NSNotification.Name("ApplicationWillTerminate"), object: nil)
+        Thread.sleep(forTimeInterval: 0.3)
+        PTYRunner.killAllKnownChatProcesses()
         
         // Вызываем СИНХРОННУЮ остановку демона напрямую (без recursion)
         let findAndKillCommand = """
