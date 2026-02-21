@@ -327,6 +327,12 @@ struct I2pdGUIApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 900, height: 700)
         .windowResizability(.contentSize)
+        
+        WindowGroup(L("Чат I2P"), id: "chat") {
+            ChatWindowView()
+        }
+        .windowResizability(.contentSize)
+        .defaultSize(width: 640, height: 480)
         .handlesExternalEvents(matching: ["quit"])
         
         // Settings убраны - используем NSAlert из трея
@@ -362,9 +368,11 @@ struct I2pdGUIApp: App {
 
 // MARK: - Main Content View
 struct ContentView: View {
+    @Environment(\.openWindow) private var openWindow
     @StateObject private var i2pdManager = I2pdManager()
     @State private var showingSettings = false
     @State private var showingTools = false
+    @State private var showingChat = false
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
     @State private var manualStop: Bool? = false // Флаг ручной остановки для предотвращения автозапуска
     
@@ -463,6 +471,7 @@ struct ContentView: View {
                 i2pdManager: i2pdManager,
                 showingSettings: $showingSettings,
                 showingTools: $showingTools,
+                showingChat: $showingChat,
                 manualStop: $manualStop
             )
             .padding(.horizontal, 8)
@@ -582,6 +591,9 @@ struct ContentView: View {
         .sheet(isPresented: $showingTools) {
             ToolsView()
         }
+        .onChange(of: showingChat) { _, new in
+            if new { openWindow(id: "chat") }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSettings"))) { _ in
             showingSettings = true
             WindowCloseDelegate.isSettingsOpen = true
@@ -595,6 +607,12 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenTools"))) { _ in
             showingTools = true
             print("🔧 Утилиты открыты")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenChat"))) { _ in
+            showingChat = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChatWindowDidClose"))) { _ in
+            showingChat = false
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonStartRequest"))) { _ in
             // Обрабатываем запрос запуска демона из трея
@@ -2590,6 +2608,7 @@ struct ControlButtons: View {
     @ObservedObject var i2pdManager: I2pdManager
     @Binding var showingSettings: Bool
     @Binding var showingTools: Bool
+    @Binding var showingChat: Bool
     @Binding var manualStop: Bool?
     
     var body: some View {
@@ -2653,6 +2672,14 @@ struct ControlButtons: View {
                 
                 Button("🔧 " + L("Утилиты")) {
                         showingTools = true
+                    }
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
+                    .frame(height: 36)
+                .frame(maxWidth: .infinity)
+                
+                Button("💬 " + L("Чат")) {
+                        showingChat = true
                     }
                             .lineLimit(1)
                             .minimumScaleFactor(0.9)

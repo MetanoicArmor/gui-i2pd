@@ -120,6 +120,23 @@ else
     echo "ℹ️ Папка Resources отсутствует, пропускаем локализации"
 fi
 
+# Сборка и копирование termchat-i2p в tools
+TERMCHAT_BINARY=""
+if [ -d "termchat-i2p" ]; then
+    echo "💬 Сборка termchat-i2p..."
+    ( cd termchat-i2p/libsam3 && make build 2>/dev/null ) && \
+    ( cd termchat-i2p && make 2>/dev/null ) && \
+    [ -f "termchat-i2p/termchat-i2p" ] && TERMCHAT_BINARY="termchat-i2p/termchat-i2p"
+    if [ -n "$TERMCHAT_BINARY" ]; then
+        mkdir -p tools
+        cp "$TERMCHAT_BINARY" tools/termchat-i2p
+        chmod +x tools/termchat-i2p
+        echo "✅ termchat-i2p собран и добавлен в tools"
+    else
+        echo "ℹ️ termchat-i2p не собран (нет libsam3 или ошибка сборки), пропускаем"
+    fi
+fi
+
 # Копирование утилит tools
 if [ -d "tools" ]; then
     echo "🔧 Копирование утилит tools..."
@@ -211,6 +228,7 @@ echo "   🔧 i2pd - основной демон"
 if [ -f "subscriptions.txt" ]; then echo "   📋 subscriptions.txt - подписки address book"; fi
 if [ -f "i2pd.conf" ]; then echo "   ⚙️ i2pd.conf - конфигурация демона"; fi
 if [ -f "tunnels.conf" ]; then echo "   🚇 tunnels.conf - конфигурация туннелей"; fi
+if [ -f "tools/termchat-i2p" ]; then echo "   💬 termchat-i2p - P2P чат I2P (в tools)"; fi
 echo "   🔧 Системная иконка трея по умолчанию"
 echo ""
 echo "🚀 Способы запуска:"

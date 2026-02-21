@@ -97,6 +97,10 @@ class TrayManager: NSObject, ObservableObject {
             toolsItem.target = self
             menu.addItem(toolsItem)
             
+            let chatItem = NSMenuItem(title: L("Чат"), action: #selector(openChat), keyEquivalent: "")
+            chatItem.target = self
+            menu.addItem(chatItem)
+            
             let webItem = NSMenuItem(title: L("Веб-консоль"), action: #selector(openWebConsole), keyEquivalent: "")
             webItem.target = self
             menu.addItem(webItem)
@@ -282,6 +286,14 @@ class TrayManager: NSObject, ObservableObject {
         
         updateStatusText("🔧 Открытие утилит...")
         print("✅ Главное окно открыто с утилитами")
+    }
+    
+    @objc func openChat() {
+        showMainWindow()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            NotificationCenter.default.post(name: NSNotification.Name("OpenChat"), object: nil)
+        }
+        updateStatusText("💬 Открытие чата...")
     }
     
     @objc func openWebConsole() {

@@ -300,6 +300,15 @@
 "High (recommended)" = "High (recommended)";
 "Maximum" = "Maximum";
 
+/* Chat Window */
+"Чат" = "Chat";
+"Чат I2P" = "I2P Chat";
+"Терминальный P2P-чат в сети I2P. Запускается в приложении «Терминал» для интерактивного ввода." = "Terminal P2P chat on I2P. Launches in Terminal app for interactive input.";
+"Терминальный P2P-чат в сети I2P. Запускается внутри окна." = "Terminal P2P chat on I2P. Runs inside this window.";
+"Запустить чат" = "Launch Chat";
+"Бинарник termchat-i2p не найден. Соберите его и поместите в папку tools приложения или рядом с приложением." = "termchat-i2p binary not found. Build it and place it in the app's tools folder or next to the app.";
+"Закрыть" = "Close";
+
 /* Tools Window */
 "Утилиты" = "Tools";
 "Генерация ключей" = "Key Generation";
