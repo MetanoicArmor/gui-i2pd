@@ -9,6 +9,7 @@ Thumbs.db
 
 # Swift
 .build/
+.build-x86_64/
 .swiftpm/
 Package.resolved
 
