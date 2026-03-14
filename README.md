@@ -53,7 +53,6 @@
 - 🌐 **Dynamic configuration reading** with automatic settings parsing
 - 📱 **Start minimized** - application starts in tray without showing window
 - 🛠️ **Built-in Tools module** - comprehensive set of I2P utilities with interactive terminal
-- 💬 **Built-in I2P Chat** - P2P terminal chat in a separate window (termchat-i2p)
 
 ---
 
@@ -122,20 +121,6 @@
 ![I2P GUI X25519 Keys](screenshots/screenshot10_en.png)
 *X25519 key generation for encrypted leasesets*
 
-<img src="screenshots/screenshot11_en.png" alt="I2P GUI Chat — setup (EN)" width="800">
-
-*I2P Chat window — key entry / setup (English)*
-
-<img src="screenshots/screenshot12_en.png" alt="I2P GUI Chat — conversation (EN)" width="800">
-
-*I2P Chat window — P2P conversation (English)*
-
-### 💬 **I2P Chat (termchat-i2p):**
-The app includes **termchat-i2p**, a terminal-based P2P chat that runs over the I2P network. It opens in a separate window with PTY-based input, ANSI colors, and supports multi-line messages (Shift+Enter for new line, Enter to send).
-
-- **Original project:** [termchat-i2p](http://git.community.i2p/stan/termchat-i2p) by stan (I2P community git)
-- **Description:** Decentralized chat for I2P: no central server, peer-to-peer messaging over I2P tunnels. The GUI embeds the termchat-i2p binary and runs it in a terminal view so you can use the chat without leaving the app.
-
 ### 🖥️ **Main Window:**
 - **📊 Server Status**: shows daemon state (running/stopped)
 - **⏱️ Uptime**: I2P daemon uptime
@@ -149,7 +134,6 @@ The app includes **termchat-i2p**, a terminal-based P2P chat that runs over the 
 - **🔄 Refresh Status** - check current state
 - **⚙️ Settings** - daemon configuration
 - **🗑️ Clear Logs** - clear log history
-- **💬 Chat** - open I2P P2P chat window (termchat-i2p)
 - **🛠️ Tools** - access built-in I2P utilities
 
 ### ⚙️ **Settings:**
@@ -239,8 +223,7 @@ I2P Daemon GUI.app/
 │       │   ├── i2pbase64         # Base64 encoder/decoder
 │       │   ├── famtool           # Family certificate tool
 │       │   ├── verifyhost        # Host verification utility
-│       │   ├── autoconf          # Interactive config generator
-│       │   └── termchat-i2p      # P2P terminal chat (see I2P Chat section)
+│       │   └── autoconf          # Interactive config generator
 │       ├── ru.lproj/            # Russian localization
 │       │   └── Localizable.strings
 │       └── en.lproj/            # English localization

@@ -11,7 +11,7 @@ INTEL_DIR="intel"
 
 # Проверяем наличие папки intel с бинарниками
 if [ ! -d "$INTEL_DIR" ]; then
-    echo "❌ Папка $INTEL_DIR не найдена. Положите туда бинарники для x86_64: i2pd, termchat-i2p, i2p-tools."
+    echo "❌ Папка $INTEL_DIR не найдена. Положите туда бинарники для x86_64: i2pd, i2p-tools."
     exit 1
 fi
 
@@ -104,20 +104,16 @@ if [ -d "Resources" ]; then
     echo "✅ Локализации скопированы"
 fi
 
-# Формируем tools из intel/: termchat-i2p + все i2p-tools (всё кроме i2pd и autoconf по желанию — копируем всё нужное)
+# Формируем tools из intel/: i2p-tools (всё кроме i2pd)
 echo "🔧 Копирование утилит из ${INTEL_DIR}/ в tools..."
 TOOLS_INTEL="${RESOURCES_DIR}/tools"
 mkdir -p "${TOOLS_INTEL}"
-for bin in b33address famtool i2pbase64 keygen keyinfo offlinekeys regaddr regaddr_3ld regaddralias routerinfo termchat-i2p vain verifyhost x25519; do
+for bin in b33address famtool i2pbase64 keygen keyinfo offlinekeys regaddr regaddr_3ld regaddralias routerinfo vain verifyhost x25519; do
     if [ -f "${INTEL_DIR}/${bin}" ]; then
         cp "${INTEL_DIR}/${bin}" "${TOOLS_INTEL}/${bin}"
         chmod +x "${TOOLS_INTEL}/${bin}"
     fi
 done
-if [ -f "${INTEL_DIR}/termchat-i2p" ]; then
-    cp "${INTEL_DIR}/termchat-i2p" "${TOOLS_INTEL}/termchat-i2p"
-    chmod +x "${TOOLS_INTEL}/termchat-i2p"
-fi
 echo "✅ Утилиты tools (Intel) скопированы"
 
 # Info.plist
@@ -188,7 +184,7 @@ echo "   📋 ID: ${BUNDLE_ID}"
 echo "   📱 Версия: ${APP_VERSION}"
 echo "   🖥️  Архитектура: x86_64 (Intel)"
 echo ""
-echo "📁 Включены: i2pd, tools (termchat-i2p + i2p-tools) из папки intel/"
+echo "📁 Включены: i2pd, tools (i2p-tools) из папки intel/"
 echo ""
 echo "🚀 Запуск: open ${APP_DIR}"
 echo "✅ Готово!"
