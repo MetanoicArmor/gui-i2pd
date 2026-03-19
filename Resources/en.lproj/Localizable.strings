@@ -23,6 +23,7 @@
 /* Control buttons */
 "Запустить" = "Start";
 "Остановить" = "Stop";
+"Стоп" = "Stop";
 "Перезапустить" = "Restart";
 "Настройки" = "Settings";
 "Обновить статус" = "Refresh Status";

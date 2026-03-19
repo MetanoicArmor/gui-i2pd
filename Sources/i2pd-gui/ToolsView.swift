@@ -77,7 +77,7 @@ class ToolsManager: ObservableObject {
         return FileManager.default.fileExists(atPath: toolPath)
     }
     
-    func runTool(name: String, arguments: [String], stdinData: String? = nil, workingDirectory: String? = nil, completion: @escaping (String) -> Void) {
+    func runTool(name: String, arguments: [String], stdinData: String? = nil, workingDirectory: String? = nil, timeout: TimeInterval? = 300, completion: @escaping (String) -> Void) {
         DispatchQueue.global(qos: .userInitiated).async {
             let toolPath = self.getBundledToolPath(name: name)
             
@@ -127,22 +127,23 @@ class ToolsManager: ObservableObject {
                     inputHandle.closeFile()
                 }
                 
-                // Ждём завершения процесса с таймаутом
-                let timeout: TimeInterval = 300 // 5 минут
-                let startTime = Date()
-                
-                while process.isRunning {
-                    if Date().timeIntervalSince(startTime) > timeout {
-                        // Принудительно завершаем процесс при таймауте
-                        process.terminate()
-                        DispatchQueue.main.async {
-                            self.isRunning = false
-                            self.currentTool = ""
-                            completion("⚠️ Процесс завершён по таймауту (5 минут)")
+                // Ждём завершения процесса. Для long-running утилит можно отключить таймаут.
+                if let timeout {
+                    let startTime = Date()
+                    while process.isRunning {
+                        if Date().timeIntervalSince(startTime) > timeout {
+                            process.terminate()
+                            DispatchQueue.main.async {
+                                self.isRunning = false
+                                self.currentTool = ""
+                                completion("⚠️ Процесс завершён по таймауту (\(Int(timeout)) сек)")
+                            }
+                            return
                         }
-                        return
+                        usleep(100000)
                     }
-                    usleep(100000) // 0.1 секунды
+                } else {
+                    process.waitUntilExit()
                 }
                 
                 // Читаем вывод после завершения процесса
@@ -558,7 +559,7 @@ struct VainView: View {
                 .disabled(toolsManager.isRunning || pattern.isEmpty)
                 
                 if toolsManager.isRunning {
-                    Button(L("Остановить")) {
+                    Button(L("Стоп")) {
                         toolsManager.stopCurrentTool()
                     }
                 }
@@ -594,7 +595,7 @@ struct VainView: View {
             arguments.append(threads)
         }
         
-        toolsManager.runTool(name: "vain", arguments: arguments) { output in
+        toolsManager.runTool(name: "vain", arguments: arguments, timeout: nil) { output in
             toolsManager.output = output
         }
     }
