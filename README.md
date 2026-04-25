@@ -8,6 +8,7 @@
 
 <div align="center">
 
+
 ![I2P-GUI App](https://img.shields.io/badge/macOS-14.0+-blue.svg)
 ![Swift](https://img.shields.io/badge/Swift-5.7+-orange.svg)
 ![Version](https://img.shields.io/badge/Version-2.59.0-green.svg)
