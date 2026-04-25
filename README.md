@@ -105,7 +105,8 @@
 ![I2P GUI Advanced Settings](screenshots/screenshot3_en.png)
 *Advanced settings: tunnels, Address Book, and subscriptions*
 
-![I2P GUI Tray Menu](screenshots/screenshot4_en.png)
+<img src="screenshots/screenshot4_en.png" alt="I2P GUI Tray Menu" width="282" />
+
 *Menu bar extras: quick actions and daemon state*
 
 ### 🖥️ **Main Window:**

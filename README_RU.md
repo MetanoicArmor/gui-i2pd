@@ -104,7 +104,8 @@
 ![I2P GUI Расширенные настройки](screenshots/screenshot3_ru.png)
 *Расширенные настройки: туннели, Address Book и подписки*
 
-![I2P GUI Меню в строке меню](screenshots/screenshot4_ru.png)
+<img src="screenshots/screenshot4_ru.png" alt="I2P GUI Меню в строке меню" width="303" />
+
 *Меню в строке меню: быстрые действия и состояние демона*
 
 ### 🖥️ **Основное окно:**
