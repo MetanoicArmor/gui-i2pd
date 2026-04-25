@@ -11,13 +11,13 @@
 
 ![I2P-GUI App](https://img.shields.io/badge/macOS-14.0+-blue.svg)
 ![Swift](https://img.shields.io/badge/Swift-5.7+-orange.svg)
-![Version](https://img.shields.io/badge/Version-2.59.0-green.svg)
-![I2P](https://img.shields.io/badge/I2P-2.59.0-purple.svg)
+![Version](https://img.shields.io/badge/Version-2.60.0-green.svg)
+![I2P](https://img.shields.io/badge/I2P-2.60.0-purple.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 **Modern GUI for managing I2P daemon on macOS with full internationalization**
 
-[![Download](https://img.shields.io/badge/📥%20Download-I2P%20Daemon%20GUI.app-brightgreen.svg)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.59.0/I2P-Daemon-GUI-2.59.0.zip)
+[![Download](https://img.shields.io/badge/📥%20Download-I2P%20Daemon%20GUI.app-brightgreen.svg)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.60.0/I2P-Daemon-GUI-2.60.0.zip)
 [![Build Status](https://img.shields.io/badge/🔧%20Build-Passing-success.svg)](https://github.com/MetanoicArmor/gui-i2pd/actions)
 
 </div>
@@ -70,12 +70,12 @@
 1. **📥 Download the ready application:**
    ```bash
    # Direct link to .app ZIP archive
-   curl -L https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.59.0/I2P-Daemon-GUI-2.59.0.zip -o I2P-Daemon-GUI-2.59.0.zip
+   curl -L https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.60.0/I2P-Daemon-GUI-2.60.0.zip -o I2P-Daemon-GUI-2.60.0.zip
    ```
 
 2. **📁 Extract and install:**
    ```bash
-   unzip I2P-Daemon-GUI-2.59.0.zip
+   unzip I2P-Daemon-GUI-2.60.0.zip
    mv "I2P Daemon GUI.app" /Applications/
    ```
 
@@ -83,6 +83,19 @@
    ```bash
    open "/Applications/I2P Daemon GUI.app"
    ```
+
+### 🍺 **Homebrew (Apple Silicon .app in the cask):**
+
+This tap installs the **arm64** build from the release ZIP. On **Intel Macs**, use the ZIP from [Releases](https://github.com/MetanoicArmor/gui-i2pd/releases) or build with `build-app-intel.sh`.
+
+Because the repo is named `gui-i2pd` (not `homebrew-gui-i2pd`), pass the Git URL explicitly:
+
+```bash
+brew tap MetanoicArmor/gui-i2pd https://github.com/MetanoicArmor/gui-i2pd
+brew install --cask i2p-daemon-gui
+```
+
+Upgrade later with `brew upgrade --cask i2p-daemon-gui`.
 
 ### 📋 **System Requirements:**
 - **macOS**: 14.0 or newer
@@ -183,7 +196,7 @@
 - **UI**: SwiftUI + macOS Design Guidelines
 - **Language**: Swift 5.7+
 - **Build Manager**: Swift Package Manager
-- **Daemon**: i2pd 2.59.0 (embedded binary)
+- **Daemon**: i2pd 2.60 (embedded binary)
 - **Dependencies**: Native macOS APIs
 - **Localization**: NSLocalizedString + .lproj bundles
 
@@ -191,7 +204,7 @@
 ```
 I2P Daemon GUI.app/
 ├── Contents/
-│   ├── Info.plist              # Metadata (version 2.59.0)
+│   ├── Info.plist              # Metadata (version 2.60)
 │   ├── MacOS/
 │   │   └── I2P Daemon GUI       # GUI executable (1.5MB)
 │   └── Resources/
@@ -323,7 +336,9 @@ swift --version
 
 ## 🗺️ Version History
 
-### 🏆 **v2.59.0 (Current)** - Stable version with full functionality, internationalization and built-in tools
+### 🏆 **v2.60.0 (Current)** — macOS 26-style UI refresh, i2pd 2.60, release ZIP + Homebrew cask (arm64)
+
+### **v2.59.0** — Stable baseline with full functionality, internationalization and built-in tools
 - ✅ Full internationalization (Russian/English) with smart restart
 - ✅ Dynamic daemon version fetching from web console
 - ✅ Smart exit with proper daemon shutdown (Cmd+Q, tray, language change)
@@ -396,7 +411,7 @@ tools/                   # Built-in I2P utilities (13 binaries)
 
 Package.swift            # Swift Package Manager configuration  
 build-app-simple.sh      # .app package build script with code signing and localization
-Info.plist              # Application metadata (version 2.59.0)
+Info.plist              # Application metadata (version 2.60)
 ```
 
 ### 📝 **Development Ready:**
@@ -471,7 +486,7 @@ UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
 <div align="center">
 
 ### 🚀 Direct Download:
-[![Download I2P Daemon GUI.app](https://img.shields.io/badge/📦%20Download-I2P%20Daemon%20GUI.app-ff6b6b.svg?style=for-the-badge)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.59.0/I2P-Daemon-GUI-2.59.0.zip)
+[![Download I2P Daemon GUI.app](https://img.shields.io/badge/📦%20Download-I2P%20Daemon%20GUI.app-ff6b6b.svg?style=for-the-badge)](https://github.com/MetanoicArmor/gui-i2pd/releases/download/v2.60.0/I2P-Daemon-GUI-2.60.0.zip)
 
 ---
 
