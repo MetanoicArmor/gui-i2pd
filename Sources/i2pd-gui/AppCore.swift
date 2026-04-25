@@ -380,43 +380,42 @@ struct ContentView: View {
     
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Заголовок (опущен ниже)
-            Text(L("I2P Daemon GUI"))
-                .font(.title)
-                .fontWeight(.semibold)
-                .foregroundColor(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .padding(.top, 8)
-            
+        ZStack(alignment: .top) {
+            LiquidGlassBackdrop(material: .underWindowBackground)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
             // Статус сервера
             StatusCard(
                 isRunning: i2pdManager.isRunning,
                 uptime: i2pdManager.uptime,
-                peers: i2pdManager.peerCount
+                peers: i2pdManager.peerCount,
+                daemonVersion: i2pdManager.daemonVersion
             )
-            .padding(.horizontal, 8)
             
             // Компактная сетевая статистика - всегда развернута
-            VStack(spacing: 2) {
+            VStack(spacing: 8) {
                 // Заголовок секции
                 HStack {
                     Image(systemName: "chart.bar.fill")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.orange)
-                    Text(L("📊 Сетевая статистика"))
+                    Text(L("Сетевая статистика"))
                         .font(.headline)
                         .fontWeight(.semibold)
                     Spacer()
-                    Button("⚙️") {
+                    Button {
                         showingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
                     }
                     .buttonStyle(.borderless)
                     .help(L("Настройки"))
                     
-                    Button("🔄") {
+                    Button {
                         i2pdManager.getExtendedStats()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
                     }
                     .disabled(!i2pdManager.isRunning)
                     .buttonStyle(.borderless)
@@ -424,8 +423,7 @@ struct ContentView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(12)
+                .liquidGlassHeader()
                 
                 // Статистика в компактном виде - одна строка
                 HStack(spacing: 16) {
@@ -466,7 +464,8 @@ struct ContentView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 4)
             }
-            .padding(.horizontal, 8)
+            .padding(10)
+            .liquidGlassPanel(cornerRadius: 18, material: .regularMaterial)
             
             // Кнопки управления
             ControlButtons(
@@ -475,22 +474,23 @@ struct ContentView: View {
                 showingTools: $showingTools,
                 manualStop: $manualStop
             )
-            .padding(.horizontal, 8)
             
             // Секция логов - всегда развернута
-            VStack(spacing: 2) {
+            VStack(spacing: 8) {
                 // Заголовок секции
                 HStack {
                     Image(systemName: "doc.text")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.blue)
-                    Text(L("📋 Логи системы"))
+                    Text(L("Логи системы"))
                         .font(.headline)
                         .fontWeight(.semibold)
                     Spacer()
                     if !i2pdManager.logs.isEmpty {
-                        Button("🗑️ " + L("Очистить")) {
+                        Button {
                             i2pdManager.clearLogs()
+                        } label: {
+                            Label(L("Очистить"), systemImage: "trash")
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
@@ -498,8 +498,7 @@ struct ContentView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(12)
+                .liquidGlassHeader()
                 
                 // Логи в компактном виде
                 ScrollView {
@@ -547,18 +546,19 @@ struct ContentView: View {
                 }
                     }
                 }
-                .frame(minHeight: 250, maxHeight: 400) // Адаптивная высота логов для больших экранов
+                .frame(minHeight: 260, maxHeight: .infinity) // Логи занимают оставшуюся высоту окна.
             }
-            .padding(.horizontal, 20) // Больше места для адаптивности
-            
-            // Версия демона в правом нижнем углу
-            Text(String(format: NSLocalizedString("i2pd v%@", comment: "i2pd version label"), i2pdManager.daemonVersion))
-                .font(.system(size: 9))
-                .foregroundColor(.primary.opacity(0.7))
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.trailing, 12)
-                .padding(.bottom, 8)
+            .padding(10)
+            .frame(maxHeight: .infinity)
+            .liquidGlassPanel(cornerRadius: 18, material: .regularMaterial)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(.horizontal, LiquidGlassTheme.windowPadding)
+            .padding(.bottom, LiquidGlassTheme.windowPadding)
+            .padding(.top, 52)
         }
+        .ignoresSafeArea(.container, edges: .top)
+        .liquidGlassWindow()
         .frame(minWidth: 650, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         .frame(maxWidth: min(1200, NSScreen.main?.frame.width ?? 1200 * 0.8)) // Адаптивная ширина: 80% от ширины экрана, но не более 1200px
         .onAppear {
@@ -657,9 +657,7 @@ struct ContentView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color(NSColor.windowBackgroundColor))
-                .cornerRadius(8)
-                .shadow(radius: 2)
+                .liquidGlassPanel(cornerRadius: 12, material: .thinMaterial, shadowOpacity: 0.12)
                 .padding(.bottom, 20)
             }
         }
@@ -1262,11 +1260,15 @@ struct SettingsView: View {
     @State private var showingResetAlert = false
     
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .top) {
+            LiquidGlassBackdrop(material: .sheet, blendingMode: .withinWindow)
+                .ignoresSafeArea()
+
+            VStack(spacing: 14) {
             // Заголовок
             HStack {
-                Text(L("⚙️ Настройки"))
-                    .font(.largeTitle)
+                Label(L("Настройки"), systemImage: "gearshape")
+                    .font(.title)
                     .fontWeight(.bold)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -1276,17 +1278,15 @@ struct SettingsView: View {
                 Text(L("Esc для закрытия"))
                     .font(.caption)
                     .foregroundColor(.secondary)
-                    .padding(.trailing, 16)
             }
-            .padding(16)
-            .background(Color(NSColor.windowBackgroundColor))
+            .padding(.horizontal, 24)
+            .padding(.vertical, 14)
+            .liquidGlassHeader(cornerRadius: 18)
             
-            Divider()
-            
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 12) {
                     // Сетевая конфигурация
-                    SettingsSection(title: "🌐 " + L("Сетевая конфигурация"), icon: "globe") {
+                    SettingsSection(title: L("Сетевая конфигурация"), icon: "globe") {
                         VStack(spacing: 12) {
                             // Порт HTTP прокси (интерактивный)
                             HStack(spacing: 12) {
@@ -1383,8 +1383,7 @@ struct SettingsView: View {
                                             .foregroundColor(.primary)
                                             .padding(.vertical, 8)
                                             .padding(.horizontal, 12)
-                                            .background(Color(NSColor.controlBackgroundColor))
-                                    .cornerRadius(6)
+                                            .liquidGlassPanel(cornerRadius: 8, material: .thinMaterial, shadowOpacity: 0.03)
                                 }
                                 }
                             }
@@ -1394,7 +1393,7 @@ struct SettingsView: View {
                     }
                     
                     // Автоматизация
-                    SettingsSection(title: "💻 " + L("Автоматизация"), icon: "gearshape.2.fill") {
+                    SettingsSection(title: L("Автоматизация"), icon: "gearshape.2.fill") {
                         VStack(spacing: 16) {
                             // Показываем текущее состояние LaunchAgent
                             HStack(spacing: 12) {
@@ -1481,7 +1480,7 @@ struct SettingsView: View {
                     }
                     
                     // Интерфейс
-                    SettingsSection(title: "🎨 " + L("Интерфейс"), icon: "paintpalette.fill") {
+                    SettingsSection(title: L("Интерфейс"), icon: "paintpalette.fill") {
                         VStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(L("Язык приложения"))
@@ -1563,7 +1562,7 @@ struct SettingsView: View {
                     }
                     
                     // Мониторинг
-                    SettingsSection(title: "📊 " + L("Мониторинг"), icon: "chart.bar") {
+                    SettingsSection(title: L("Мониторинг"), icon: "chart.bar") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
                                 Text(L("Обновление каждые 5 сек"))
@@ -1612,7 +1611,7 @@ struct SettingsView: View {
                     }
                     
                     // Данные
-                    SettingsSection(title: "💾 " + L("Данные"), icon: "folder.fill") {
+                    SettingsSection(title: L("Данные"), icon: "folder.fill") {
                         VStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(L("Путь к данным"))
@@ -1635,15 +1634,19 @@ struct SettingsView: View {
                             Divider()
                             
                             VStack(spacing: 12) {
-                                Button("🗑️ " + L("Очистить кэш")) {
+                                Button {
                                     clearDataCache()
+                                } label: {
+                                    Label(L("Очистить кэш"), systemImage: "trash")
                                 }
                                 .foregroundColor(.red)
                                 .buttonStyle(.borderless)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 
-                                Button("📊 " + L("Экспорт логов")) {
+                                Button {
                                     exportLogs()
+                                } label: {
+                                    Label(L("Экспорт логов"), systemImage: "square.and.arrow.up")
                                 }
                                 .foregroundColor(.blue)
                                 .buttonStyle(.borderless)
@@ -1653,11 +1656,13 @@ struct SettingsView: View {
                     }
                     
                     // Действия
-                    SettingsSection(title: "🔄 " + L("Действия"), icon: "hammer.circle.fill") {
+                    SettingsSection(title: L("Действия"), icon: "hammer.circle.fill") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
-                                Button("🔧 " + L("Сбросить настройки")) {
+                                Button {
                                     showingResetAlert = true
+                                } label: {
+                                    Label(L("Сбросить настройки"), systemImage: "arrow.counterclockwise.circle")
                                 }
                                 .foregroundColor(.orange)
                                 .buttonStyle(.borderless)
@@ -1677,8 +1682,10 @@ struct SettingsView: View {
                             }
                             
                             HStack(spacing: 12) {
-                                Button("📊 " + L("Тестовая статистика")) {
+                                Button {
                                     i2pdManager.getExtendedStats()
+                                } label: {
+                                    Label(L("Тестовая статистика"), systemImage: "chart.bar")
                                 }
                                 .disabled(!i2pdManager.isRunning)
                                 .buttonStyle(.borderless)
@@ -1691,7 +1698,7 @@ struct SettingsView: View {
                     }
                     
                     // Конфигурация и файлы
-                    SettingsSection(title: "📁 " + L("Конфигурация"), icon: "doc.text") {
+                    SettingsSection(title: L("Конфигурация"), icon: "doc.text") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
                                 Text(L("Конфиг файл"))
@@ -1699,8 +1706,10 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("📁 " + L("Открыть")) {
+                                Button {
                                     openConfigFile()
+                                } label: {
+                                    Label(L("Открыть"), systemImage: "folder")
                                 }
                                 .buttonStyle(.borderless)
                                 
@@ -1714,8 +1723,10 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("📂 " + L("Открыть")) {
+                                Button {
                                     openLogsDirectory() // Используем логи как папку данных
+                                } label: {
+                                    Label(L("Открыть"), systemImage: "folder")
                                 }
                                 .buttonStyle(.borderless)
                                 
@@ -1729,8 +1740,10 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("📋 " + L("Открыть")) {
+                                Button {
                                     openLogsDirectory()
+                                } label: {
+                                    Label(L("Открыть"), systemImage: "doc.text")
                                 }
                                 .buttonStyle(.borderless)
                                 
@@ -1741,7 +1754,7 @@ struct SettingsView: View {
                     }
                     
                     // Туннели
-                    SettingsSection(title: "🚇 " + L("Туннели"), icon: "network") {
+                    SettingsSection(title: L("Туннели"), icon: "network") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
                                 Text(L("Управление туннелями"))
@@ -1749,8 +1762,10 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("⚙️ " + L("Настроить")) {
+                                Button {
                                     openTunnelManager()
+                                } label: {
+                                    Label(L("Настроить"), systemImage: "slider.horizontal.3")
                                 }
                                 .buttonStyle(.borderless)
                                 
@@ -1764,8 +1779,10 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("📝 " + L("Показать")) {
+                                Button {
                                     showTunnelExamples()
+                                } label: {
+                                    Label(L("Показать"), systemImage: "doc.text.magnifyingglass")
                                 }
                                 .buttonStyle(.borderless)
                                 
@@ -1776,7 +1793,7 @@ struct SettingsView: View {
                     }
                     
                     // Address Book
-                    SettingsSection(title: "📖 " + L("Address Book"), icon: "book.fill") {
+                    SettingsSection(title: L("Address Book"), icon: "book.fill") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
                                 Text(L("Подписки adressbook"))
@@ -1784,8 +1801,10 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 220, alignment: .leading)
                                 
-                                Button("📝 " + L("Редактировать")) {
+                                Button {
                                     openAddressBookSubscriptions()
+                                } label: {
+                                    Label(L("Редактировать"), systemImage: "pencil")
                                 }
                                 .buttonStyle(.borderless)
                                 
@@ -1851,7 +1870,7 @@ struct SettingsView: View {
                     }
                     
                     // Веб-консоль
-                    SettingsSection(title: "🖥️ " + L("Веб-консоль"), icon: "safari.fill") {
+                    SettingsSection(title: L("Веб-консоль"), icon: "safari.fill") {
                         VStack(spacing: 12) {
                             HStack(spacing: 12) {
                                 Text(L("Веб-интерфейс"))
@@ -1859,8 +1878,10 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("🌐 " + L("Открыть")) {
+                                Button {
                                     openWebConsole()
+                                } label: {
+                                    Label(L("Открыть"), systemImage: "safari")
                                 }
                                 .buttonStyle(.borderless)
                                 .disabled(!i2pdManager.isRunning)
@@ -1875,8 +1896,10 @@ struct SettingsView: View {
                                     .foregroundColor(.secondary)
                                     .frame(minWidth: 200, alignment: .leading)
                                 
-                                Button("🔗 " + L("Копировать URL")) {
+                                Button {
                                     copyWebConsoleURL()
+                                } label: {
+                                    Label(L("Копировать URL"), systemImage: "link")
                                 }
                                 .buttonStyle(.borderless)
                                 
@@ -1897,10 +1920,19 @@ struct SettingsView: View {
                     }
                     .padding(.top, 8)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 16)
+                .frame(maxWidth: 980, alignment: .top)
+                .frame(maxWidth: .infinity, alignment: .top)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 18)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+            .padding(.horizontal, 18)
+            .padding(.top, 44)
+            .padding(.bottom, 18)
+        }
+        .ignoresSafeArea(.container, edges: .top)
+        .liquidGlassWindow()
         .frame(minWidth: 750, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
         .onAppear {
             // Загружаем актуальные порты из конфига при открытии настроек
@@ -2478,8 +2510,7 @@ struct SettingsSection<Content: View>: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 8)
-            .background(Color(NSColor.controlBackgroundColor))
-            .cornerRadius(12)
+            .liquidGlassHeader()
             
             // Содержимое секции
             VStack(spacing: 12) {
@@ -2487,14 +2518,7 @@ struct SettingsSection<Content: View>: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(NSColor.windowBackgroundColor))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color(NSColor.separatorColor), lineWidth: 1)
-                    )
-            )
+            .liquidGlassPanel(cornerRadius: 16, material: .regularMaterial)
         }
     }
 }
@@ -2526,6 +2550,7 @@ struct StatusCard: View {
     let isRunning: Bool
     let uptime: String
     let peers: Int
+    let daemonVersion: String
     
     var body: some View {
         HStack(spacing: 32) {
@@ -2580,18 +2605,16 @@ struct StatusCard: View {
             }
             
             Spacer()
+
+            Text(String(format: NSLocalizedString("i2pd v%@", comment: "i2pd version label"), daemonVersion))
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .padding(.vertical, 20)
-        .padding(.horizontal, 32)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(NSColor.controlBackgroundColor))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color(NSColor.separatorColor), lineWidth: 1)
-                )
-        )
-        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+        .padding(.horizontal, 28)
+        .liquidGlassPanel(cornerRadius: 20, material: .regularMaterial)
     }
 }
 
@@ -2606,14 +2629,16 @@ struct ControlButtons: View {
         VStack(spacing: 16) {
             // Основные кнопки
             HStack(spacing: 16) {
-                Button(NSLocalizedString("Перезапустить", comment: "Restart button")) {
+                Button {
                     manualStop = false // Сбрасываем флаг при перезапуске
                     i2pdManager.restartDaemon()
+                } label: {
+                    Label(NSLocalizedString("Перезапустить", comment: "Restart button"), systemImage: "arrow.clockwise")
+                        .frame(height: 36)
+                        .frame(maxWidth: .infinity)
                 }
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
-                .frame(height: 36)
-                .frame(maxWidth: .infinity)
                 .disabled(i2pdManager.isLoading || !i2pdManager.isRunning)
                 
                 Button(action: {
@@ -2640,52 +2665,64 @@ struct ControlButtons: View {
                 .controlSize(.large)
                 .disabled(i2pdManager.isLoading || i2pdManager.operationInProgress)
                 
-                Button(L("Обновить статус")) {
+                Button {
                     i2pdManager.checkStatus()
+                } label: {
+                    Label(L("Обновить статус"), systemImage: "arrow.triangle.2.circlepath")
+                        .frame(height: 36)
+                        .frame(maxWidth: .infinity)
                 }
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
-                .frame(height: 36)
-                .frame(maxWidth: .infinity)
                 .disabled(i2pdManager.isLoading)
             
             }
             
             // Дополнительные кнопки
             HStack(spacing: 12) {
-                    Button("⚙️ " + L("Настройки")) {
+                    Button {
                         showingSettings = true
+                    } label: {
+                        Label(L("Настройки"), systemImage: "gearshape")
+                            .frame(height: 36)
+                            .frame(maxWidth: .infinity)
                     }
                             .lineLimit(1)
                             .minimumScaleFactor(0.9)
-                    .frame(height: 36)
-                .frame(maxWidth: .infinity)
                 
-                Button("🔧 " + L("Утилиты")) {
+                Button {
                         showingTools = true
+                    } label: {
+                        Label(L("Утилиты"), systemImage: "wrench.and.screwdriver")
+                            .frame(height: 36)
+                            .frame(maxWidth: .infinity)
                     }
                             .lineLimit(1)
                             .minimumScaleFactor(0.9)
-                    .frame(height: 36)
-                .frame(maxWidth: .infinity)
                 
-                Button("🔽 " + L("Свернуть в трей")) {
+                Button {
                     TrayManager.shared.hideMainWindow()
+                    } label: {
+                        Label(L("Свернуть в трей"), systemImage: "menubar.arrow.down.rectangle")
+                            .frame(height: 36)
+                            .frame(maxWidth: .infinity)
                     }
                             .lineLimit(1)
                             .minimumScaleFactor(0.9)
-                    .frame(height: 36)
-                .frame(maxWidth: .infinity)
                 
-                Button(L("Очистить логи")) {
+                Button {
                     i2pdManager.clearLogs()
+                } label: {
+                    Label(L("Очистить логи"), systemImage: "trash")
+                        .frame(height: 36)
+                        .frame(maxWidth: .infinity)
                 }
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
-                .frame(height: 36)
-                .frame(maxWidth: .infinity)
             }
         }
+        .padding(16)
+        .liquidGlassPanel(cornerRadius: 18, material: .thinMaterial)
     }
 }
 
@@ -2732,14 +2769,7 @@ struct LogView: View {
                     )
                 }
             }
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(NSColor.controlBackgroundColor))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color(NSColor.separatorColor), lineWidth: 1)
-                    )
-            )
+            .liquidGlassPanel(cornerRadius: 14, material: .regularMaterial, shadowOpacity: 0.04)
         }
         .frame(maxHeight: 300)
         .onKeyPress(.escape) {
@@ -2807,10 +2837,7 @@ struct StatCard: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, minHeight: 80)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(NSColor.controlBackgroundColor))
-        )
+        .liquidGlassPanel(cornerRadius: 12, material: .thinMaterial, shadowOpacity: 0.04)
     }
 }
 
@@ -3419,8 +3446,7 @@ class I2pdManager: ObservableObject {
     
     // Новая функция для проверки статуса с учетом флага manualStop
     private func checkDaemonStatusWithManualStopFlag() {
-        // Получаем текущий флаг manualStop из ContentView
-        let manualStopFlag = NotificationCenter.default.post(name: NSNotification.Name("GetManualStopFlag"), object: nil)
+        NotificationCenter.default.post(name: NSNotification.Name("GetManualStopFlag"), object: nil)
         
         checkDaemonStatus()
     }

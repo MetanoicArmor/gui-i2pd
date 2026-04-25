@@ -8,6 +8,8 @@ APP_NAME="I2P Daemon GUI"
 APP_DIR_NAME="I2P Daemon GUI-Intel"
 BUNDLE_ID="com.i2pd.daemon-gui"
 INTEL_DIR="intel"
+VERSION_FILE="VERSION"
+DEFAULT_APP_VERSION="2.60"
 
 # Проверяем наличие папки intel с бинарниками
 if [ ! -d "$INTEL_DIR" ]; then
@@ -15,20 +17,54 @@ if [ ! -d "$INTEL_DIR" ]; then
     exit 1
 fi
 
-# Версию и бинарник i2pd берём из intel/
-echo "🔍 Определение версии из бинарника intel/i2pd..."
-if [ -f "${INTEL_DIR}/i2pd" ]; then
-    VERSION_OUTPUT=$("${INTEL_DIR}/i2pd" --version 2>&1 || true)
-    APP_VERSION=$(echo "$VERSION_OUTPUT" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-    if [ -z "$APP_VERSION" ]; then
-        echo "❌ Не удалось определить версию из бинарника, используем запасную 2.59.0"
-        APP_VERSION="2.59.0"
-    else
-        echo "✅ Версия i2pd (Intel): $APP_VERSION"
-    fi
-else
+if [ ! -f "${INTEL_DIR}/i2pd" ]; then
     echo "❌ Бинарник ${INTEL_DIR}/i2pd не найден"
     exit 1
+fi
+
+is_valid_version() {
+    [[ "$1" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]
+}
+
+read_version_file() {
+    if [ ! -f "$VERSION_FILE" ]; then
+        return 1
+    fi
+
+    APP_VERSION=$(head -n 1 "$VERSION_FILE" | tr -d '[:space:]')
+    if is_valid_version "$APP_VERSION"; then
+        echo "✅ Версия из ${VERSION_FILE}: $APP_VERSION"
+        return 0
+    fi
+
+    echo "⚠️ ${VERSION_FILE} содержит некорректную версию: ${APP_VERSION}"
+    APP_VERSION=""
+    return 1
+}
+
+read_binary_version() {
+    if [ ! -f "${INTEL_DIR}/i2pd" ]; then
+        echo "❌ Бинарник ${INTEL_DIR}/i2pd не найден"
+        return 1
+    fi
+
+    echo "🔍 Определение версии из бинарника intel/i2pd..."
+    VERSION_OUTPUT=$("${INTEL_DIR}/i2pd" --version 2>&1 || true)
+    APP_VERSION=$(echo "$VERSION_OUTPUT" | grep -oE '[0-9]+(\.[0-9]+){1,2}' | head -1)
+
+    if is_valid_version "$APP_VERSION"; then
+        echo "✅ Версия i2pd (Intel): $APP_VERSION"
+        return 0
+    fi
+
+    echo "❌ Не удалось определить версию из бинарника"
+    APP_VERSION=""
+    return 1
+}
+
+if ! read_version_file && ! read_binary_version; then
+    echo "⚠️ Используем версию по умолчанию ${DEFAULT_APP_VERSION}"
+    APP_VERSION="$DEFAULT_APP_VERSION"
 fi
 
 echo "📱 Версия приложения: $APP_VERSION"

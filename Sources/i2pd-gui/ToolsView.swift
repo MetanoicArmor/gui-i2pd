@@ -275,14 +275,19 @@ struct ToolsView: View {
     @State private var selectedTool: ToolType = .keygen
     
     var body: some View {
-        HStack(spacing: 0) {
+        ZStack(alignment: .top) {
+            LiquidGlassBackdrop(material: .underWindowBackground)
+                .ignoresSafeArea()
+
+            HStack(spacing: 0) {
             // Sidebar
             VStack(alignment: .leading, spacing: 0) {
-                Text(L("Утилиты"))
+                Label(L("Утилиты"), systemImage: "wrench.and.screwdriver")
                     .font(.headline)
-                    .padding()
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(NSColor.controlBackgroundColor))
+                    .liquidGlassHeader(cornerRadius: 0)
                 
                 ScrollView {
                     VStack(spacing: 2) {
@@ -292,11 +297,11 @@ struct ToolsView: View {
                             }) {
                                 HStack {
                                     Image(systemName: tool.icon)
-                                        .foregroundColor(selectedTool == tool ? .white : .primary)
+                                        .foregroundColor(selectedTool == tool ? .accentColor : .primary)
                                         .frame(width: 20)
                                     
                                     Text(tool.displayName)
-                                        .foregroundColor(selectedTool == tool ? .white : .primary)
+                                        .foregroundColor(.primary)
                                         .font(.system(size: 13))
                                         .lineLimit(1)
                                         .truncationMode(.tail)
@@ -305,8 +310,7 @@ struct ToolsView: View {
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
-                                .background(selectedTool == tool ? Color.blue : Color.clear)
-                                .cornerRadius(6)
+                                .liquidGlassSelection(isSelected: selectedTool == tool)
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
@@ -316,12 +320,12 @@ struct ToolsView: View {
                 }
             }
             .frame(width: 220)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(.ultraThinMaterial)
             
             Divider()
             
             // Main content
-            VStack {
+            VStack(spacing: 14) {
                 // Заголовок с описанием
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -335,13 +339,17 @@ struct ToolsView: View {
                         
                         // Кнопки управления
                         HStack(spacing: 8) {
-                            Button(L("Очистить")) {
+                            Button {
                                 toolsManager.output = ""
+                            } label: {
+                                Label(L("Очистить"), systemImage: "eraser")
                             }
                             .disabled(toolsManager.isRunning)
                             
-                            Button(L("Пути")) {
+                            Button {
                                 toolsManager.output = toolsManager.getToolsInfo()
+                            } label: {
+                                Label(L("Пути"), systemImage: "folder")
                             }
                             .disabled(toolsManager.isRunning)
                         }
@@ -354,49 +362,65 @@ struct ToolsView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(8)
+                .liquidGlassHeader(cornerRadius: 16)
                 
                 // Контент для выбранной утилиты
-                Group {
-                    switch selectedTool {
-                    case .keygen:
-                        KeygenView(toolsManager: toolsManager)
-                    case .vain:
-                        VainView(toolsManager: toolsManager)
-                    case .keyinfo:
-                        KeyinfoView(toolsManager: toolsManager)
-                    case .b33address:
-                        B33AddressView(toolsManager: toolsManager)
-                    case .regaddr:
-                        RegaddrView(toolsManager: toolsManager)
-                    case .regaddr3ld:
-                        Regaddr3ldView(toolsManager: toolsManager)
-                    case .regaddralias:
-                        RegaddraliasView(toolsManager: toolsManager)
-                    case .offlinekeys:
-                        OfflinekeysView(toolsManager: toolsManager)
-                    case .routerinfo:
-                        RouterinfoView(toolsManager: toolsManager)
-                    case .x25519:
-                        X25519View(toolsManager: toolsManager)
-                    case .i2pbase64:
-                        I2pbase64View(toolsManager: toolsManager)
-                    case .famtool:
-                        FamtoolView(toolsManager: toolsManager)
-                    case .verifyhost:
-                        VerifyhostView(toolsManager: toolsManager)
-                    case .autoconf:
-                        AutoconfView(toolsManager: toolsManager)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        selectedToolView
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
+                    .frame(maxWidth: 860, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .padding(28)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .liquidGlassPanel(cornerRadius: 18, material: .regularMaterial)
             }
+            .padding(18)
         }
+        .padding(.top, 44)
+        }
+        .ignoresSafeArea(.container, edges: .top)
+        .liquidGlassWindow()
         .frame(minWidth: 800, minHeight: 600)
         .onDisappear {
             // Останавливаем все процессы при закрытии окна Tools
             toolsManager.stopCurrentTool()
+        }
+    }
+
+    @ViewBuilder
+    private var selectedToolView: some View {
+        switch selectedTool {
+        case .keygen:
+            KeygenView(toolsManager: toolsManager)
+        case .vain:
+            VainView(toolsManager: toolsManager)
+        case .keyinfo:
+            KeyinfoView(toolsManager: toolsManager)
+        case .b33address:
+            B33AddressView(toolsManager: toolsManager)
+        case .regaddr:
+            RegaddrView(toolsManager: toolsManager)
+        case .regaddr3ld:
+            Regaddr3ldView(toolsManager: toolsManager)
+        case .regaddralias:
+            RegaddraliasView(toolsManager: toolsManager)
+        case .offlinekeys:
+            OfflinekeysView(toolsManager: toolsManager)
+        case .routerinfo:
+            RouterinfoView(toolsManager: toolsManager)
+        case .x25519:
+            X25519View(toolsManager: toolsManager)
+        case .i2pbase64:
+            I2pbase64View(toolsManager: toolsManager)
+        case .famtool:
+            FamtoolView(toolsManager: toolsManager)
+        case .verifyhost:
+            VerifyhostView(toolsManager: toolsManager)
+        case .autoconf:
+            AutoconfView(toolsManager: toolsManager)
         }
     }
     
@@ -502,7 +526,6 @@ struct KeygenView: View {
                 }
             }
         }
-        .padding()
     }
     
     private func generateKey() {
@@ -582,7 +605,6 @@ struct VainView: View {
             }
             
         }
-        .padding()
     }
     
     private func startMining() {
@@ -737,7 +759,6 @@ struct B33AddressView: View {
             }
             
         }
-        .padding()
     }
     
     private func calculateB33Address() {
@@ -1522,7 +1543,6 @@ struct OfflinekeysView: View {
                 .frame(height: 200)
             }
         }
-        .padding()
         .fileImporter(
             isPresented: $showingMasterKeyPicker,
             allowedContentTypes: [.data, .text, .plainText],
@@ -1551,7 +1571,6 @@ struct OfflinekeysView: View {
                 toolsManager.output = "❌ Ошибка выбора выходного файла: \(error.localizedDescription)"
             }
         }
-        .padding()
     }
     
     private func canCreateOfflineKey() -> Bool {
@@ -1696,7 +1715,6 @@ struct RouterinfoView: View {
             
             Spacer()
         }
-        .padding()
         .fileImporter(
             isPresented: $showingFilePicker,
             allowedContentTypes: [.data, .text, .plainText],
@@ -1856,7 +1874,6 @@ struct X25519View: View {
             
             Spacer()
         }
-        .padding()
     }
     
     private func generateX25519() {
@@ -2006,7 +2023,6 @@ struct I2pbase64View: View {
             
             Spacer()
         }
-        .padding()
     }
     
     private func processBase64() {
@@ -2185,7 +2201,6 @@ struct FamtoolView: View {
             
             Spacer()
         }
-        .padding()
         .fileImporter(
             isPresented: $showingRouterKeysPicker,
             allowedContentTypes: [.data, .text],
@@ -2382,7 +2397,6 @@ struct VerifyhostView: View {
             
             Spacer()
         }
-        .padding()
     }
     
     private func verifyHost() {
@@ -2537,7 +2551,6 @@ struct AutoconfView: View {
                 }
             }
         }
-        .padding()
         .onDisappear {
             // Останавливаем процесс при закрытии AutoconfView
             stopProcess()
