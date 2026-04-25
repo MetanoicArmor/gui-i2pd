@@ -92,10 +92,10 @@ Because the repo is named `gui-i2pd` (not `homebrew-gui-i2pd`), pass the Git URL
 
 ```bash
 brew tap MetanoicArmor/gui-i2pd https://github.com/MetanoicArmor/gui-i2pd
-brew install --cask i2p-daemon-gui
+brew install --cask i2pd-gui
 ```
 
-Upgrade later with `brew upgrade --cask i2p-daemon-gui`.
+Upgrade later with `brew upgrade --cask i2pd-gui`.
 
 ### 📋 **System Requirements:**
 - **macOS**: 14.0 or newer

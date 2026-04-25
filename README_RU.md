@@ -91,10 +91,10 @@ Cask ставит **arm64** из ZIP релиза. На **Intel Mac** скача
 
 ```bash
 brew tap MetanoicArmor/gui-i2pd https://github.com/MetanoicArmor/gui-i2pd
-brew install --cask i2p-daemon-gui
+brew install --cask i2pd-gui
 ```
 
-Обновление: `brew upgrade --cask i2p-daemon-gui`.
+Обновление: `brew upgrade --cask i2pd-gui`.
 
 ### 📋 **Системные требования:**
 - **macOS**: 14.0 или новее

@@ -1,4 +1,4 @@
-cask "i2p-daemon-gui" do
+cask "i2pd-gui" do
   version "2.60.0"
   sha256 "0fd0a75101d5315c767db7eb8d9eab64dce89f8670cf70dee98868aaf58e1bcd"
 
