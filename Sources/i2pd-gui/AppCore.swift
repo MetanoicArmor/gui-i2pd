@@ -1,6 +1,7 @@
 import SwiftUI
 import Foundation
 import AppKit
+import QuartzCore
 
 // MARK: - Localization Helper
 func L(_ key: String) -> String {
@@ -92,6 +93,117 @@ class WindowCloseDelegate: NSObject, NSWindowDelegate {
 }
 
 // MARK: - App Delegate для обработки завершения приложения
+private enum MainWindowLayout {
+    static let logSectionExpandedDefaultsKey = "mainLogSectionExpanded"
+    /// Фиксированная ширина окна. Окно не ресайзится по горизонтали, чтобы раскладка
+    /// контента (кнопки, сетка статистики) не «прыгала» и снизу не появлялось пустое место.
+    static let fixedWindowWidth: CGFloat = 540
+    /// Высота панели логов в свёрнутом состоянии (только заголовок).
+    static let collapsedLogSectionHeight: CGFloat = 56
+    /// Дельта, на которую растёт лог-панель (и, соответственно, окно) при разворачивании.
+    static let logExpansionDelta: CGFloat = 224
+    /// Высота панели логов в развёрнутом состоянии. Связана с `collapsedLogSectionHeight` через `logExpansionDelta`,
+    /// чтобы рассогласований было невозможно создать одной правкой.
+    static let expandedLogSectionHeight: CGFloat = collapsedLogSectionHeight + logExpansionDelta
+    /// Вертикальный отступ контента от верх/низ окна — равен боковому, чтобы рамка смотрелась симметрично.
+    static let contentEdgeInset: CGFloat = LiquidGlassTheme.windowPadding
+    /// Расстояние между крупными секциями (статус, сеть, кнопки, логи).
+    static let sectionSpacing: CGFloat = 12
+    static let logPanelInset: CGFloat = 10
+    static let sectionHeaderHeight: CGFloat = 36
+    /// Минимальная высота скролла логов внутри развёрнутой панели.
+    static let expandedLogViewportMinHeight: CGFloat = 160
+    static let animationDuration: TimeInterval = 0.28
+    /// Буфер после `animationDuration` при развороте: окно уже финальной высоты,
+    /// SwiftUI дорисовывает секцию — до этого момента держим MainWindowSizer выключенным.
+    static let logExpandSizerResumeDelay: TimeInterval = 0.05
+    /// Прикидка под `.defaultSize` для первого запуска. Дальше окно подгоняется по реальному
+    /// natural-размеру контента через `MainWindowSizer`.
+    static let estimatedCollapsedWindowHeight: CGFloat = 500
+    static var estimatedExpandedWindowHeight: CGFloat { estimatedCollapsedWindowHeight + logExpansionDelta }
+
+    static func logSectionHeight(isLogExpanded: Bool) -> CGFloat {
+        isLogExpanded ? expandedLogSectionHeight : collapsedLogSectionHeight
+    }
+
+    static func estimatedWindowHeight(isLogExpanded: Bool) -> CGFloat {
+        isLogExpanded ? estimatedExpandedWindowHeight : estimatedCollapsedWindowHeight
+    }
+}
+
+private extension NSWindow {
+    /// Меняет размер окна, оставляя верхнюю кромку на месте (origin.y подстраивается).
+    func setSizeAnchoringTop(_ size: NSSize) {
+        let topY = frame.maxY
+        var newFrame = frame
+        newFrame.size = size
+        newFrame.origin.y = topY - size.height
+        setFrame(newFrame, display: true, animate: false)
+    }
+}
+
+/// NSView-зонд, который сидит в `.background` под главным контентом и подгоняет
+/// размер РЕАЛЬНОГО `view.window` под натуральную высоту, измеренную через
+/// `GeometryReader`. Это надёжнее, чем искать окно через `NSApplication.windows`
+/// по title — мы получаем именно тот NSWindow, в который отрендерился ContentView.
+struct MainWindowSizer: NSViewRepresentable {
+    let measuredHeight: CGFloat
+    /// Пока идёт явная анимация окна из `toggleLogSection`, не трогаем frame —
+    /// иначе десятки `setFrame` за свайп конфликтуют с `NSAnimationContext` и
+    /// съедают плавность.
+    var deferResizeToHostAnimation: Bool
+
+    final class Coordinator {
+        /// Актуальное значение с родителя; читается внутри `async`, чтобы не
+        /// применять устаревший кадр после переключения флага.
+        var deferResizeToHostAnimation = false
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        NSView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.deferResizeToHostAnimation = deferResizeToHostAnimation
+        guard !deferResizeToHostAnimation else { return }
+        let height = max(measuredHeight, 1).rounded(.up)
+        let target = NSSize(width: MainWindowLayout.fixedWindowWidth, height: height)
+        DispatchQueue.main.async { [weak coordinator = context.coordinator, weak host = nsView] in
+            guard let coordinator, let host, let window = host.window else { return }
+            guard !coordinator.deferResizeToHostAnimation else { return }
+            Self.apply(target: target, to: window)
+        }
+    }
+
+    private static func apply(target: NSSize, to window: NSWindow) {
+        window.isRestorable = false
+        window.setFrameAutosaveName("")
+
+        let relaxedMin = NSSize(width: target.width, height: 1)
+        let relaxedMax = NSSize(width: target.width, height: 100_000)
+        let needsRelax =
+            window.minSize.height > target.height
+            || window.maxSize.height < target.height
+            || window.minSize.width != target.width
+            || window.maxSize.width != target.width
+        if needsRelax {
+            if window.minSize != relaxedMin { window.minSize = relaxedMin }
+            if window.maxSize != relaxedMax { window.maxSize = relaxedMax }
+        }
+
+        if window.frame.size != target {
+            window.setSizeAnchoringTop(target)
+        }
+
+        if window.minSize != target { window.minSize = target }
+        if window.maxSize != target { window.maxSize = target }
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     
     // Флаг для отслеживания перезапуска приложения (не останавливать демон)
@@ -105,39 +217,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Снимаем restorable-флаг и autosave-имя со всех уже созданных окон.
+        // Без этого SwiftUI WindowGroup восстанавливает прежний фрейм быстрее,
+        // чем мы успеваем посчитать высоту контента.
+        for window in NSApplication.shared.windows {
+            window.isRestorable = false
+            window.setFrameAutosaveName("")
+        }
+
         // Проверяем настройку "Запускать свернутым"
         let startMinimized = UserDefaults.standard.bool(forKey: "startMinimized")
-        
+
         if startMinimized {
             print("🔽 Запускаем приложение свернутым в трей")
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 TrayManager.shared.hideMainWindow()
             }
-        } else {
-            // Принудительно применяем стартовый размер окна, так как macOS
-            // может восстанавливать прошлый frame и игнорировать defaultSize.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { [weak self] in
-                self?.applyInitialMainWindowFrame()
-            }
         }
         setupWindowToggleShortcut()
     }
 
-    private func applyInitialMainWindowFrame() {
-        guard let window = NSApplication.shared.windows.first(where: { $0.isVisible && $0.level == .normal && $0.sheetParent == nil }) else {
-            return
-        }
-
-        let targetSize = NSSize(width: 900, height: 900)
-        guard abs(window.frame.width - targetSize.width) > 1 || abs(window.frame.height - targetSize.height) > 1 else {
-            return
-        }
-
-        var frame = window.frame
-        let topEdge = frame.maxY
-        frame.size = targetSize
-        frame.origin.y = topEdge - targetSize.height
-        window.setFrame(frame, display: true, animate: false)
+    /// Запрещаем macOS пытаться восстанавливать UI-состояние приложения через
+    /// secure coding. Восстановленный NSWindow приходит со старым фреймом и
+    /// конфликтует с нашим расчётом высоты по контенту.
+    func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+        return false
     }
     
     private func setupWindowToggleShortcut() {
@@ -320,7 +424,18 @@ struct I2pdGUIApp: App {
         if UserDefaults.standard.object(forKey: "darkMode") == nil {
             UserDefaults.standard.set(true, forKey: "darkMode")
         }
-        
+
+        // Полностью гасим window state restoration — иначе при следующем запуске
+        // NSWindow восстанавливается в прежнем (часто гигантском) фрейме до того,
+        // как мы успеваем посчитать реальную высоту контента, и пользователь
+        // видит «прыжок» с пустыми чёрными полосами вокруг.
+        UserDefaults.standard.set(false, forKey: "NSQuitAlwaysKeepsWindows")
+        // Подчищаем возможный мусор от прошлых запусков, где state ещё писался.
+        for key in UserDefaults.standard.dictionaryRepresentation().keys
+            where key.hasPrefix("NSWindow Frame ") {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+
         // Применяем сохраненный язык
         let savedLanguage = UserDefaults.standard.string(forKey: "appLanguage") ?? "ru"
         UserDefaults.standard.set([savedLanguage], forKey: "AppleLanguages")
@@ -363,8 +478,15 @@ struct I2pdGUIApp: App {
             ContentView()
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 900, height: 900)
-        .windowResizability(.contentMinSize)
+        .defaultSize(
+            width: MainWindowLayout.fixedWindowWidth,
+            height: MainWindowLayout.estimatedWindowHeight(
+                isLogExpanded: UserDefaults.standard.bool(forKey: MainWindowLayout.logSectionExpandedDefaultsKey)
+            )
+        )
+        // Намеренно не задаём .windowResizability — оставляем системный default.
+        // Реальные min/max окна и его frame пересчитываются в MainWindowSizer на
+        // основе natural-высоты контента, измеренной через GeometryReader.
         
         // Settings убраны - используем NSAlert из трея
         
@@ -398,28 +520,27 @@ struct ContentView: View {
     @StateObject private var i2pdManager = I2pdManager()
     @State private var showingSettings = false
     @State private var showingTools = false
-    @State private var isLogSectionExpanded = false
-    @State private var isLogSectionTransitioning = false
+    @AppStorage(MainWindowLayout.logSectionExpandedDefaultsKey) private var isLogSectionExpanded = false
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
     @State private var manualStop: Bool? = false // Флаг ручной остановки для предотвращения автозапуска
-    private let collapsedLogWindowHeight: CGFloat = 500
-    private let expandedLogWindowHeight: CGFloat = 800
-    private let mainWindowVerticalInset: CGFloat = 16
-    private let mainWindowTopInset: CGFloat = 8
-    
+    /// Пока окно анимируется вручную (логи), `MainWindowSizer` не вмешивается.
+    @State private var hostWindowAnimatingLogResize = false
+
+    /// Даёт перенос длинных путей в логах (мягкий разрыв после «/»).
+    private static func logMessageForWrapping(_ message: String) -> String {
+        message.replacingOccurrences(of: "/", with: "/\u{200B}")
+    }
+
+    private var logSectionAnimation: Animation {
+        .easeInOut(duration: MainWindowLayout.animationDuration)
+    }
+
     private var networkStatColumns: [GridItem] {
-        Array(
-            repeating: GridItem(.flexible(minimum: 116), spacing: 14, alignment: .leading),
-            count: 4
-        )
+        [GridItem(.adaptive(minimum: 84, maximum: 200), spacing: 12, alignment: .leading)]
     }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            LiquidGlassBackdrop(material: .underWindowBackground)
-                .ignoresSafeArea()
-
-            VStack(spacing: 16) {
+        VStack(spacing: MainWindowLayout.sectionSpacing) {
             // Статус сервера
             StatusCard(
                 isRunning: i2pdManager.isRunning,
@@ -509,8 +630,62 @@ struct ContentView: View {
             )
             
             // Секция логов
-            VStack(spacing: 8) {
-                // Заголовок секции
+            ZStack(alignment: .top) {
+                if isLogSectionExpanded {
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            ForEach(i2pdManager.logs.prefix(30), id: \.id) { log in
+                                HStack(spacing: 8) {
+                                    Text(log.timestamp.formatted(.dateTime.hour().minute().second()))
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 50, alignment: .leading)
+
+                                    Text(log.level.rawValue)
+                                        .font(.caption2)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(log.level == .error ? Color.red : (log.level == .warn ? Color.orange : Color.blue))
+                                        .foregroundColor(.white)
+                                        .cornerRadius(2)
+                                        .frame(width: 60, alignment: .center)
+
+                                    Text(Self.logMessageForWrapping(log.message))
+                                        .font(.caption2)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .lineLimit(nil)
+                                        .multilineTextAlignment(.leading)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 1)
+                            }
+
+                            if i2pdManager.logs.isEmpty {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "doc.text")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.secondary)
+                                    Text(L("Система готова к работе"))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    Text(L("Логи появятся при запуске демона"))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 40)
+                            }
+                        }
+                        .padding(.top, MainWindowLayout.sectionHeaderHeight)
+                        .padding(.bottom, 8)
+                    }
+                    .frame(minHeight: MainWindowLayout.expandedLogViewportMinHeight, maxHeight: .infinity)
+                    // При развороте opacity-insert даёт рассинхрон с ростом окна (визуальный «прыжок»).
+                    // Сворачивание оставляем мягким через fade-out.
+                    .transition(.asymmetric(insertion: .identity, removal: .opacity))
+                }
+
                 HStack {
                     Button {
                         toggleLogSection()
@@ -529,7 +704,6 @@ struct ContentView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .disabled(isLogSectionTransitioning)
                     .help(isLogSectionExpanded ? L("Свернуть логи") : L("Развернуть логи"))
 
                     Spacer()
@@ -544,81 +718,49 @@ struct ContentView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-                .liquidGlassHeader()
-                
-                if isLogSectionExpanded {
-                    // Логи в компактном виде
-                    ZStack {
-                        ScrollView(.vertical, showsIndicators: true) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                ForEach(i2pdManager.logs.prefix(30), id: \.id) { log in
-                                    HStack(spacing: 8) {
-                                        Text(log.timestamp.formatted(.dateTime.hour().minute().second()))
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                            .frame(width: 50, alignment: .leading)
-
-                                        Text(log.level.rawValue)
-                                            .font(.caption2)
-                                            .padding(.horizontal, 4)
-                                            .padding(.vertical, 1)
-                                            .background(log.level == .error ? Color.red : (log.level == .warn ? Color.orange : Color.blue))
-                                            .foregroundColor(.white)
-                                            .cornerRadius(2)
-                                            .frame(width: 60, alignment: .center)
-
-                                        Text(log.message)
-                                            .font(.caption2)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .lineLimit(nil)
-                                            .multilineTextAlignment(.leading)
-                                    }
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 1)
-                                }
-
-                                if i2pdManager.logs.isEmpty {
-                                    VStack(spacing: 8) {
-                                        Image(systemName: "doc.text")
-                                            .font(.system(size: 24))
-                                            .foregroundColor(.secondary)
-                                        Text(L("Система готова к работе"))
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                        Text(L("Логи появятся при запуске демона"))
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 40)
-                                }
-                            }
-                            .padding(.vertical, 8)
-                        }
-
-                        LogScrollEdgeChrome()
-                    }
-                    .frame(minHeight: 210, maxHeight: .infinity) // Логи занимают оставшуюся высоту окна.
-                }
+                .padding(.vertical, 7)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: MainWindowLayout.sectionHeaderHeight, alignment: .center)
+                // Для macOS 26 возвращаем "жидкую линзу" через glassEffect,
+                // как было раньше в этом блоке.
+                .liquidGlassSidebarChrome(
+                    cornerRadius: 14,
+                    tintOpacity: 0.06,
+                    surfaceTintOpacity: 0.025,
+                    shadowOpacity: 0.025
+                )
+                .animation(nil, value: isLogSectionExpanded)
+                .zIndex(1)
             }
-            .padding(10)
-            .frame(maxHeight: isLogSectionExpanded ? CGFloat.infinity : nil)
+            .compositingGroup()
+            .padding(MainWindowLayout.logPanelInset)
+            .frame(height: MainWindowLayout.logSectionHeight(isLogExpanded: isLogSectionExpanded))
+            .clipped()
+            .animation(logSectionAnimation, value: isLogSectionExpanded)
             .liquidGlassPanel(cornerRadius: 18, material: .regularMaterial)
-            }
-            .frame(maxWidth: .infinity, maxHeight: isLogSectionExpanded ? CGFloat.infinity : nil, alignment: .top)
-            .padding(.horizontal, LiquidGlassTheme.windowPadding)
-            .padding(.bottom, mainWindowVerticalInset)
-            .padding(.top, mainWindowTopInset)
         }
-        .liquidGlassWindow()
-        .frame(
-            minWidth: 650,
-            maxWidth: .infinity,
-            minHeight: isLogSectionExpanded ? 680 : collapsedLogWindowHeight,
-            maxHeight: isLogSectionExpanded ? CGFloat.infinity : nil
+        .frame(maxWidth: .infinity, alignment: .top)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .padding(.horizontal, LiquidGlassTheme.windowPadding)
+        .padding(.vertical, MainWindowLayout.contentEdgeInset)
+        .frame(width: MainWindowLayout.fixedWindowWidth)
+        .background(
+            LiquidGlassBackdrop(material: .underWindowBackground)
+                .ignoresSafeArea()
         )
-        .frame(maxWidth: min(1080, NSScreen.main?.frame.width ?? 1080 * 0.8)) // Компромисс: компактнее исходного, но без наложения кнопок
+        .liquidGlassWindow()
+        .background(
+            // GeometryReader сообщает natural-высоту контента, MainWindowSizer
+            // напрямую тянет за этим РЕАЛЬНЫЙ NSWindow (через nsView.window),
+            // не полагаясь на поиск окна по title в NSApp.windows.
+            GeometryReader { proxy in
+                MainWindowSizer(
+                    measuredHeight: proxy.size.height,
+                    deferResizeToHostAnimation: hostWindowAnimatingLogResize
+                )
+                    .frame(width: 0, height: 0)
+            }
+        )
         .onAppear {
             // Сначала проверяем начальный статус демона для корректного отображения в трее
             TrayManager.shared.checkInitialDaemonStatus()
@@ -643,6 +785,10 @@ struct ContentView: View {
                 applyTheme()
                 i2pdManager.getExtendedStats()
             }
+
+            syncMainWindowSizeWithLogState()
+            syncMainWindowSizeWithLogState(after: 0.2)
+            syncMainWindowSizeWithLogState(after: 0.7)
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView(i2pdManager: i2pdManager, manualStop: $manualStop)
@@ -663,6 +809,9 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenTools"))) { _ in
             showingTools = true
             print("🔧 Утилиты открыты")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SyncMainWindowLayout"))) { _ in
+            syncMainWindowSizeWithLogState()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonStartRequest"))) { _ in
             // Обрабатываем запрос запуска демона из трея
@@ -699,6 +848,7 @@ struct ContentView: View {
             TrayManager.shared.updateMenuState(isRunning: i2pdManager.isRunning)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NSApplicationWillTerminate"))) { _ in
+            UserDefaults.standard.set(isLogSectionExpanded, forKey: MainWindowLayout.logSectionExpandedDefaultsKey)
             // Останавливаем демон при закрытии приложения через I2pdManager
             if i2pdManager.isRunning {
                 i2pdManager.stopDaemon()
@@ -720,43 +870,83 @@ struct ContentView: View {
             }
         }
     }
-    
-    private func toggleLogSection() {
-        guard !isLogSectionTransitioning else {
-            return
-        }
 
-        let shouldExpand = !isLogSectionExpanded
-        guard let window = mainContentWindow() else {
-            return
-        }
-        isLogSectionTransitioning = true
-        defer { isLogSectionTransitioning = false }
-
-        if shouldExpand {
-            applyMainWindowHeight(expandedLogWindowHeight, to: window)
-            isLogSectionExpanded = shouldExpand
-        } else {
-            isLogSectionExpanded = shouldExpand
-            applyMainWindowHeight(collapsedLogWindowHeight, to: window)
+    /// Совместимость со старыми вызовами `SyncMainWindowLayout`-нотификаций.
+    /// Сам resize теперь делает `MainWindowSizer` через `view.window`, поэтому
+    /// здесь только сбрасываем restorable-флаг — на случай если окно появилось
+    /// уже после init и AppDelegate его не зацепил.
+    private func syncMainWindowSizeWithLogState(after delay: TimeInterval = 0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            for window in NSApplication.shared.windows {
+                window.isRestorable = false
+                window.setFrameAutosaveName("")
+            }
         }
     }
 
-    private func applyMainWindowHeight(_ targetHeight: CGFloat, to window: NSWindow) {
-        guard abs(window.frame.height - targetHeight) > 1 else {
+    private func toggleLogSection() {
+        guard !hostWindowAnimatingLogResize else { return }
+        let wasExpanded = isLogSectionExpanded
+        guard let window = mainContentWindow() else {
+            withAnimation(logSectionAnimation) {
+                isLogSectionExpanded.toggle()
+            }
             return
         }
 
-        var frame = window.frame
-        let topEdge = frame.maxY
-        frame.size.height = targetHeight
-        frame.origin.y = topEdge - targetHeight
-        window.setFrame(frame, display: true, animate: false)
+        let delta = MainWindowLayout.logExpansionDelta
+        let newHeight = (window.frame.height + (wasExpanded ? -delta : delta)).rounded(.up)
+        let targetSize = NSSize(width: MainWindowLayout.fixedWindowWidth, height: max(newHeight, 1))
+
+        hostWindowAnimatingLogResize = true
+        window.isRestorable = false
+        window.setFrameAutosaveName("")
+
+        let relaxedMin = NSSize(width: MainWindowLayout.fixedWindowWidth, height: 1)
+        let relaxedMax = NSSize(width: MainWindowLayout.fixedWindowWidth, height: 100_000)
+        window.minSize = relaxedMin
+        window.maxSize = relaxedMax
+
+        var newFrame = window.frame
+        newFrame.size = targetSize
+        newFrame.origin.y = window.frame.maxY - targetSize.height
+
+        // Анимация секции уже задаётся через `.animation(..., value:)` на блоке логов.
+        // Дополнительный withAnimation здесь создаёт второй транзакционный контур
+        // параллельно с NSAnimationContext окна и даёт подёргивания всего контента.
+        isLogSectionExpanded.toggle()
+
+        if wasExpanded {
+            // Сворачивание: нижняя кромка окна плавно подтягивается вверх.
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = MainWindowLayout.animationDuration
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                window.animator().setFrame(newFrame, display: true)
+            }, completionHandler: {
+                DispatchQueue.main.async {
+                    hostWindowAnimatingLogResize = false
+                }
+            })
+        } else {
+            // Разворот: две независимые интерполяции (окно + SwiftUI) постоянно
+            // рассинхронились и давали «прыжок вверх». Окно сразу финальной высоты;
+            // двигается только контент панели логов.
+            window.setFrame(newFrame, display: true, animate: false)
+            let resumeDelay = MainWindowLayout.animationDuration + MainWindowLayout.logExpandSizerResumeDelay
+            DispatchQueue.main.asyncAfter(deadline: .now() + resumeDelay) {
+                hostWindowAnimatingLogResize = false
+            }
+        }
     }
 
     private func mainContentWindow() -> NSWindow? {
-        NSApp.keyWindow ?? NSApplication.shared.windows.first { window in
+        NSApplication.shared.windows.first { window in
             window.isVisible && window.level == .normal && window.sheetParent == nil
+                && window.title == "I2P Daemon GUI"
+        } ?? NSApplication.shared.windows.first { window in
+            window.isVisible && window.level == .normal && window.sheetParent == nil
+                && !window.title.localizedCaseInsensitiveContains("settings")
+                && !window.title.localizedCaseInsensitiveContains("настрой")
         }
     }
 
@@ -789,14 +979,16 @@ private struct NetworkStatItem: View {
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.75)
+                    .multilineTextAlignment(.leading)
 
                 Text(value)
                     .font(.system(.body, design: .rounded, weight: .semibold))
                     .foregroundColor(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .multilineTextAlignment(.leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -1385,7 +1577,7 @@ struct SettingsView: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            LiquidGlassBackdrop(material: .sheet, blendingMode: .withinWindow)
+            LiquidGlassBackdrop(material: .underWindowBackground)
                 .ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: true) {
@@ -1867,7 +2059,10 @@ struct SettingsView: View {
                 .padding(.bottom, 12)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, 18)
+            .padding(.leading, 18)
+            .padding(.trailing, 0)
+            // Больше воздуха у скруглений окна: короче трек скролла, ползунок не лезет в радиус.
+            .padding(.vertical, 14)
 
             SettingsTopScrollFade()
                 .zIndex(0.5)
@@ -1881,18 +2076,25 @@ struct SettingsView: View {
 
                 Spacer()
 
-                Text(L("Esc для закрытия"))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                Button {
+                    closeSettings()
+                } label: {
+                    Text(L("Esc для закрытия"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+                .help(L("Закрыть настройки"))
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
-            .liquidGlassToolbar(cornerRadius: 18)
+            .liquidGlassSidebarChrome(cornerRadius: 22, tintOpacity: 0.025, shadowOpacity: 0.10)
             .padding(.horizontal, 18)
             .padding(.top, 10)
             .zIndex(1)
         }
-        .liquidGlassWindow()
+        .liquidGlassWindow(usesTranslucentSheetChrome: true)
         .frame(minWidth: 750, maxWidth: .infinity, minHeight: 520, maxHeight: .infinity)
         .onAppear {
             // Загружаем актуальные порты из конфига при открытии настроек
@@ -1927,10 +2129,7 @@ struct SettingsView: View {
         }
         .onKeyPress { keyPress in
             if keyPress.key == .escape {
-                print("🚪 Esc нажат - закрываем настройки")
-                WindowCloseDelegate.isSettingsOpen = false
-                NotificationCenter.default.post(name: NSNotification.Name("CloseSettings"), object: nil)
-                dismiss()
+                closeSettings()
                 return .handled
             }
             return .ignored
@@ -1939,6 +2138,13 @@ struct SettingsView: View {
             print("📨 SettingsView получил CloseSettings - закрываем через dismiss()")
             dismiss()
         }
+    }
+
+    private func closeSettings() {
+        print("🚪 Закрываем настройки")
+        WindowCloseDelegate.isSettingsOpen = false
+        NotificationCenter.default.post(name: NSNotification.Name("CloseSettings"), object: nil)
+        dismiss()
     }
     
     private func saveSettings() {
@@ -2442,63 +2648,22 @@ http://i2p-projekt.i2p/hosts.txt
     }
 }
 
-private struct LogScrollEdgeChrome: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            LogScrollEdgeFade(
-                colors: [
-                    .black.opacity(0.58),
-                    .black.opacity(0.22),
-                    .clear
-                ],
-                height: 22
-            )
-
-            Spacer(minLength: 0)
-
-            LogScrollEdgeFade(
-                colors: [
-                    .clear,
-                    .black.opacity(0.20),
-                    .black.opacity(0.54)
-                ],
-                height: 26
-            )
-        }
-        .allowsHitTesting(false)
-    }
-}
-
-private struct LogScrollEdgeFade: View {
-    let colors: [Color]
-    let height: CGFloat
-
-    var body: some View {
-        Rectangle()
-            .fill(.regularMaterial)
-            .mask(
-                LinearGradient(
-                    colors: colors,
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            .frame(height: height)
-    }
-}
-
 // MARK: - Settings Scroll Chrome
 private struct SettingsTopScrollFade: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var shade: Color {
+        colorScheme == .dark ? .black : .white
+    }
+
     var body: some View {
         VStack {
             Rectangle()
-                .fill(.bar)
-                .mask(
+                .fill(
                     LinearGradient(
                         colors: [
-                            .black,
-                            .black.opacity(0.72),
-                            .black.opacity(0.28),
+                            shade.opacity(0.16),
+                            shade.opacity(0.08),
                             .clear
                         ],
                         startPoint: .top,
@@ -2550,7 +2715,7 @@ struct SettingsSection<Content: View>: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
-            .liquidGlassPanel(cornerRadius: 16, material: .regularMaterial)
+            .liquidGlassPanel(cornerRadius: 16, material: .thinMaterial, tintOpacity: 0.024, shadowOpacity: 0.06)
         }
     }
 }
@@ -2583,72 +2748,108 @@ struct StatusCard: View {
     let uptime: String
     let peers: Int
     let daemonVersion: String
-    
-    var body: some View {
-        HStack(spacing: 32) {
-            // Статус индикатор
-            HStack(spacing: 12) {
-                Circle()
-                    .fill(isRunning ? Color.green : Color.red)
-                    .frame(width: 12, height: 12)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(isRunning ? L("Запущен") : L("Остановлен"))
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.9)
-                    Text(isRunning ? L("Статус: активен") : L("Статус: неактивен"))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.9)
-                }
-            }
-            
-            // Время работы
-            VStack(alignment: .leading, spacing: 2) {
-                Text(L("Время работы"))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.9)
-                Text(uptime)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            
-            // Счётчик пиров
-            VStack(alignment: .leading, spacing: 2) {
-                Text(L("Подключения"))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.9)
-                Text("\(peers)")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            
-            Spacer()
 
-            Text(String(format: NSLocalizedString("i2pd v%@", comment: "i2pd version label"), daemonVersion))
+    private var versionLabel: Text {
+        Text(String(format: NSLocalizedString("i2pd v%@", comment: "i2pd version label"), daemonVersion))
+    }
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            statusWideRow
+            statusCompactColumn
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 76, alignment: .center)
+        .liquidGlassPanel(cornerRadius: 20, material: .regularMaterial)
+    }
+
+    private var statusIndicatorBlock: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(isRunning ? Color.green : Color.red)
+                .frame(width: 12, height: 12)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(isRunning ? L("Запущен") : L("Остановлен"))
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+                Text(isRunning ? L("Статус: активен") : L("Статус: неактивен"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+            }
+        }
+    }
+
+    private var uptimeBlock: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(L("Время работы"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+            Text(uptime)
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+    }
+
+    private var peersBlock: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(L("Подключения"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+            Text("\(peers)")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+    }
+
+    private var statusWideRow: some View {
+        HStack(spacing: 32) {
+            statusIndicatorBlock
+            uptimeBlock
+            peersBlock
+            Spacer()
+            versionLabel
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 24)
-        .frame(maxWidth: .infinity)
-        .frame(height: 76)
-        .liquidGlassPanel(cornerRadius: 20, material: .regularMaterial)
+    }
+
+    private var statusCompactColumn: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                statusIndicatorBlock
+                Spacer(minLength: 8)
+                versionLabel
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.75)
+                    .multilineTextAlignment(.trailing)
+            }
+            HStack(alignment: .top, spacing: 20) {
+                uptimeBlock
+                peersBlock
+                Spacer(minLength: 0)
+            }
+        }
     }
 }
 
@@ -2658,113 +2859,164 @@ struct ControlButtons: View {
     @Binding var showingSettings: Bool
     @Binding var showingTools: Bool
     @Binding var manualStop: Bool?
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            // Основные кнопки
-            HStack(spacing: 16) {
-                Button {
-                    manualStop = false // Сбрасываем флаг при перезапуске
-                    i2pdManager.restartDaemon()
-                } label: {
-                    Label(NSLocalizedString("Перезапустить", comment: "Restart button"), systemImage: "arrow.clockwise")
-                        .frame(height: 36)
-                        .frame(maxWidth: .infinity)
-                }
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-                .disabled(i2pdManager.isLoading || !i2pdManager.isRunning)
-                
-                Button(action: {
-                    if i2pdManager.isRunning {
-                        manualStop = true // Устанавливаем флаг ручной остановки
-                        i2pdManager.stopDaemon()
-                    } else {
-                        manualStop = false // Сбрасываем флаг при ручном запуске
-                        i2pdManager.startDaemon()
-                    }
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: i2pdManager.isRunning ? "stop.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 16))
-                        Text(i2pdManager.isRunning ? NSLocalizedString("Остановить", comment: "Stop") : NSLocalizedString("Запустить", comment: "Start"))
-                            .fontWeight(.medium)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.9)
-                    }
-                    .frame(height: 36)
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(i2pdManager.isLoading || i2pdManager.operationInProgress)
-                
-                Button {
-                    i2pdManager.checkStatus()
-                } label: {
-                    Label(L("Обновить статус"), systemImage: "arrow.triangle.2.circlepath")
-                        .frame(height: 36)
-                        .frame(maxWidth: .infinity)
-                }
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-                .disabled(i2pdManager.isLoading)
-            
-            }
-            
-            // Дополнительные кнопки
-            HStack(spacing: 12) {
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Label(L("Настройки"), systemImage: "gearshape")
-                            .frame(height: 36)
-                            .frame(maxWidth: .infinity)
-                    }
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.9)
-                
-                Button {
-                        showingTools = true
-                    } label: {
-                        Label(L("Утилиты"), systemImage: "wrench.and.screwdriver")
-                            .frame(height: 36)
-                            .frame(maxWidth: .infinity)
-                    }
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.9)
-                
-                Button {
-                    TrayManager.shared.hideMainWindow()
-                    } label: {
-                        Label(L("Свернуть в трей"), systemImage: "menubar.arrow.down.rectangle")
-                            .frame(height: 36)
-                            .frame(maxWidth: .infinity)
-                    }
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.9)
-                
-                Button {
-                    guard i2pdManager.isRunning else {
-                        i2pdManager.logExportComplete("⚠️ Сначала запустите daemon для открытия веб-консоли")
-                        return
-                    }
 
-                    if let webURL = URL(string: "http://127.0.0.1:7070") {
-                        NSWorkspace.shared.open(webURL)
-                        i2pdManager.logExportComplete("🌐 Открыта веб-консоль")
-                    }
-                } label: {
-                    Label(L("Веб-консоль"), systemImage: "safari")
-                        .frame(height: 36)
-                        .frame(maxWidth: .infinity)
+    var body: some View {
+        VStack(spacing: 10) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    restartButton
+                    startStopButton
+                    refreshStatusButton
                 }
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
+                VStack(spacing: 10) {
+                    startStopButton
+                    HStack(spacing: 10) {
+                        restartButton
+                        refreshStatusButton
+                    }
+                }
+            }
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    settingsButton
+                    toolsButton
+                    trayButton
+                    webConsoleButton
+                }
+                HStack(spacing: 8) {
+                    settingsButton.labelStyle(.iconOnly).help(L("Настройки"))
+                    toolsButton.labelStyle(.iconOnly).help(L("Утилиты"))
+                    trayButton.labelStyle(.iconOnly).help(L("Свернуть в трей"))
+                    webConsoleButton.labelStyle(.iconOnly).help(L("Веб-консоль"))
+                }
+                // Когда у компактного ряда показываются ТОЛЬКО иконки, делаем
+                // их чуть крупнее: текстового якоря рядом нет, и стандартного
+                // SF Symbol-а в кнопке зрительно мало.
+                .imageScale(.large)
+                .font(.system(size: 17, weight: .medium))
+                VStack(spacing: 10) {
+                    HStack(spacing: 10) {
+                        settingsButton
+                        toolsButton
+                    }
+                    HStack(spacing: 10) {
+                        trayButton
+                        webConsoleButton
+                    }
+                }
             }
         }
-        .padding(16)
+        .padding(12)
         .liquidGlassPanel(cornerRadius: 18, material: .thinMaterial)
+    }
+
+    private var restartButton: some View {
+        Button {
+            manualStop = false
+            i2pdManager.restartDaemon()
+        } label: {
+            Label(NSLocalizedString("Перезапустить", comment: "Restart button"), systemImage: "arrow.clockwise")
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.9)
+        .disabled(i2pdManager.isLoading || !i2pdManager.isRunning)
+    }
+
+    private var startStopButton: some View {
+        Button {
+            if i2pdManager.isRunning {
+                manualStop = true
+                i2pdManager.stopDaemon()
+            } else {
+                manualStop = false
+                i2pdManager.startDaemon()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: i2pdManager.isRunning ? "stop.circle.fill" : "play.circle.fill")
+                    .font(.system(size: 16))
+                Text(i2pdManager.isRunning ? NSLocalizedString("Остановить", comment: "Stop") : NSLocalizedString("Запустить", comment: "Start"))
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+            }
+            .frame(height: 36)
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .disabled(i2pdManager.isLoading || i2pdManager.operationInProgress)
+    }
+
+    private var refreshStatusButton: some View {
+        Button {
+            i2pdManager.checkStatus()
+        } label: {
+            Label(L("Обновить статус"), systemImage: "arrow.triangle.2.circlepath")
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.9)
+        .disabled(i2pdManager.isLoading)
+    }
+
+    private var settingsButton: some View {
+        Button {
+            showingSettings = true
+        } label: {
+            Label(L("Настройки"), systemImage: "gearshape")
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.9)
+    }
+
+    private var toolsButton: some View {
+        Button {
+            showingTools = true
+        } label: {
+            Label(L("Утилиты"), systemImage: "wrench.and.screwdriver")
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.9)
+    }
+
+    private var trayButton: some View {
+        Button {
+            TrayManager.shared.hideMainWindow()
+        } label: {
+            Label(L("Свернуть в трей"), systemImage: "menubar.arrow.down.rectangle")
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.9)
+    }
+
+    private var webConsoleButton: some View {
+        Button {
+            guard i2pdManager.isRunning else {
+                i2pdManager.logExportComplete("⚠️ Сначала запустите daemon для открытия веб-консоли")
+                return
+            }
+            if let webURL = URL(string: "http://127.0.0.1:7070") {
+                NSWorkspace.shared.open(webURL)
+                i2pdManager.logExportComplete("🌐 Открыта веб-консоль")
+            }
+        } label: {
+            Label(L("Веб-консоль"), systemImage: "safari")
+                .frame(height: 36)
+                .frame(maxWidth: .infinity)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.9)
     }
 }
 

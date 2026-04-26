@@ -24,6 +24,8 @@ struct LiquidGlassBackdrop: NSViewRepresentable {
 }
 
 struct LiquidGlassWindowConfigurator: NSViewRepresentable {
+    var usesTranslucentSheetChrome = false
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
@@ -49,10 +51,14 @@ struct LiquidGlassWindowConfigurator: NSViewRepresentable {
             var mask = window.styleMask
             mask.remove(.fullSizeContentView)
             window.styleMask = mask
-            window.titlebarAppearsTransparent = false
+            window.titlebarAppearsTransparent = usesTranslucentSheetChrome
+            window.titleVisibility = usesTranslucentSheetChrome ? .hidden : .visible
+            window.titlebarSeparatorStyle = usesTranslucentSheetChrome ? .none : .automatic
             window.isMovableByWindowBackground = false
         } else {
             window.titlebarAppearsTransparent = true
+            window.titleVisibility = .visible
+            window.titlebarSeparatorStyle = .none
             window.styleMask.insert(.fullSizeContentView)
             window.isMovableByWindowBackground = true
         }
@@ -129,6 +135,84 @@ private struct LiquidGlassPanelModifier: ViewModifier {
     }
 }
 
+private struct LiquidGlassSidebarChromeModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorScheme) private var colorScheme
+
+    let cornerRadius: CGFloat
+    let tintOpacity: Double
+    let surfaceTintOpacity: Double
+    let shadowOpacity: Double
+
+    private var veilOpacity: Double {
+        colorScheme == .dark ? 0.16 : 0.035
+    }
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        if reduceTransparency {
+            content
+                .background {
+                    shape.fill(Color(NSColor.windowBackgroundColor))
+                }
+                .modifier(LiquidGlassEdgeModifier(cornerRadius: cornerRadius, reduceTransparency: true))
+                .shadow(color: Color.black.opacity(shadowOpacity), radius: 24, x: 0, y: 14)
+        } else if #available(macOS 26.0, *) {
+            content
+                .glassEffect(
+                    Glass.regular.tint(Color.white.opacity(tintOpacity)),
+                    in: shape
+                )
+                .overlay {
+                    shape.fill(Color.white.opacity(surfaceTintOpacity))
+                        .allowsHitTesting(false)
+                }
+                .modifier(LiquidGlassEdgeModifier(cornerRadius: cornerRadius, reduceTransparency: false))
+                .shadow(color: Color.black.opacity(shadowOpacity), radius: 24, x: 0, y: 14)
+        } else {
+            content
+                .background {
+                    ZStack {
+                        LiquidGlassBackdrop(material: .sidebar, blendingMode: .behindWindow)
+                            .clipShape(shape)
+
+                        shape.fill(Color.black.opacity(veilOpacity))
+                            .allowsHitTesting(false)
+                        shape.fill(Color.white.opacity(tintOpacity))
+                            .allowsHitTesting(false)
+                        shape.fill(Color.white.opacity(surfaceTintOpacity))
+                            .allowsHitTesting(false)
+                    }
+                    .clipShape(shape)
+                }
+                .modifier(LiquidGlassEdgeModifier(cornerRadius: cornerRadius, reduceTransparency: false))
+                .shadow(color: Color.black.opacity(shadowOpacity), radius: 24, x: 0, y: 14)
+        }
+    }
+}
+
+private struct LiquidGlassEdgeModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    let reduceTransparency: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(LiquidGlassTheme.glassEdge, lineWidth: reduceTransparency ? 0.9 : 0.8)
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: max(cornerRadius - 1, 0), style: .continuous)
+                    .strokeBorder(LiquidGlassTheme.innerGlassEdge, lineWidth: 0.55)
+                    .padding(1)
+                    .allowsHitTesting(false)
+            }
+    }
+}
+
 private struct LiquidGlassSelectedModifier: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
@@ -161,9 +245,9 @@ private struct LiquidGlassSelectedModifier: ViewModifier {
 }
 
 extension View {
-    func liquidGlassWindow() -> some View {
+    func liquidGlassWindow(usesTranslucentSheetChrome: Bool = false) -> some View {
         background {
-            LiquidGlassWindowConfigurator()
+            LiquidGlassWindowConfigurator(usesTranslucentSheetChrome: usesTranslucentSheetChrome)
                 .frame(width: 0, height: 0)
         }
     }
@@ -202,6 +286,22 @@ extension View {
                 material: .bar,
                 tintOpacity: 0.006,
                 shadowOpacity: 0.0
+            )
+        )
+    }
+
+    func liquidGlassSidebarChrome(
+        cornerRadius: CGFloat = 22,
+        tintOpacity: Double = 0.035,
+        surfaceTintOpacity: Double = 0.0,
+        shadowOpacity: Double = 0.12
+    ) -> some View {
+        modifier(
+            LiquidGlassSidebarChromeModifier(
+                cornerRadius: cornerRadius,
+                tintOpacity: tintOpacity,
+                surfaceTintOpacity: surfaceTintOpacity,
+                shadowOpacity: shadowOpacity
             )
         )
     }

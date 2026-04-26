@@ -2,6 +2,15 @@ import SwiftUI
 import Foundation
 import Darwin
 
+/// Вертикальный зазор у трека скролла, чтобы ползунок не упирался в скругления панелей.
+private enum ToolsScrollBarInset {
+    /// Правая колонка с контентом утилиты (`liquidGlassPanel`).
+    static let mainPanel: CGFloat = 14
+    static let sidebar: CGFloat = 10
+    /// Вложенные блоки «Результат» и аналоги с фиксированной высотой.
+    static let embeddedBox: CGFloat = 10
+}
+
 // MARK: - Tools Manager
 class ToolsManager: ObservableObject {
     @Published var isRunning = false
@@ -330,6 +339,7 @@ struct ToolsView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                 }
+                .padding(.vertical, ToolsScrollBarInset.sidebar)
             }
             .frame(width: 220)
             .background(.ultraThinMaterial)
@@ -387,6 +397,7 @@ struct ToolsView: View {
                     .padding(28)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.vertical, ToolsScrollBarInset.mainPanel)
                 .liquidGlassPanel(cornerRadius: 18, material: .regularMaterial)
             }
             .padding(18)
@@ -533,6 +544,7 @@ struct KeygenView: View {
                             .background(Color(NSColor.textBackgroundColor))
                             .cornerRadius(8)
                     }
+                    .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                     .frame(height: 200)
                 }
             }
@@ -611,6 +623,7 @@ struct VainView: View {
                             .background(Color(NSColor.textBackgroundColor))
                             .cornerRadius(8)
                     }
+                    .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                     .frame(height: 200)
                 }
             }
@@ -687,6 +700,7 @@ struct KeyinfoView: View {
                             .background(Color(NSColor.textBackgroundColor))
                             .cornerRadius(8)
                     }
+                    .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                     .frame(height: 200)
                 }
             }
@@ -766,6 +780,7 @@ struct B33AddressView: View {
                         .background(Color(NSColor.textBackgroundColor))
                         .cornerRadius(8)
                 }
+                .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                 .frame(height: 200)
             }
             
@@ -850,6 +865,7 @@ struct RegaddrView: View {
                             .background(Color(NSColor.textBackgroundColor))
                             .cornerRadius(8)
                     }
+                    .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                     .frame(height: 150)
                     
                     HStack {
@@ -877,6 +893,7 @@ struct RegaddrView: View {
                         .background(Color(NSColor.textBackgroundColor))
                         .cornerRadius(8)
                 }
+                .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                 .frame(height: 200)
             }
             
@@ -1050,6 +1067,7 @@ struct Regaddr3ldView: View {
                             .background(Color(NSColor.textBackgroundColor))
                             .cornerRadius(8)
                     }
+                    .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                     .frame(height: 150)
                     
                     HStack {
@@ -1077,6 +1095,7 @@ struct Regaddr3ldView: View {
                         .background(Color(NSColor.textBackgroundColor))
                         .cornerRadius(8)
                 }
+                .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                 .frame(height: 200)
             }
             
@@ -1330,6 +1349,7 @@ struct RegaddraliasView: View {
                             .background(Color(NSColor.textBackgroundColor))
                             .cornerRadius(8)
                     }
+                    .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                     .frame(height: 200)
                     
                     HStack {
@@ -1357,6 +1377,7 @@ struct RegaddraliasView: View {
                         .background(Color(NSColor.textBackgroundColor))
                         .cornerRadius(8)
                 }
+                .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                 .frame(height: 200)
             }
             
@@ -1536,6 +1557,7 @@ struct OfflinekeysView: View {
                             .background(Color(NSColor.textBackgroundColor))
                             .cornerRadius(8)
                     }
+                    .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                     .frame(height: 200)
                 }
             }
@@ -1551,6 +1573,7 @@ struct OfflinekeysView: View {
                         .background(Color(NSColor.textBackgroundColor))
                         .cornerRadius(8)
                 }
+                .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                 .frame(height: 200)
             }
         }
@@ -1721,6 +1744,7 @@ struct RouterinfoView: View {
                         .background(Color(NSColor.textBackgroundColor))
                         .cornerRadius(8)
                 }
+                .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                 .frame(height: 300)
             }
             
@@ -1880,6 +1904,7 @@ struct X25519View: View {
                         .background(Color(NSColor.textBackgroundColor))
                         .cornerRadius(8)
                 }
+                .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                 .frame(height: 200)
             }
             
@@ -2029,6 +2054,7 @@ struct I2pbase64View: View {
                         .background(Color(NSColor.textBackgroundColor))
                         .cornerRadius(8)
                 }
+                .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                 .frame(height: 150)
             }
             
@@ -2207,6 +2233,7 @@ struct FamtoolView: View {
                         .background(Color(NSColor.textBackgroundColor))
                         .cornerRadius(8)
                 }
+                .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                 .frame(height: 300)
             }
             
@@ -2403,6 +2430,7 @@ struct VerifyhostView: View {
                         .background(Color(NSColor.textBackgroundColor))
                         .cornerRadius(8)
                 }
+                .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                 .frame(height: 200)
             }
             
@@ -2508,6 +2536,7 @@ struct AutoconfView: View {
                                 .cornerRadius(4)
                                 .id("terminal-output") // ID для автопрокрутки
                         }
+                        .padding(.vertical, ToolsScrollBarInset.embeddedBox)
                         .frame(height: 200)
                         .overlay(
                             RoundedRectangle(cornerRadius: 4)

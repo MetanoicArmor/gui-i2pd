@@ -359,6 +359,7 @@ class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
                 window.delegate = WindowCloseDelegate.shared
             }
         }
+        NotificationCenter.default.post(name: NSNotification.Name("SyncMainWindowLayout"), object: nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
         isMainWindowVisible = true
         self.updateStatusText("⚙️ " + L("Главное окно открыто"))
