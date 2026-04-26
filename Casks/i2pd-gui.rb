@@ -1,13 +1,13 @@
 cask "i2pd-gui" do
   version "2.60.0"
   on_arm do
-    sha256 "63cbe489cbed8cc03ffa10faaf784b824aae6e6a2d51cd8364e08fb573d596bb"
+    sha256 "3cca70ab35574d220d5c836b4617a9b488c127cc310c76e6e4e3ac0c95870b78"
     url "https://github.com/MetanoicArmor/gui-i2pd/releases/download/v#{version}/I2P-Daemon-GUI-#{version}.zip"
     app "I2P Daemon GUI.app"
   end
 
   on_intel do
-    sha256 "81727be3fd03139d569b86e3bf4ac8863c09826ad97791e226c77fe1e12b14a1"
+    sha256 "81962c4be44e70d4e4cd69cfe74e2ec40a51a551224a0c1d45e880092437da76"
     url "https://github.com/MetanoicArmor/gui-i2pd/releases/download/v#{version}/I2P-Daemon-GUI-Intel-#{version}.zip"
     app "I2P Daemon GUI-Intel.app", target: "I2P Daemon GUI.app"
   end
