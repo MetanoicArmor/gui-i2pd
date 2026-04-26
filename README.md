@@ -13,7 +13,7 @@
 ![Swift](https://img.shields.io/badge/Swift-5.7+-orange.svg)
 ![Version](https://img.shields.io/badge/Version-2.60.0-green.svg)
 ![I2P](https://img.shields.io/badge/I2P-2.60.0-purple.svg)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+![License](https://img.shields.io/badge/License-BSD--3--Clause-yellow.svg)
 
 **Modern GUI for managing I2P daemon on macOS with full internationalization**
 
@@ -432,7 +432,7 @@ Info.plist              # Application metadata (version 2.60)
 
 ## 📄 License and Legal Information
 
-The project is distributed under **MIT License**. Details in the `LICENSE` file.
+The project is distributed under **BSD-3-Clause License**. Details in the `LICENSE` file.
 
 ### 🌐 **Technologies Used:**
 - **I2P Network**: https://geti2p.net/ - anonymous network
