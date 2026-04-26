@@ -398,7 +398,7 @@ struct ContentView: View {
     @StateObject private var i2pdManager = I2pdManager()
     @State private var showingSettings = false
     @State private var showingTools = false
-    @State private var isLogSectionExpanded = true
+    @State private var isLogSectionExpanded = false
     @State private var isLogSectionTransitioning = false
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
     @State private var manualStop: Bool? = false // Флаг ручной остановки для предотвращения автозапуска
