@@ -88,7 +88,7 @@
 
 The cask automatically chooses the matching ZIP for your architecture (Apple Silicon or Intel) from the release assets.
 
-Install directly (i2pchat-style):
+Install directly:
 
 ```bash
 brew install --cask metanoicarmor/i2pd-gui/i2pd-gui
