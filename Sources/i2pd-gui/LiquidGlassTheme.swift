@@ -40,11 +40,22 @@ struct LiquidGlassWindowConfigurator: NSViewRepresentable {
 
     private func configure(window: NSWindow?) {
         guard let window else { return }
+        let isSheet = window.sheetParent != nil
         window.isOpaque = false
         window.backgroundColor = .clear
-        window.titlebarAppearsTransparent = true
-        window.styleMask.insert(.fullSizeContentView)
-        window.isMovableByWindowBackground = true
+        if isSheet {
+            // Лист/модалка: не fullSizeContentView — иначе контент уезжает под скруглённую
+            // кромку окна (эффект «срезания» сверху/снизу) и мешает ScrollView.
+            var mask = window.styleMask
+            mask.remove(.fullSizeContentView)
+            window.styleMask = mask
+            window.titlebarAppearsTransparent = false
+            window.isMovableByWindowBackground = false
+        } else {
+            window.titlebarAppearsTransparent = true
+            window.styleMask.insert(.fullSizeContentView)
+            window.isMovableByWindowBackground = true
+        }
         window.hasShadow = true
     }
 }
@@ -53,10 +64,34 @@ enum LiquidGlassTheme {
     static let windowPadding: CGFloat = 12
     static let panelRadius: CGFloat = 18
     static let controlRadius: CGFloat = 12
-    static let hairline = Color.white.opacity(0.22)
-    static let innerHairline = Color.primary.opacity(0.08)
-    static let subtleTint = Color.white.opacity(0.055)
+    static let subtleTint = Color.white.opacity(0.035)
     static let darkShadow = Color.black.opacity(0.16)
+
+    static var glassEdge: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(0.34),
+                Color.white.opacity(0.14),
+                Color.black.opacity(0.08),
+                Color.white.opacity(0.10)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    static var innerGlassEdge: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(0.16),
+                Color.white.opacity(0.04),
+                Color.black.opacity(0.07),
+                Color.white.opacity(0.05)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
 }
 
 private struct LiquidGlassPanelModifier: ViewModifier {
@@ -82,11 +117,11 @@ private struct LiquidGlassPanelModifier: ViewModifier {
                     }
                     .overlay {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .strokeBorder(LiquidGlassTheme.hairline, lineWidth: 0.8)
+                            .strokeBorder(LiquidGlassTheme.glassEdge, lineWidth: reduceTransparency ? 0.8 : 0.7)
                     }
                     .overlay {
                         RoundedRectangle(cornerRadius: max(cornerRadius - 1, 0), style: .continuous)
-                            .strokeBorder(LiquidGlassTheme.innerHairline, lineWidth: 0.5)
+                            .strokeBorder(LiquidGlassTheme.innerGlassEdge, lineWidth: 0.45)
                             .padding(1)
                     }
             }
@@ -115,7 +150,7 @@ private struct LiquidGlassSelectedModifier: ViewModifier {
                         }
                         .overlay {
                             RoundedRectangle(cornerRadius: LiquidGlassTheme.controlRadius, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.28), lineWidth: 0.8)
+                                .strokeBorder(LiquidGlassTheme.glassEdge, lineWidth: 0.7)
                         }
                 } else {
                     RoundedRectangle(cornerRadius: LiquidGlassTheme.controlRadius, style: .continuous)
@@ -136,8 +171,8 @@ extension View {
     func liquidGlassPanel(
         cornerRadius: CGFloat = LiquidGlassTheme.panelRadius,
         material: Material = .regularMaterial,
-        tintOpacity: Double = 0.045,
-        shadowOpacity: Double = 0.10
+        tintOpacity: Double = 0.035,
+        shadowOpacity: Double = 0.08
     ) -> some View {
         modifier(
             LiquidGlassPanelModifier(
@@ -153,9 +188,20 @@ extension View {
         modifier(
             LiquidGlassPanelModifier(
                 cornerRadius: cornerRadius,
-                material: .thinMaterial,
-                tintOpacity: 0.075,
-                shadowOpacity: 0.06
+                material: .regularMaterial,
+                tintOpacity: 0.03,
+                shadowOpacity: 0.025
+            )
+        )
+    }
+
+    func liquidGlassToolbar(cornerRadius: CGFloat = 14) -> some View {
+        modifier(
+            LiquidGlassPanelModifier(
+                cornerRadius: cornerRadius,
+                material: .bar,
+                tintOpacity: 0.006,
+                shadowOpacity: 0.0
             )
         )
     }

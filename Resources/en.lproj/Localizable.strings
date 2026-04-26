@@ -19,6 +19,17 @@
 "Отправлено: %@ B" = "Sent: %@ B";
 "Туннели: %d" = "Tunnels: %d";
 "Роутеры: %d" = "Routers: %d";
+"Tunnel creation success rate: %@" = "Tunnel creation success rate: %@";
+"Router Caps: %@" = "Router Caps: %@";
+"Floodfills: %d" = "Floodfills: %d";
+"Получено" = "Received";
+"Отправлено" = "Sent";
+"Туннели" = "Tunnels";
+"Успешность" = "Success";
+"Роутеры" = "Routers";
+"Флудфилы" = "Floodfills";
+"LeaseSets" = "LeaseSets";
+"Caps" = "Caps";
 
 /* Control buttons */
 "Запустить" = "Start";

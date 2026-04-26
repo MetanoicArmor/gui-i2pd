@@ -379,9 +379,8 @@ struct ToolsView: View {
             }
             .padding(18)
         }
-        .padding(.top, 44)
+        .padding(.top, 0)
         }
-        .ignoresSafeArea(.container, edges: .top)
         .liquidGlassWindow()
         .frame(minWidth: 800, minHeight: 600)
         .onDisappear {

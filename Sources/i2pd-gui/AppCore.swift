@@ -340,7 +340,7 @@ struct I2pdGUIApp: App {
             ContentView()
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 900, height: 700)
+        .defaultSize(width: 820, height: 620)
         .windowResizability(.contentSize)
         
         // Settings убраны - используем NSAlert из трея
@@ -378,6 +378,12 @@ struct ContentView: View {
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
     @State private var manualStop: Bool? = false // Флаг ручной остановки для предотвращения автозапуска
     
+    private var networkStatColumns: [GridItem] {
+        Array(
+            repeating: GridItem(.flexible(minimum: 116), spacing: 14, alignment: .leading),
+            count: 4
+        )
+    }
     
     var body: some View {
         ZStack(alignment: .top) {
@@ -404,65 +410,63 @@ struct ContentView: View {
                         .font(.headline)
                         .fontWeight(.semibold)
                     Spacer()
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-                    .buttonStyle(.borderless)
-                    .help(L("Настройки"))
-                    
-                    Button {
-                        i2pdManager.getExtendedStats()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .disabled(!i2pdManager.isRunning)
-                    .buttonStyle(.borderless)
-                    .help(L("Обновить"))
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
                 .liquidGlassHeader()
                 
-                // Статистика в компактном виде - одна строка
-                HStack(spacing: 16) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.down.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.caption)
-                        Text(String(format: L("Получено: %@"), i2pdManager.receivedBytes))
-                            .font(.caption)
-                    }
-                    
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .foregroundColor(.blue)
-                            .font(.caption)
-                        Text(String(format: L("Отправлено: %@"), i2pdManager.sentBytes))
-                            .font(.caption)
-                    }
-                    
-                    Spacer()
-                    
-                    HStack(spacing: 6) {
-                        Image(systemName: "lock.fill")
-                            .foregroundColor(.purple)
-                            .font(.caption)
-                        Text(String(format: L("Туннели: %d"), i2pdManager.activeTunnels))
-                            .font(.caption)
-                    }
-                    
-                    HStack(spacing: 6) {
-                        Image(systemName: "wifi")
-                            .foregroundColor(.orange)
-                            .font(.caption)
-                        Text(String(format: L("Роутеры: %d"), i2pdManager.peerCount))
-                            .font(.caption)
-                    }
+                LazyVGrid(columns: networkStatColumns, alignment: .leading, spacing: 12) {
+                    NetworkStatItem(
+                        title: L("Получено"),
+                        value: i2pdManager.receivedBytes,
+                        icon: "arrow.down.circle.fill",
+                        color: .green
+                    )
+                    NetworkStatItem(
+                        title: L("Отправлено"),
+                        value: i2pdManager.sentBytes,
+                        icon: "arrow.up.circle.fill",
+                        color: .blue
+                    )
+                    NetworkStatItem(
+                        title: L("Туннели"),
+                        value: "\(i2pdManager.activeTunnels)",
+                        icon: "lock.fill",
+                        color: .purple
+                    )
+                    NetworkStatItem(
+                        title: L("Успешность"),
+                        value: i2pdManager.tunnelCreationSuccessRate,
+                        icon: "percent",
+                        color: .teal
+                    )
+                    NetworkStatItem(
+                        title: L("Роутеры"),
+                        value: "\(i2pdManager.peerCount)",
+                        icon: "wifi",
+                        color: .orange
+                    )
+                    NetworkStatItem(
+                        title: L("Флудфилы"),
+                        value: "\(i2pdManager.floodfills)",
+                        icon: "circle.grid.2x2.fill",
+                        color: .mint
+                    )
+                    NetworkStatItem(
+                        title: L("LeaseSets"),
+                        value: "\(i2pdManager.leaseSets)",
+                        icon: "doc.text.magnifyingglass",
+                        color: .indigo
+                    )
+                    NetworkStatItem(
+                        title: L("Caps"),
+                        value: i2pdManager.routerCaps,
+                        icon: "cpu",
+                        color: .secondary
+                    )
                 }
                 .padding(.horizontal, 20)
-                .padding(.vertical, 4)
+                .padding(.vertical, 8)
             }
             .padding(10)
             .liquidGlassPanel(cornerRadius: 18, material: .regularMaterial)
@@ -501,52 +505,57 @@ struct ContentView: View {
                 .liquidGlassHeader()
                 
                 // Логи в компактном виде
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 3) {
-                        ForEach(i2pdManager.logs.prefix(30), id: \.id) { log in
-                            HStack(spacing: 8) {
-                                Text(log.timestamp.formatted(.dateTime.hour().minute().second()))
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                                    .frame(width: 50, alignment: .leading)
-                                
-                                Text(log.level.rawValue)
-                                    .font(.caption2)
-                                    .padding(.horizontal, 4)
-                                    .padding(.vertical, 1)
-                                    .background(log.level == .error ? Color.red : (log.level == .warn ? Color.orange : Color.blue))
-                                    .foregroundColor(.white)
-                                    .cornerRadius(2)
-                                    .frame(width: 60, alignment: .center)
-                                
-                                Text(log.message)
-                                    .font(.caption2)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .lineLimit(nil)
-                                    .multilineTextAlignment(.leading)
+                ZStack {
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            ForEach(i2pdManager.logs.prefix(30), id: \.id) { log in
+                                HStack(spacing: 8) {
+                                    Text(log.timestamp.formatted(.dateTime.hour().minute().second()))
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 50, alignment: .leading)
+
+                                    Text(log.level.rawValue)
+                                        .font(.caption2)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(log.level == .error ? Color.red : (log.level == .warn ? Color.orange : Color.blue))
+                                        .foregroundColor(.white)
+                                        .cornerRadius(2)
+                                        .frame(width: 60, alignment: .center)
+
+                                    Text(log.message)
+                                        .font(.caption2)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .lineLimit(nil)
+                                        .multilineTextAlignment(.leading)
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 1)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 1)
+
+                            if i2pdManager.logs.isEmpty {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "doc.text")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.secondary)
+                                    Text(L("Система готова к работе"))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    Text(L("Логи появятся при запуске демона"))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 40)
+                            }
                         }
-                        
-                        if i2pdManager.logs.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "doc.text")
-                                    .font(.system(size: 24))
-                            .foregroundColor(.secondary)
-                                Text(L("Система готова к работе"))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                                Text(L("Логи появятся при запуске демона"))
-                                    .font(.caption)
-                            .foregroundColor(.secondary)
+                        .padding(.vertical, 8)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
+
+                    LogScrollEdgeChrome()
                 }
-                    }
-                }
-                .frame(minHeight: 260, maxHeight: .infinity) // Логи занимают оставшуюся высоту окна.
+                .frame(minHeight: 210, maxHeight: .infinity) // Логи занимают оставшуюся высоту окна.
             }
             .padding(10)
             .frame(maxHeight: .infinity)
@@ -555,12 +564,11 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .padding(.horizontal, LiquidGlassTheme.windowPadding)
             .padding(.bottom, LiquidGlassTheme.windowPadding)
-            .padding(.top, 52)
+            .padding(.top, 0)
         }
-        .ignoresSafeArea(.container, edges: .top)
         .liquidGlassWindow()
-        .frame(minWidth: 650, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
-        .frame(maxWidth: min(1200, NSScreen.main?.frame.width ?? 1200 * 0.8)) // Адаптивная ширина: 80% от ширины экрана, но не более 1200px
+        .frame(minWidth: 650, maxWidth: .infinity, minHeight: 540, maxHeight: .infinity)
+        .frame(maxWidth: min(1080, NSScreen.main?.frame.width ?? 1080 * 0.8)) // Компромисс: компактнее исходного, но без наложения кнопок
         .onAppear {
             // Сначала проверяем начальный статус демона для корректного отображения в трее
             TrayManager.shared.checkInitialDaemonStatus()
@@ -672,6 +680,39 @@ struct ContentView: View {
         }
     }
     
+}
+
+private struct NetworkStatItem: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 9) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Text(value)
+                    .font(.system(.body, design: .rounded, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 }
 
 // MARK: - About View
@@ -1264,26 +1305,7 @@ struct SettingsView: View {
             LiquidGlassBackdrop(material: .sheet, blendingMode: .withinWindow)
                 .ignoresSafeArea()
 
-            VStack(spacing: 14) {
-            // Заголовок
-            HStack {
-                Label(L("Настройки"), systemImage: "gearshape")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                
-                Spacer()
-                
-                Text(L("Esc для закрытия"))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 14)
-            .liquidGlassHeader(cornerRadius: 18)
-            
-            ScrollView(.vertical, showsIndicators: false) {
+            ScrollView(.vertical, showsIndicators: true) {
                 VStack(spacing: 12) {
                     // Сетевая конфигурация
                     SettingsSection(title: L("Сетевая конфигурация"), icon: "globe") {
@@ -1923,17 +1945,37 @@ struct SettingsView: View {
                 .frame(maxWidth: 980, alignment: .top)
                 .frame(maxWidth: .infinity, alignment: .top)
                 .padding(.horizontal, 18)
-                .padding(.vertical, 18)
+                .padding(.top, 78)
+                .padding(.bottom, 34)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
             .padding(.horizontal, 18)
-            .padding(.top, 44)
-            .padding(.bottom, 18)
+
+            SettingsTopScrollFade()
+                .zIndex(0.5)
+
+            HStack {
+                Label(L("Настройки"), systemImage: "gearshape")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Spacer()
+
+                Text(L("Esc для закрытия"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 10)
+            .liquidGlassToolbar(cornerRadius: 18)
+            .padding(.horizontal, 18)
+            .padding(.top, 10)
+            .zIndex(1)
         }
-        .ignoresSafeArea(.container, edges: .top)
         .liquidGlassWindow()
-        .frame(minWidth: 750, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
+        .frame(minWidth: 750, maxWidth: .infinity, minHeight: 560, maxHeight: .infinity)
         .onAppear {
             // Загружаем актуальные порты из конфига при открытии настроек
         print("🔄 SettingsView opened - loading ports from config...")
@@ -2482,6 +2524,78 @@ http://i2p-projekt.i2p/hosts.txt
     }
 }
 
+private struct LogScrollEdgeChrome: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            LogScrollEdgeFade(
+                colors: [
+                    .black.opacity(0.58),
+                    .black.opacity(0.22),
+                    .clear
+                ],
+                height: 22
+            )
+
+            Spacer(minLength: 0)
+
+            LogScrollEdgeFade(
+                colors: [
+                    .clear,
+                    .black.opacity(0.20),
+                    .black.opacity(0.54)
+                ],
+                height: 26
+            )
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+private struct LogScrollEdgeFade: View {
+    let colors: [Color]
+    let height: CGFloat
+
+    var body: some View {
+        Rectangle()
+            .fill(.regularMaterial)
+            .mask(
+                LinearGradient(
+                    colors: colors,
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .frame(height: height)
+    }
+}
+
+// MARK: - Settings Scroll Chrome
+private struct SettingsTopScrollFade: View {
+    var body: some View {
+        VStack {
+            Rectangle()
+                .fill(.bar)
+                .mask(
+                    LinearGradient(
+                        colors: [
+                            .black,
+                            .black.opacity(0.72),
+                            .black.opacity(0.28),
+                            .clear
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(height: 104)
+
+            Spacer(minLength: 0)
+        }
+        .allowsHitTesting(false)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 // MARK: - Settings Section
 struct SettingsSection<Content: View>: View {
     let title: String
@@ -2612,8 +2726,8 @@ struct StatusCard: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
-        .padding(.vertical, 20)
-        .padding(.horizontal, 28)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 24)
         .liquidGlassPanel(cornerRadius: 20, material: .regularMaterial)
     }
 }
@@ -2711,9 +2825,17 @@ struct ControlButtons: View {
                             .minimumScaleFactor(0.9)
                 
                 Button {
-                    i2pdManager.clearLogs()
+                    guard i2pdManager.isRunning else {
+                        i2pdManager.logExportComplete("⚠️ Сначала запустите daemon для открытия веб-консоли")
+                        return
+                    }
+
+                    if let webURL = URL(string: "http://127.0.0.1:7070") {
+                        NSWorkspace.shared.open(webURL)
+                        i2pdManager.logExportComplete("🌐 Открыта веб-консоль")
+                    }
                 } label: {
-                    Label(L("Очистить логи"), systemImage: "trash")
+                    Label(L("Веб-консоль"), systemImage: "safari")
                         .frame(height: 36)
                         .frame(maxWidth: .infinity)
                 }
@@ -2852,7 +2974,11 @@ class I2pdManager: ObservableObject {
     @Published var bytesReceived = 0
     @Published var bytesSent = 0
     @Published var activeTunnels = 0
+    @Published var tunnelCreationSuccessRate = "—"
     @Published var routerInfos = 0
+    @Published var floodfills = 0
+    @Published var leaseSets = 0
+    @Published var routerCaps = "—"
     @Published var daemonVersion: String = "—"
     
     // Форматированные значения для отображения
@@ -2882,6 +3008,32 @@ class I2pdManager: ObservableObject {
     private var logTimer: Timer?
     
     private let executablePath: String
+
+    private struct NetworkStatsSnapshot {
+        var uptime: String? = nil
+        var bytesReceived: Int? = nil
+        var bytesSent: Int? = nil
+        var activeTunnels: Int? = nil
+        var tunnelCreationSuccessRate: String? = nil
+        var peerCount: Int? = nil
+        var routerInfos: Int? = nil
+        var floodfills: Int? = nil
+        var leaseSets: Int? = nil
+        var routerCaps: String? = nil
+
+        mutating func fillMissing(from fallback: NetworkStatsSnapshot) {
+            uptime = uptime ?? fallback.uptime
+            bytesReceived = bytesReceived ?? fallback.bytesReceived
+            bytesSent = bytesSent ?? fallback.bytesSent
+            activeTunnels = activeTunnels ?? fallback.activeTunnels
+            tunnelCreationSuccessRate = tunnelCreationSuccessRate ?? fallback.tunnelCreationSuccessRate
+            peerCount = peerCount ?? fallback.peerCount
+            routerInfos = routerInfos ?? fallback.routerInfos
+            floodfills = floodfills ?? fallback.floodfills
+            leaseSets = leaseSets ?? fallback.leaseSets
+            routerCaps = routerCaps ?? fallback.routerCaps
+        }
+    }
     
     init() {
         // Хардкодим путь к бинарнику для максимальной надежности
@@ -3297,29 +3449,7 @@ class I2pdManager: ObservableObject {
     }
     
     func getExtendedStats() {
-        DispatchQueue.global(qos: .background).async { [weak self] in
-            // Обновляем значения статистики без запуска некорректных команд
-            
-            DispatchQueue.main.async {
-                if let strongSelf = self {
-                    // Если демон не запущен, показываем нули
-                    if !strongSelf.isRunning {
-                        self?.bytesReceived = 0
-                        self?.bytesSent = 0
-                        self?.activeTunnels = 0
-                        self?.peerCount = 0
-                        self?.addLog(.info, L("📊 Статистика сброшена (daemon остановлен)"))
-                    } else {
-                        // Если демон запущен, показываем демо данные
-                        self?.bytesReceived = Int.random(in: 1024...10485760)  // 1KB - 10MB
-                        self?.bytesSent = Int.random(in: 1024...10485760)      // 1KB - 10MB
-                        self?.activeTunnels = Int.random(in: 2...8)             // 2-8 туннелей
-                        self?.peerCount = Int.random(in: 100...500)             // 100-500 роутеров
-                        self?.addLog(.info, L("📊 Расширенная статистика обновлена"))
-                    }
-                }
-            }
-        }
+        refreshNetworkStats(shouldLog: true)
     }
     
     private func executeI2pdCommand(_ arguments: [String]) {
@@ -3468,13 +3598,7 @@ class I2pdManager: ObservableObject {
         logTimer = nil
         
         DispatchQueue.main.async { [weak self] in
-            // Сбрасываем всю статистику при остановке демона
-            self?.uptime = "00:00:00"
-            self?.bytesReceived = 0
-            self?.bytesSent = 0
-            self?.activeTunnels = 0
-            self?.peerCount = 0
-            self?.addLog(.info, L("📊 Статистика сброшена (daemon остановлен)"))
+            self?.resetNetworkStats(shouldLog: true)
         }
     }
     
@@ -3511,33 +3635,271 @@ class I2pdManager: ObservableObject {
     }
     
     private func updateStatus() {
-        // Симуляция получения статистики
-        // В реальном приложении здесь должен быть запрос к веб-интерфейсу i2pd
-        
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self, self.isRunning else { 
-                // Сбрасываем все значения когда демон остановлен
-                self?.bytesReceived = 0
-                self?.bytesSent = 0
-                self?.activeTunnels = 0
-                self?.peerCount = 0
-                return 
+        refreshNetworkStats(shouldLog: false)
+    }
+
+    private func refreshNetworkStats(shouldLog: Bool) {
+        let daemonIsRunning = isRunning
+
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            guard let self else { return }
+
+            guard daemonIsRunning else {
+                DispatchQueue.main.async {
+                    self.resetNetworkStats(shouldLog: shouldLog)
+                }
+                return
             }
-            
-            // Простая симуляция времени работы
-            let currentUptimeSeconds = Int(Date().timeIntervalSince1970.truncatingRemainder(dividingBy: 86400))
-            let hours = currentUptimeSeconds / 3600
-            let minutes = (currentUptimeSeconds % 3600) / 60
-            let seconds = currentUptimeSeconds % 60
-            
-            self.uptime = String(format: "%02d:%02d:%02d", hours, minutes, seconds)
-            
-            // Симуляция статистики сети (обновляется автоматически каждые 5 секунд)
-            self.bytesReceived += Int.random(in: 1024...10240)  // Приращение входящего трафика
-            self.bytesSent += Int.random(in: 1024...10240)      // Приращение исходящего трафика
-            self.activeTunnels = Int.random(in: 2...8)           // Активные туннели
-            self.peerCount = Int.random(in: 50...200)            // Количество роутеров
+
+            let stats = self.loadNetworkStatsSnapshot()
+
+            DispatchQueue.main.async {
+                guard self.isRunning else {
+                    self.resetNetworkStats(shouldLog: shouldLog)
+                    return
+                }
+
+                self.applyNetworkStats(stats)
+
+                if shouldLog {
+                    self.addLog(.info, L("📊 Расширенная статистика обновлена"))
+                }
+            }
         }
+    }
+
+    private func resetNetworkStats(shouldLog: Bool) {
+        uptime = "00:00:00"
+        bytesReceived = 0
+        bytesSent = 0
+        activeTunnels = 0
+        tunnelCreationSuccessRate = "—"
+        peerCount = 0
+        routerInfos = 0
+        floodfills = 0
+        leaseSets = 0
+        routerCaps = "—"
+
+        if shouldLog {
+            addLog(.info, L("📊 Статистика сброшена (daemon остановлен)"))
+        }
+    }
+
+    private func applyNetworkStats(_ stats: NetworkStatsSnapshot) {
+        uptime = stats.uptime ?? uptime
+        bytesReceived = stats.bytesReceived ?? bytesReceived
+        bytesSent = stats.bytesSent ?? bytesSent
+        activeTunnels = stats.activeTunnels ?? 0
+        tunnelCreationSuccessRate = stats.tunnelCreationSuccessRate ?? "—"
+        peerCount = stats.peerCount ?? 0
+        routerInfos = stats.routerInfos ?? stats.peerCount ?? 0
+        floodfills = stats.floodfills ?? 0
+        leaseSets = stats.leaseSets ?? 0
+        routerCaps = stats.routerCaps ?? "—"
+    }
+
+    private func loadNetworkStatsSnapshot() -> NetworkStatsSnapshot {
+        var stats = fetchNetworkStatsFromWebConsole() ?? NetworkStatsSnapshot()
+
+        if stats.peerCount == nil || stats.floodfills == nil || stats.routerInfos == nil {
+            stats.fillMissing(from: readNetDbStats())
+        }
+
+        if stats.routerCaps == nil {
+            stats.routerCaps = readRouterCapsFromRouterInfo()
+        }
+
+        return stats
+    }
+
+    private func fetchNetworkStatsFromWebConsole() -> NetworkStatsSnapshot? {
+        guard let url = URL(string: "http://127.0.0.1:7070/"),
+              let html = synchronousFetchString(url: url, timeout: 2.0) else {
+            return nil
+        }
+
+        return parseWebConsoleStats(html)
+    }
+
+    private func parseWebConsoleStats(_ html: String) -> NetworkStatsSnapshot {
+        var stats = NetworkStatsSnapshot()
+
+        if let rawUptime = firstRegexCapture(in: html, pattern: "<b>\\s*Uptime:\\s*</b>\\s*([^<]+)<br>") {
+            stats.uptime = formatUptime(rawUptime)
+        }
+
+        if let successRate = firstRegexCapture(in: html, pattern: "<b>\\s*Tunnel creation success rate:\\s*</b>\\s*([0-9]+%)") {
+            stats.tunnelCreationSuccessRate = successRate
+        }
+
+        if let received = firstRegexCapture(in: html, pattern: "<b>\\s*Received:\\s*</b>\\s*([^<\\(]+)") {
+            stats.bytesReceived = parseByteAmount(received)
+        }
+
+        if let sent = firstRegexCapture(in: html, pattern: "<b>\\s*Sent:\\s*</b>\\s*([^<\\(]+)") {
+            stats.bytesSent = parseByteAmount(sent)
+        }
+
+        let clientTunnels = firstRegexCapture(in: html, pattern: "<b>\\s*Client Tunnels:\\s*</b>\\s*([0-9]+)").flatMap(Int.init)
+        let transitTunnels = firstRegexCapture(in: html, pattern: "<b>\\s*Transit Tunnels:\\s*</b>\\s*([0-9]+)").flatMap(Int.init)
+
+        if clientTunnels != nil || transitTunnels != nil {
+            stats.activeTunnels = (clientTunnels ?? 0) + (transitTunnels ?? 0)
+        }
+
+        if let routers = firstRegexCapture(in: html, pattern: "<b>\\s*Routers:\\s*</b>\\s*([0-9]+)").flatMap(Int.init) {
+            stats.peerCount = routers
+            stats.routerInfos = routers
+        }
+
+        if let floodfills = firstRegexCapture(in: html, pattern: "<b>\\s*Floodfills:\\s*</b>\\s*([0-9]+)").flatMap(Int.init) {
+            stats.floodfills = floodfills
+        }
+
+        if let leaseSets = firstRegexCapture(in: html, pattern: "<b>\\s*LeaseSets:\\s*</b>\\s*([0-9]+)").flatMap(Int.init) {
+            stats.leaseSets = leaseSets
+        }
+
+        if let caps = firstRegexCapture(in: html, pattern: "<b>\\s*Router Caps:\\s*</b>\\s*([^<\\s]+)") {
+            stats.routerCaps = caps.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return stats
+    }
+
+    private func readNetDbStats() -> NetworkStatsSnapshot {
+        let netDbURL = getI2pdConfigDirectory().appendingPathComponent("netDb")
+        guard let enumerator = FileManager.default.enumerator(
+            at: netDbURL,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return NetworkStatsSnapshot()
+        }
+
+        var routers = 0
+        var floodfills = 0
+
+        for case let fileURL as URL in enumerator {
+            guard fileURL.lastPathComponent.hasPrefix("routerInfo-"),
+                  (try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else {
+                continue
+            }
+
+            routers += 1
+
+            if let data = try? Data(contentsOf: fileURL),
+               let caps = lastRouterInfoProperty(named: "caps", in: data),
+               caps.contains("f") {
+                floodfills += 1
+            }
+        }
+
+        return NetworkStatsSnapshot(peerCount: routers, routerInfos: routers, floodfills: floodfills)
+    }
+
+    private func parseByteAmount(_ text: String) -> Int? {
+        let normalized = text
+            .replacingOccurrences(of: ",", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let captures = regexCaptures(
+            in: normalized,
+            pattern: "([0-9]+(?:\\.[0-9]+)?)\\s*([KMGT]?i?B|[KMGT]?B|B)"
+        ),
+        captures.count == 2,
+        let value = Double(captures[0]) else {
+            return nil
+        }
+
+        let unit = captures[1].lowercased()
+        let multiplier: Double
+
+        switch unit {
+        case "kib", "kb":
+            multiplier = 1024
+        case "mib", "mb":
+            multiplier = 1024 * 1024
+        case "gib", "gb":
+            multiplier = 1024 * 1024 * 1024
+        case "tib", "tb":
+            multiplier = 1024 * 1024 * 1024 * 1024
+        default:
+            multiplier = 1
+        }
+
+        return Int((value * multiplier).rounded())
+    }
+
+    private func formatUptime(_ text: String) -> String {
+        guard let seconds = parseDurationSeconds(text) else {
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        let remainingSeconds = seconds % 60
+
+        return String(format: "%02d:%02d:%02d", hours, minutes, remainingSeconds)
+    }
+
+    private func parseDurationSeconds(_ text: String) -> Int? {
+        let units: [(String, Int)] = [
+            ("day", 86_400),
+            ("hour", 3_600),
+            ("minute", 60),
+            ("second", 1)
+        ]
+
+        var total = 0
+
+        for (unit, multiplier) in units {
+            if let value = firstRegexCapture(in: text, pattern: "(\\d+)\\s*\(unit)s?").flatMap(Int.init) {
+                total += value * multiplier
+            }
+        }
+
+        return total > 0 ? total : nil
+    }
+
+    private func readRouterCapsFromRouterInfo() -> String? {
+        let routerInfoURL = getI2pdConfigDirectory().appendingPathComponent("router.info")
+        guard let data = try? Data(contentsOf: routerInfoURL),
+              let caps = lastRouterInfoProperty(named: "caps", in: data) else {
+            return nil
+        }
+
+        return caps.isEmpty ? nil : caps
+    }
+
+    private func lastRouterInfoProperty(named name: String, in data: Data) -> String? {
+        let bytes = Array(data)
+        let marker = Array("\(name)=".utf8)
+        guard !marker.isEmpty, bytes.count >= marker.count else { return nil }
+
+        var lastValue: String?
+        var index = bytes.startIndex
+
+        while index <= bytes.count - marker.count {
+            if bytes[index..<index + marker.count].elementsEqual(marker) {
+                let valueStart = index + marker.count
+                var valueEnd = valueStart
+
+                while valueEnd < bytes.count, bytes[valueEnd] != 0x3b {
+                    valueEnd += 1
+                }
+
+                let valueBytes = bytes[valueStart..<valueEnd].filter { $0 >= 0x20 && $0 < 0x7f }
+                lastValue = String(bytes: valueBytes, encoding: .utf8)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+
+                index = valueEnd
+            } else {
+                index += 1
+            }
+        }
+
+        return lastValue
     }
 
     // MARK: - Версия демона
@@ -3706,6 +4068,25 @@ class I2pdManager: ObservableObject {
             return String(text[r])
         }
         return nil
+    }
+
+    private func regexCaptures(in text: String, pattern: String) -> [String]? {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        guard let match = regex.firstMatch(in: text, options: [], range: range), match.numberOfRanges > 1 else {
+            return nil
+        }
+
+        var captures: [String] = []
+
+        for index in 1..<match.numberOfRanges {
+            guard let captureRange = Range(match.range(at: index), in: text) else {
+                return nil
+            }
+            captures.append(String(text[captureRange]))
+        }
+
+        return captures
     }
 }
 
