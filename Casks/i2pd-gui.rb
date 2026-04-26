@@ -1,8 +1,17 @@
 cask "i2pd-gui" do
   version "2.60.0"
-  sha256 "0fd0a75101d5315c767db7eb8d9eab64dce89f8670cf70dee98868aaf58e1bcd"
+  on_arm do
+    sha256 "0fd0a75101d5315c767db7eb8d9eab64dce89f8670cf70dee98868aaf58e1bcd"
+    url "https://github.com/MetanoicArmor/gui-i2pd/releases/download/v#{version}/I2P-Daemon-GUI-#{version}.zip"
+    app "I2P Daemon GUI.app"
+  end
 
-  url "https://github.com/MetanoicArmor/gui-i2pd/releases/download/v#{version}/I2P-Daemon-GUI-#{version}.zip"
+  on_intel do
+    sha256 "f87227bd6eeb0f46cccbe995d27416e578653280a4150367a20c82cdb4abf080"
+    url "https://github.com/MetanoicArmor/gui-i2pd/releases/download/v#{version}/I2P-Daemon-GUI-Intel-#{version}.zip"
+    app "I2P Daemon GUI-Intel.app", target: "I2P Daemon GUI.app"
+  end
+
   name "I2P Daemon GUI"
   desc "Native macOS interface for the i2pd I2P network router"
   homepage "https://github.com/MetanoicArmor/gui-i2pd"
@@ -12,10 +21,7 @@ cask "i2pd-gui" do
     strategy :github_latest
   end
 
-  depends_on arch: :arm64
   depends_on macos: ">= :sonoma"
-
-  app "I2P Daemon GUI.app"
 
   zap trash: [
     "~/Library/LaunchAgents/com.i2pd.daemon-gui.plist",

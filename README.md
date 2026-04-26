@@ -84,14 +84,14 @@
    open "/Applications/I2P Daemon GUI.app"
    ```
 
-### 🍺 **Homebrew (Apple Silicon .app in the cask):**
+### 🍺 **Homebrew: arm64 + Intel:**
 
-This tap installs the **arm64** build from the release ZIP. On **Intel Macs**, use the ZIP from [Releases](https://github.com/MetanoicArmor/gui-i2pd/releases) or build with `build-app-intel.sh`.
+The cask automatically chooses the matching ZIP for your architecture (Apple Silicon or Intel) from the release assets.
 
-Because the repo is named `gui-i2pd` (not `homebrew-gui-i2pd`), pass the Git URL explicitly:
+Use the dedicated tap (same style as i2pchat):
 
 ```bash
-brew tap MetanoicArmor/gui-i2pd https://github.com/MetanoicArmor/gui-i2pd
+brew tap MetanoicArmor/i2pd-gui
 brew install --cask i2pd-gui
 ```
 
