@@ -110,6 +110,9 @@ private enum MainWindowLayout {
     /// Расстояние между крупными секциями (статус, сеть, кнопки, логи).
     static let sectionSpacing: CGFloat = 12
     static let logPanelInset: CGFloat = 10
+    /// Горизонтальные отступы строки лога: справа меньше — ближе к полосе прокрутки, без смены ширины панели.
+    static let logRowHorizontalLeading: CGFloat = 20
+    static let logRowHorizontalTrailing: CGFloat = 6
     static let sectionHeaderHeight: CGFloat = 36
     /// Минимальная высота скролла логов внутри развёрнутой панели.
     static let expandedLogViewportMinHeight: CGFloat = 160
@@ -139,6 +142,40 @@ private extension NSWindow {
         newFrame.size = size
         newFrame.origin.y = topY - size.height
         setFrame(newFrame, display: true, animate: false)
+    }
+}
+
+private extension NSView {
+    func enclosingNSScrollView() -> NSScrollView? {
+        var v: NSView? = self
+        while let c = v {
+            if let s = c as? NSScrollView { return s }
+            v = c.superview
+        }
+        return nil
+    }
+}
+
+/// SwiftUI `ScrollView` на macOS по умолчанию использует `NSScrollView` в стиле `.legacy`:
+/// вертикальный скроллер в отдельной колонке — заметный зазор до правой рамки панели.
+/// `.overlay` рисует скроллер поверх контента у края (как в системных списках).
+private struct LogPanelScrollViewTrailingFixer: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let v = NSView()
+        v.frame = .zero
+        return v
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            guard let scroll = nsView.enclosingNSScrollView() else { return }
+            scroll.scrollerStyle = .overlay
+            var si = scroll.scrollerInsets
+            si.right = 0
+            scroll.scrollerInsets = si
+            scroll.contentView.automaticallyAdjustsContentInsets = false
+            scroll.contentView.contentInsets = .init()
+        }
     }
 }
 
@@ -657,7 +694,8 @@ struct ContentView: View {
                                         .multilineTextAlignment(.leading)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
-                                .padding(.horizontal, 20)
+                                .padding(.leading, MainWindowLayout.logRowHorizontalLeading)
+                                .padding(.trailing, MainWindowLayout.logRowHorizontalTrailing)
                                 .padding(.vertical, 1)
                             }
 
@@ -674,8 +712,15 @@ struct ContentView: View {
                                         .foregroundColor(.secondary)
                                 }
                                 .frame(maxWidth: .infinity)
+                                .padding(.horizontal, MainWindowLayout.logRowHorizontalLeading)
                                 .padding(.vertical, 40)
                             }
+
+                            // Якорь внутри документа скролла — ищем родительский NSScrollView и поджимаем скроллер к краю.
+                            Color.clear
+                                .frame(width: 1, height: 1)
+                                .accessibilityHidden(true)
+                                .background(LogPanelScrollViewTrailingFixer())
                         }
                         .padding(.top, MainWindowLayout.sectionHeaderHeight)
                         .padding(.bottom, 8)
