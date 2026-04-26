@@ -88,11 +88,10 @@
 
 The cask automatically chooses the matching ZIP for your architecture (Apple Silicon or Intel) from the release assets.
 
-Use the dedicated tap (same style as i2pchat):
+Install directly (i2pchat-style):
 
 ```bash
-brew tap MetanoicArmor/i2pd-gui
-brew install --cask i2pd-gui
+brew install --cask metanoicarmor/i2pd-gui/i2pd-gui
 ```
 
 Upgrade later with `brew upgrade --cask i2pd-gui`.
