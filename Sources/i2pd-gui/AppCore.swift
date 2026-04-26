@@ -113,8 +113,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 TrayManager.shared.hideMainWindow()
             }
+        } else {
+            // Принудительно применяем стартовый размер окна, так как macOS
+            // может восстанавливать прошлый frame и игнорировать defaultSize.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { [weak self] in
+                self?.applyInitialMainWindowFrame()
+            }
         }
         setupWindowToggleShortcut()
+    }
+
+    private func applyInitialMainWindowFrame() {
+        guard let window = NSApplication.shared.windows.first(where: { $0.isVisible && $0.level == .normal && $0.sheetParent == nil }) else {
+            return
+        }
+
+        let targetSize = NSSize(width: 900, height: 900)
+        guard abs(window.frame.width - targetSize.width) > 1 || abs(window.frame.height - targetSize.height) > 1 else {
+            return
+        }
+
+        var frame = window.frame
+        let topEdge = frame.maxY
+        frame.size = targetSize
+        frame.origin.y = topEdge - targetSize.height
+        window.setFrame(frame, display: true, animate: false)
     }
     
     private func setupWindowToggleShortcut() {
@@ -340,7 +363,7 @@ struct I2pdGUIApp: App {
             ContentView()
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 820, height: 620)
+        .defaultSize(width: 900, height: 900)
         .windowResizability(.contentSize)
         
         // Settings убраны - используем NSAlert из трея
@@ -375,8 +398,12 @@ struct ContentView: View {
     @StateObject private var i2pdManager = I2pdManager()
     @State private var showingSettings = false
     @State private var showingTools = false
+    @State private var isLogSectionExpanded = true
+    @State private var expandedLogWindowHeight: CGFloat?
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
     @State private var manualStop: Bool? = false // Флаг ручной остановки для предотвращения автозапуска
+    private let collapsedLogWindowHeight: CGFloat = 475
+    private let mainWindowVerticalInset: CGFloat = 16
     
     private var networkStatColumns: [GridItem] {
         Array(
@@ -479,16 +506,29 @@ struct ContentView: View {
                 manualStop: $manualStop
             )
             
-            // Секция логов - всегда развернута
+            // Секция логов
             VStack(spacing: 8) {
                 // Заголовок секции
                 HStack {
-                    Image(systemName: "doc.text")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.blue)
-                    Text(L("Логи системы"))
-                        .font(.headline)
-                        .fontWeight(.semibold)
+                    Button {
+                        toggleLogSection()
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.blue)
+                            Text(L("Логи системы"))
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                            Image(systemName: isLogSectionExpanded ? "chevron.down" : "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.secondary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(isLogSectionExpanded ? L("Свернуть логи") : L("Развернуть логи"))
+
                     Spacer()
                     if !i2pdManager.logs.isEmpty {
                         Button {
@@ -504,70 +544,78 @@ struct ContentView: View {
                 .padding(.vertical, 8)
                 .liquidGlassHeader()
                 
-                // Логи в компактном виде
-                ZStack {
-                    ScrollView(.vertical, showsIndicators: true) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            ForEach(i2pdManager.logs.prefix(30), id: \.id) { log in
-                                HStack(spacing: 8) {
-                                    Text(log.timestamp.formatted(.dateTime.hour().minute().second()))
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 50, alignment: .leading)
+                if isLogSectionExpanded {
+                    // Логи в компактном виде
+                    ZStack {
+                        ScrollView(.vertical, showsIndicators: true) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                ForEach(i2pdManager.logs.prefix(30), id: \.id) { log in
+                                    HStack(spacing: 8) {
+                                        Text(log.timestamp.formatted(.dateTime.hour().minute().second()))
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                            .frame(width: 50, alignment: .leading)
 
-                                    Text(log.level.rawValue)
-                                        .font(.caption2)
-                                        .padding(.horizontal, 4)
-                                        .padding(.vertical, 1)
-                                        .background(log.level == .error ? Color.red : (log.level == .warn ? Color.orange : Color.blue))
-                                        .foregroundColor(.white)
-                                        .cornerRadius(2)
-                                        .frame(width: 60, alignment: .center)
+                                        Text(log.level.rawValue)
+                                            .font(.caption2)
+                                            .padding(.horizontal, 4)
+                                            .padding(.vertical, 1)
+                                            .background(log.level == .error ? Color.red : (log.level == .warn ? Color.orange : Color.blue))
+                                            .foregroundColor(.white)
+                                            .cornerRadius(2)
+                                            .frame(width: 60, alignment: .center)
 
-                                    Text(log.message)
-                                        .font(.caption2)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .lineLimit(nil)
-                                        .multilineTextAlignment(.leading)
+                                        Text(log.message)
+                                            .font(.caption2)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .lineLimit(nil)
+                                            .multilineTextAlignment(.leading)
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 1)
                                 }
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 1)
-                            }
 
-                            if i2pdManager.logs.isEmpty {
-                                VStack(spacing: 8) {
-                                    Image(systemName: "doc.text")
-                                        .font(.system(size: 24))
-                                        .foregroundColor(.secondary)
-                                    Text(L("Система готова к работе"))
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                    Text(L("Логи появятся при запуске демона"))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                                if i2pdManager.logs.isEmpty {
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "doc.text")
+                                            .font(.system(size: 24))
+                                            .foregroundColor(.secondary)
+                                        Text(L("Система готова к работе"))
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                        Text(L("Логи появятся при запуске демона"))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 40)
                                 }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 40)
                             }
+                            .padding(.vertical, 8)
                         }
-                        .padding(.vertical, 8)
-                    }
 
-                    LogScrollEdgeChrome()
+                        LogScrollEdgeChrome()
+                    }
+                    .frame(minHeight: 210, maxHeight: .infinity) // Логи занимают оставшуюся высоту окна.
                 }
-                .frame(minHeight: 210, maxHeight: .infinity) // Логи занимают оставшуюся высоту окна.
             }
             .padding(10)
-            .frame(maxHeight: .infinity)
+            .frame(maxHeight: isLogSectionExpanded ? CGFloat.infinity : nil)
             .liquidGlassPanel(cornerRadius: 18, material: .regularMaterial)
+            .animation(.easeInOut(duration: 0.18), value: isLogSectionExpanded)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .frame(maxWidth: .infinity, maxHeight: isLogSectionExpanded ? CGFloat.infinity : nil, alignment: .top)
             .padding(.horizontal, LiquidGlassTheme.windowPadding)
-            .padding(.bottom, LiquidGlassTheme.windowPadding)
-            .padding(.top, 0)
+            .padding(.bottom, mainWindowVerticalInset)
+            .padding(.top, isLogSectionExpanded ? mainWindowVerticalInset : 4)
         }
         .liquidGlassWindow()
-        .frame(minWidth: 650, maxWidth: .infinity, minHeight: 540, maxHeight: .infinity)
+        .frame(
+            minWidth: 650,
+            maxWidth: .infinity,
+            minHeight: isLogSectionExpanded ? 680 : collapsedLogWindowHeight,
+            maxHeight: isLogSectionExpanded ? CGFloat.infinity : nil
+        )
         .frame(maxWidth: min(1080, NSScreen.main?.frame.width ?? 1080 * 0.8)) // Компромисс: компактнее исходного, но без наложения кнопок
         .onAppear {
             // Сначала проверяем начальный статус демона для корректного отображения в трее
@@ -671,6 +719,45 @@ struct ContentView: View {
         }
     }
     
+    private func toggleLogSection() {
+        let shouldExpand = !isLogSectionExpanded
+
+        if !shouldExpand, let window = mainContentWindow() {
+            expandedLogWindowHeight = window.frame.height
+        }
+
+        withAnimation(.easeInOut(duration: 0.18)) {
+            isLogSectionExpanded = shouldExpand
+        }
+
+        resizeMainWindowForLogSection(expanded: shouldExpand)
+    }
+
+    private func resizeMainWindowForLogSection(expanded: Bool) {
+        DispatchQueue.main.async {
+            guard let window = mainContentWindow() else {
+                return
+            }
+
+            let targetHeight = expanded ? (expandedLogWindowHeight ?? 620) : collapsedLogWindowHeight
+            guard abs(window.frame.height - targetHeight) > 1 else {
+                return
+            }
+
+            var frame = window.frame
+            let topEdge = frame.maxY
+            frame.size.height = targetHeight
+            frame.origin.y = topEdge - targetHeight
+            window.setFrame(frame, display: true, animate: true)
+        }
+    }
+
+    private func mainContentWindow() -> NSWindow? {
+        NSApp.keyWindow ?? NSApplication.shared.windows.first { window in
+            window.isVisible && window.level == .normal && window.sheetParent == nil
+        }
+    }
+
     private func applyTheme() {
         let isDarkMode = UserDefaults.standard.bool(forKey: "darkMode")
         if isDarkMode {
@@ -1292,13 +1379,7 @@ struct SettingsView: View {
     @AppStorage("darkMode") private var darkMode = true
     @AppStorage("autoRefresh") private var autoRefresh = true
     @AppStorage("autoLogCleanup") private var autoLogCleanup = false
-    @AppStorage("addressBookAutoUpdate") private var addressBookAutoUpdate = true
-    @AppStorage("addressBookInterval") private var addressBookInterval = 720 // минуты
     @AppStorage("hideFromDock") private var hideFromDock = false
-    
-    // Добавляем состояние для предотвращения множественных нажатий
-    @State private var isResetting = false
-    @State private var showingResetAlert = false
     
     var body: some View {
         ZStack(alignment: .top) {
@@ -1583,55 +1664,6 @@ struct SettingsView: View {
                         }
                     }
                     
-                    // Мониторинг
-                    SettingsSection(title: L("Мониторинг"), icon: "chart.bar") {
-                        VStack(spacing: 12) {
-                            HStack(spacing: 12) {
-                                Text(L("Обновление каждые 5 сек"))
-                                    .font(.system(.body, design: .default, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .frame(minWidth: 250, alignment: .leading)
-                                
-                            HStack {
-                                Spacer()
-                                    Toggle("", isOn: $autoRefresh)
-                                        .labelsHidden()
-                                    .onChange(of: autoRefresh) { 
-                                        // Управляем автопобновлением статистики
-                                        if autoRefresh {
-                                            i2pdManager.enableAutoRefresh()
-                                        } else {
-                                            i2pdManager.disableAutoRefresh()
-                                        }
-                                    }
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            HStack(spacing: 12) {
-                                Text(L("Автоматическая очистка логов"))
-                                    .font(.system(.body, design: .default, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .frame(minWidth: 250, alignment: .leading)
-                                
-                            HStack {
-                                Spacer()
-                                    Toggle("", isOn: $autoLogCleanup)
-                                        .labelsHidden()
-                                    .onChange(of: autoLogCleanup) { 
-                                        // Управляем автоочисткой логов
-                                        if autoLogCleanup {
-                                            i2pdManager.enableAutoLogCleanup()
-                                        } else {
-                                            i2pdManager.disableAutoLogCleanup()
-                                        }
-                                    }
-                            }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                    
                     // Данные
                     SettingsSection(title: L("Данные"), icon: "folder.fill") {
                         VStack(spacing: 12) {
@@ -1674,48 +1706,6 @@ struct SettingsView: View {
                                 .buttonStyle(.borderless)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                        }
-                    }
-                    
-                    // Действия
-                    SettingsSection(title: L("Действия"), icon: "hammer.circle.fill") {
-                        VStack(spacing: 12) {
-                            HStack(spacing: 12) {
-                                Button {
-                                    showingResetAlert = true
-                                } label: {
-                                    Label(L("Сбросить настройки"), systemImage: "arrow.counterclockwise.circle")
-                                }
-                                .foregroundColor(.orange)
-                                .buttonStyle(.borderless)
-                                .frame(minWidth: 180, alignment: .leading)
-                                .disabled(isResetting)
-                                
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .alert("Сброс настроек", isPresented: $showingResetAlert) {
-                                Button("Сбросить", role: .destructive) {
-                                    resetSettings()
-                                }
-                                Button("Отменить", role: .cancel) {}
-                            } message: {
-                                Text(L("Все настройки будут сброшены к значениям по умолчанию. Вы уверены?"))
-                            }
-                            
-                            HStack(spacing: 12) {
-                                Button {
-                                    i2pdManager.getExtendedStats()
-                                } label: {
-                                    Label(L("Тестовая статистика"), systemImage: "chart.bar")
-                                }
-                                .disabled(!i2pdManager.isRunning)
-                                .buttonStyle(.borderless)
-                                .frame(minWidth: 180, alignment: .leading)
-                                
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                     
@@ -1834,39 +1824,6 @@ struct SettingsView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
-                            HStack(spacing: 12) {
-                                Text(L("Автообновление:"))
-                                    .font(.system(.body, design: .default, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .frame(minWidth: 180, alignment: .leading)
-                                
-                                Toggle("", isOn: $addressBookAutoUpdate)
-                                    .labelsHidden()
-                                
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            HStack(spacing: 12) {
-                                Text(L("Интервал обновления:"))
-                                    .font(.system(.body, design: .default, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .frame(minWidth: 200, alignment: .leading)
-                                
-                                Picker(L("Интервал обновления"), selection: $addressBookInterval) {
-                                    Text(L("Каждые 6 часов")).tag(360)
-                                    Text(L("Ежедневно")).tag(720)
-                                    Text(L("Каждые 3 дня")).tag(2160)
-                                    Text(L("Еженедельно")).tag(5040)
-                                }
-                                .pickerStyle(.menu)
-                                .frame(width: 200)
-                                
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .disabled(!addressBookAutoUpdate)
-                            
                             Divider()
                             
                             VStack(alignment: .leading, spacing: 8) {
@@ -1891,47 +1848,6 @@ struct SettingsView: View {
                         }
                     }
                     
-                    // Веб-консоль
-                    SettingsSection(title: L("Веб-консоль"), icon: "safari.fill") {
-                        VStack(spacing: 12) {
-                            HStack(spacing: 12) {
-                                Text(L("Веб-интерфейс"))
-                                    .font(.system(.body, design: .default, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .frame(minWidth: 200, alignment: .leading)
-                                
-                                Button {
-                                    openWebConsole()
-                                } label: {
-                                    Label(L("Открыть"), systemImage: "safari")
-                                }
-                                .buttonStyle(.borderless)
-                                .disabled(!i2pdManager.isRunning)
-                                
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            HStack(spacing: 12) {
-                                Text(L("Порт: 7070"))
-                                    .font(.system(.body, design: .default, weight: .medium))
-                                    .foregroundColor(.secondary)
-                                    .frame(minWidth: 200, alignment: .leading)
-                                
-                                Button {
-                                    copyWebConsoleURL()
-                                } label: {
-                                    Label(L("Копировать URL"), systemImage: "link")
-                                }
-                                .buttonStyle(.borderless)
-                                
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                        }
-                    }
-                    
                     // Простая ссылка на GitHub
                     HStack {
                         Spacer()
@@ -1946,7 +1862,7 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .top)
                 .padding(.horizontal, 18)
                 .padding(.top, 78)
-                .padding(.bottom, 34)
+                .padding(.bottom, 12)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, 18)
@@ -1975,7 +1891,7 @@ struct SettingsView: View {
             .zIndex(1)
         }
         .liquidGlassWindow()
-        .frame(minWidth: 750, maxWidth: .infinity, minHeight: 560, maxHeight: .infinity)
+        .frame(minWidth: 750, maxWidth: .infinity, minHeight: 520, maxHeight: .infinity)
         .onAppear {
             // Загружаем актуальные порты из конфига при открытии настроек
         print("🔄 SettingsView opened - loading ports from config...")
@@ -2051,6 +1967,15 @@ struct SettingsView: View {
     }
     
     private func clearDataCache() {
+        if i2pdManager.isRunning {
+            let runningAlert = NSAlert()
+            runningAlert.messageText = "Очистка кэша недоступна"
+            runningAlert.informativeText = "Остановите i2pd daemon перед очисткой кэша."
+            runningAlert.addButton(withTitle: "OK")
+            runningAlert.runModal()
+            return
+        }
+
         let alert = NSAlert()
         alert.messageText = "Очистка кэша"
         alert.informativeText = "Вы уверены что хотите очистить кэш приложения? Это действие нельзя отменить."
@@ -2058,8 +1983,46 @@ struct SettingsView: View {
         alert.addButton(withTitle: "Отменить")
         
         if alert.runModal() == .alertFirstButtonReturn {
-            // TODO: Реализовать очистку кэша
-            i2pdManager.logExportComplete("🗑️ Кэш очищен")
+            let fileManager = FileManager.default
+            let dataDir = getI2pdConfigDirectory()
+
+            let cacheDirectories = ["netDb", "peerProfiles"]
+            let removableFiles = ["i2pd.log", "i2pd.pid", "i2pd.pid.old", "router.info"]
+            var removedItems: [String] = []
+            var failedItems: [String] = []
+
+            for directoryName in cacheDirectories {
+                let directoryURL = dataDir.appendingPathComponent(directoryName)
+                if fileManager.fileExists(atPath: directoryURL.path) {
+                    do {
+                        try fileManager.removeItem(at: directoryURL)
+                        removedItems.append(directoryName)
+                    } catch {
+                        failedItems.append("\(directoryName): \(error.localizedDescription)")
+                    }
+                }
+            }
+
+            for fileName in removableFiles {
+                let fileURL = dataDir.appendingPathComponent(fileName)
+                if fileManager.fileExists(atPath: fileURL.path) {
+                    do {
+                        try fileManager.removeItem(at: fileURL)
+                        removedItems.append(fileName)
+                    } catch {
+                        failedItems.append("\(fileName): \(error.localizedDescription)")
+                    }
+                }
+            }
+
+            if failedItems.isEmpty {
+                let summary = removedItems.isEmpty
+                    ? "🧹 Кэш уже был пуст (очищать нечего)"
+                    : "🧹 Кэш очищен: удалено \(removedItems.count) элементов"
+                i2pdManager.logExportComplete(summary)
+            } else {
+                i2pdManager.logExportComplete("⚠️ Очистка кэша завершена с ошибками: \(failedItems.joined(separator: "; "))")
+            }
         }
     }
     
@@ -2196,33 +2159,6 @@ struct SettingsView: View {
                 // Политика применения сохраняется через UserDefaults при перезапуске
                 
                 i2pdManager.logExportComplete("📱 Приложение возвращено в Dock.")
-            }
-        }
-    }
-    
-    private func resetSettings() {
-        isResetting = true
-        
-        DispatchQueue.main.async {
-            // Сброс всех настроек к значениям по умолчанию
-            autoStart = false
-            autoStartDaemon = false
-            startMinimized = false
-            appLanguage = "ru"
-            autoRefresh = true
-            autoLogCleanup = false
-            darkMode = true
-            addressBookAutoUpdate = true
-            addressBookInterval = 720
-            hideFromDock = false
-            
-            // Применяем тёмную тему по умолчанию безопасно
-                NSApp.appearance = NSAppearance(named: .darkAqua)
-            
-            i2pdManager.logExportComplete("🔄 Настройки сброшены к значениям по умолчанию")
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isResetting = false
             }
         }
     }
@@ -2447,26 +2383,6 @@ outbound.length = 3
         alert.informativeText = examplesText
         alert.addButton(withTitle: "OK")
         alert.runModal()
-    }
-    
-    private func openWebConsole() {
-        guard i2pdManager.isRunning else { return }
-        
-        let url = "http://127.0.0.1:7070"
-        if let webURL = URL(string: url) {
-            NSWorkspace.shared.open(webURL)
-            i2pdManager.logExportComplete("🌐 Открыта веб-консоль")
-        }
-    }
-    
-    private func copyWebConsoleURL() {
-        let url = "http://127.0.0.1:7070"
-        
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(url, forType: .string)
-        
-        i2pdManager.logExportComplete("🔗 URL веб-консоли скопирован в буфер обмена")
     }
     
     private func openAddressBookSubscriptions() {

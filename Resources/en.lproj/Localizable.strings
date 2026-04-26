@@ -99,12 +99,6 @@
 "Data Path" = "Data Path";
 "Change" = "Change";
 
-/* Settings - Actions */
-"Действия" = "Actions";
-"Сбросить настройки" = "Reset Settings";
-"Тестовая статистика" = "Test Statistics";
-"Actions" = "Actions";
-
 /* Settings - Configuration */
 "Конфигурация" = "Configuration";
 "Конфиг файл" = "Config File";
@@ -133,15 +127,9 @@
 "Интервал обновления:" = "Update Interval:";
 "Интервал обновления" = "Update Interval";
 "Текущие подписки:" = "Current Subscriptions:";
-"Веб-интерфейс" = "Web Interface";
-"Порт: 7070" = "Port: 7070";
-"Копировать URL" = "Copy URL";
 
 /* Settings - Web Console */
 "Веб-консоль" = "Web Console";
-"Веб-интерфейс" = "Web Interface";
-"Порт: 7070" = "Port: 7070";
-"Копировать URL" = "Copy URL";
 
 /* Logs */
 "Логи системы" = "System Logs";
@@ -200,9 +188,6 @@
 "• stats.i2p - Статистика сети" = "• stats.i2p - Network statistics";
 "• i2p-projekt.i2p - Проектный источник" = "• i2p-projekt.i2p - Project source";
 
-/* Confirmations */
-"Все настройки будут сброшены к значениям по умолчанию. Вы уверены?" = "All settings will be reset to defaults. Are you sure?";
-
 /* Alerts */
 "Пропускная способность обновлена" = "Bandwidth Updated";
 "Пропускная способность изменена и сохранена в конфиг: %@" = "Bandwidth changed and saved to config: %@";
@@ -216,7 +201,6 @@
 
 /* Buttons with emoji */
 "Очистить кэш" = "Clear Cache";
-"Тестовая статистика" = "Test Statistics";
 
 /* Main Window */
 "I2P Daemon GUI" = "I2P Daemon GUI";
