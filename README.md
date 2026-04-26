@@ -266,7 +266,11 @@ swift --version
 
 2. **🔨 Build the project:**
    ```bash
-   ./build-app-simple.sh
+   # Apple Silicon (arm64)
+   ./build-app-arm64.sh
+
+   # Intel (x86_64)
+   ./build-app-intel.sh
    ```
 
 3. **🚀 Launch the application:**
@@ -285,17 +289,17 @@ swift --version
 
 | Metric | Value |
 |---------|----------|
-| **Lines of Code** | ~6,000 Swift |
-| **Source Files** | 2 (AppCore.swift, ToolsView.swift) |
-| **Repository Size** | ~1.5MB |
-| **Build Time** | ~45 seconds |
+| **Lines of Code** | 7,521 Swift |
+| **Source Files** | 4 (`AppCore.swift`, `ToolsView.swift`, `LiquidGlassTheme.swift`, `TrayManager.swift`) |
+| **Repository Size** | ~292MB (tracked files, without local build artifacts) |
+| **Build Time** | ~10-20 seconds (incremental, by architecture) |
 | **Compatibility** | macOS 14.0+ |
 | **UI Framework Version** | SwiftUI |
 | **Tray Status** | ✅ Stable |
 | **Parsing Functions** | ✅ Fully functional |
 | **Localization** | ✅ Russian + English |
-| **Localization Keys** | 500+ keys |
-| **Built-in Tools** | ✅ 13 utilities |
+| **Localization Keys** | 885 total (RU: 441, EN: 444) |
+| **Built-in Tools** | ✅ 14 utilities |
 | **Interactive Terminal** | ✅ Real-time I/O |
 
 ---

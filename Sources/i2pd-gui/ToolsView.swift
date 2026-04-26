@@ -78,27 +78,28 @@ class ToolsManager: ObservableObject {
     }
     
     func runTool(name: String, arguments: [String], stdinData: String? = nil, workingDirectory: String? = nil, timeout: TimeInterval? = 300, completion: @escaping (String) -> Void) {
-        DispatchQueue.global(qos: .userInitiated).async {
-            let toolPath = self.getBundledToolPath(name: name)
-            
-            guard self.validateToolExists(name: name) else {
-                DispatchQueue.main.async {
-                    completion("❌ Утилита '\(name)' не найдена по пути: \(toolPath)")
-                }
-                return
-            }
-            
-            DispatchQueue.main.async {
-                self.isRunning = true
-                self.currentTool = name
-                self.output = "🚀 Запуск \(name)...\n"
-            }
-            
-            let process = Process()
-            self.process = process // Сохраняем ссылку на процесс
+        guard !isRunning else {
+            completion("⚠️ Другая утилита уже выполняется")
+            return
+        }
+
+        let toolPath = getBundledToolPath(name: name)
+
+        guard validateToolExists(name: name) else {
+            completion("❌ Утилита '\(name)' не найдена по пути: \(toolPath)")
+            return
+        }
+
+        let process = Process()
+        self.process = process
+        isRunning = true
+        currentTool = name
+        output = "🚀 Запуск \(name)...\n"
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self, process] in
             process.executableURL = URL(fileURLWithPath: toolPath)
             process.arguments = arguments
-            
+
             // Устанавливаем рабочую директорию на домашнюю папку пользователя
             // чтобы утилиты могли создавать файлы
             // Устанавливаем рабочую директорию: либо переданную, либо домашнюю папку по умолчанию
@@ -114,10 +115,28 @@ class ToolsManager: ObservableObject {
             process.standardOutput = outputPipe
             process.standardError = errorPipe
             process.standardInput = inputPipe
-            
+
+            let finish: (String) -> Void = { result in
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    let isCurrentProcess = self.process.map { $0 === process } ?? false
+                    let canPublishResult = isCurrentProcess || !self.isRunning
+
+                    if isCurrentProcess {
+                        self.isRunning = false
+                        self.currentTool = ""
+                        self.process = nil
+                    }
+
+                    if canPublishResult {
+                        completion(result)
+                    }
+                }
+            }
+
             do {
                 try process.run()
-                
+
                 // Записываем данные в stdin если они предоставлены
                 if let stdinData = stdinData {
                     let inputHandle = inputPipe.fileHandleForWriting
@@ -133,11 +152,13 @@ class ToolsManager: ObservableObject {
                     while process.isRunning {
                         if Date().timeIntervalSince(startTime) > timeout {
                             process.terminate()
-                            DispatchQueue.main.async {
-                                self.isRunning = false
-                                self.currentTool = ""
-                                completion("⚠️ Процесс завершён по таймауту (\(Int(timeout)) сек)")
+                            if !Self.waitForProcessExit(process, timeout: 2.0) {
+                                let pid = process.processIdentifier
+                                if pid > 0 {
+                                    kill(pid, SIGKILL)
+                                }
                             }
+                            finish("⚠️ Процесс завершён по таймауту (\(Int(timeout)) сек)")
                             return
                         }
                         usleep(100000)
@@ -152,34 +173,23 @@ class ToolsManager: ObservableObject {
                 
                 let outputString = String(data: outputData, encoding: .utf8) ?? ""
                 let errorString = String(data: errorData, encoding: .utf8) ?? ""
-                
-                DispatchQueue.main.async {
-                    self.isRunning = false
-                    self.currentTool = ""
-                    self.process = nil // Очищаем ссылку на процесс
-                    
-                    var result = ""
-                    if !outputString.isEmpty {
-                        result += outputString
-                    }
-                    if !errorString.isEmpty {
-                        result += "\n⚠️ Ошибки:\n\(errorString)"
-                    }
-                    
-                    if result.isEmpty {
-                        result = "✅ Команда выполнена успешно"
-                    }
-                    
-                    completion(result)
+
+                var result = ""
+                if !outputString.isEmpty {
+                    result += outputString
                 }
-                
+                if !errorString.isEmpty {
+                    result += "\n⚠️ Ошибки:\n\(errorString)"
+                }
+
+                if result.isEmpty {
+                    result = "✅ Команда выполнена успешно"
+                }
+
+                finish(result)
+
             } catch {
-                DispatchQueue.main.async {
-                    self.isRunning = false
-                    self.currentTool = ""
-                    self.process = nil // Очищаем ссылку на процесс
-                    completion("❌ Ошибка запуска: \(error.localizedDescription)")
-                }
+                finish("❌ Ошибка запуска: \(error.localizedDescription)")
             }
         }
     }
@@ -188,19 +198,21 @@ class ToolsManager: ObservableObject {
         guard let proc = process else { return }
         let pid = proc.processIdentifier
         proc.terminate()
-        
-        let timeout: TimeInterval = 2.0
-        let startTime = Date()
-        while proc.isRunning && Date().timeIntervalSince(startTime) < timeout {
-            usleep(50000)
-        }
-        
-        if proc.isRunning && pid > 0 {
+
+        if !Self.waitForProcessExit(proc, timeout: 2.0), pid > 0 {
             kill(pid, SIGKILL)
         }
         self.process = nil
         isRunning = false
         currentTool = ""
+    }
+
+    private static func waitForProcessExit(_ proc: Process, timeout: TimeInterval) -> Bool {
+        let startTime = Date()
+        while proc.isRunning && Date().timeIntervalSince(startTime) < timeout {
+            usleep(50000)
+        }
+        return !proc.isRunning
     }
     
     deinit {
@@ -2558,29 +2570,23 @@ struct AutoconfView: View {
     
     private func startAutoconf() {
         guard !isProcessRunning else { return }
-        
+
+        let autoconfPath = toolsManager.getBundledToolPath(name: "autoconf")
+        guard FileManager.default.fileExists(atPath: autoconfPath) else {
+            terminalOutput += "❌ Утилита 'autoconf' не найдена по пути: \(autoconfPath)\n"
+            isProcessRunning = false
+            return
+        }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: autoconfPath)
+        process.currentDirectoryURL = URL(fileURLWithPath: NSHomeDirectory())
+        self.process = process
+
         terminalOutput = ""
         isProcessRunning = true
-        
-        DispatchQueue.global(qos: .userInitiated).async {
-            let process = Process()
-            self.process = process
-            
-            // Получаем путь к утилите autoconf
-            let autoconfPath = toolsManager.getBundledToolPath(name: "autoconf")
-            
-            // Проверяем существование утилиты
-            guard FileManager.default.fileExists(atPath: autoconfPath) else {
-                DispatchQueue.main.async {
-                    self.terminalOutput += "❌ Утилита 'autoconf' не найдена по пути: \(autoconfPath)\n"
-                    self.isProcessRunning = false
-                }
-                return
-            }
-            
-            process.executableURL = URL(fileURLWithPath: autoconfPath)
-            process.currentDirectoryURL = URL(fileURLWithPath: NSHomeDirectory())
-            
+
+        DispatchQueue.global(qos: .userInitiated).async { [process] in
             // Настраиваем pipes для ввода/вывода
             let inputPipe = Pipe()
             let outputPipe = Pipe()
@@ -2630,16 +2636,22 @@ struct AutoconfView: View {
                 
                 // Ждем завершения процесса
                 process.waitUntilExit()
-                
+                outputPipe.fileHandleForReading.readabilityHandler = nil
+                errorPipe.fileHandleForReading.readabilityHandler = nil
+
                 DispatchQueue.main.async {
-                    self.isProcessRunning = false
-                    self.process = nil
+                    if self.process === process {
+                        self.isProcessRunning = false
+                        self.process = nil
+                    }
                 }
             } catch {
                 DispatchQueue.main.async {
                     self.terminalOutput += "❌ Ошибка запуска: \(error.localizedDescription)\n"
-                    self.isProcessRunning = false
-                    self.process = nil
+                    if self.process === process {
+                        self.isProcessRunning = false
+                        self.process = nil
+                    }
                 }
             }
         }
@@ -2669,9 +2681,21 @@ struct AutoconfView: View {
     }
     
     private func stopProcess() {
-        process?.terminate()
-        process?.waitUntilExit() // Ждём завершения процесса
+        guard let process else { return }
+        let pid = process.processIdentifier
+        process.terminate()
+        if !waitForProcessExit(process, timeout: 2.0), pid > 0 {
+            kill(pid, SIGKILL)
+        }
         isProcessRunning = false
-        process = nil
+        self.process = nil
+    }
+
+    private func waitForProcessExit(_ process: Process, timeout: TimeInterval) -> Bool {
+        let startTime = Date()
+        while process.isRunning && Date().timeIntervalSince(startTime) < timeout {
+            usleep(50000)
+        }
+        return !process.isRunning
     }
 }

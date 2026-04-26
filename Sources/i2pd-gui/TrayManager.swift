@@ -1,54 +1,59 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Tray Manager Singleton  
-class TrayManager: NSObject, ObservableObject {
+// MARK: - Tray Manager Singleton
+class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
     static let shared = TrayManager()
     private var statusBarItem: NSStatusItem?
+    private var trayMenu: NSMenu?
     private var appDelegate: AppDelegate?
-    
+
     // Ссылки на элементы меню для обновления состояния
     private var statusItem: NSMenuItem?
     private var startItem: NSMenuItem?
     private var stopItem: NSMenuItem?
     private var restartItem: NSMenuItem?
-    
+
     // Состояние перезапуска демона
     private var isRestarting = false
-    
+
     /// Явное состояние главного окна (для корректного переключения по ⌘W)
     private var isMainWindowVisible = true
-    
+
+    /// NSMenu должен закрыться до смены окон/activationPolicy, иначе AppKit может оставить невидимое окно меню.
+    private var isTrayMenuTracking = false
+    private var deferredTrayActions: [() -> Void] = []
+
     private override init() {
         super.init()
         setupStatusBar()
-        
+
         // Создаем и сохраняем делегат для обработки завершения приложения
         appDelegate = AppDelegate()
         NSApp.delegate = appDelegate
     }
-    
+
     private func setupStatusBar() {
         print("🔧🔧🔧 СОЗДАНИЕ ТРЕЯ НАЧИНАЕТСЯ 🔧🔧🔧")
         statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        
+
         print("🔧 StatusBar создан: \(String(describing: statusBarItem))")
-        
+
         if let statusBarItem = statusBarItem {
             // Используем кастомную иконку трея или системную как fallback
             var image: NSImage?
-            
+
             // Театральные маски из SF Symbols 7 - символично для I2P (анонимность/трагедия)
             // По умолчанию используем контурную иконку (демон остановлен)
             image = NSImage(systemSymbolName: "theatermasks", accessibilityDescription: "I2P Daemon")
             print("🎭 Используются театральные маски для трея (контурная иконка по умолчанию)")
-            
+
             // Устанавливаем оптимальный размер иконки для сбалансированности
             if let image = image {
                 image.size = NSSize(width: 18, height: 18)
                 print("📏 Оптимальный размер иконки установлен: 18x18 пикселей")
             }
-            
+
             // Настраиваем кнопку, чтобы она не создавала невидимое окно, блокирующее клики
             if let button = statusBarItem.button {
                 button.image = image
@@ -58,61 +63,63 @@ class TrayManager: NSObject, ObservableObject {
                 // Важно: отключаем возможность кнопки создавать отдельное окно
                 button.wantsLayer = false
             }
-            
+
             let menu = NSMenu()
-            
+            menu.delegate = self
+            trayMenu = menu
+
             // Статус
             statusItem = NSMenuItem(title: L("Статус: Готов"), action: #selector(checkStatus), keyEquivalent: "")
             statusItem?.target = self
             menu.addItem(statusItem!)
             menu.addItem(NSMenuItem.separator())
-            
+
             // Управление daemon - только текст
             let startAction = #selector(TrayManager.startDaemon)
             print("🔧 Селектор для start: \(String(describing: startAction))")
-            
+
             startItem = NSMenuItem(title: L("Запустить daemon"), action: startAction, keyEquivalent: "1")
             startItem?.target = self
             startItem?.tag = 1
             print("🔧 startItem создан с target: \(String(describing: startItem?.target)), action: \(String(describing: startItem?.action))")
             menu.addItem(startItem!)
-            
+
             stopItem = NSMenuItem(title: L("Остановить daemon"), action: #selector(stopDaemon), keyEquivalent: "0")
             stopItem?.target = self
             stopItem?.tag = 2
             print("🔧 stopItem создан с target: \(String(describing: stopItem?.target)), action: \(String(describing: stopItem?.action))")
             menu.addItem(stopItem!)
-            
+
             restartItem = NSMenuItem(title: L("Перезапустить daemon"), action: #selector(restartDaemon), keyEquivalent: "r")
             restartItem?.target = self
             restartItem?.tag = 3
             print("🔧 restartItem создан с target: \(String(describing: restartItem?.target)), action: \(String(describing: restartItem?.action))")
             menu.addItem(restartItem!)
             menu.addItem(NSMenuItem.separator())
-            
+
             // Главное окно и функции
             let windowItem = NSMenuItem(title: L("Главное окно"), action: #selector(toggleMainWindow), keyEquivalent: "w")
             windowItem.target = self
             menu.addItem(windowItem)
-            
+
             let settingsItem = NSMenuItem(title: L("Настройки"), action: #selector(openSettings), keyEquivalent: ",")
             settingsItem.target = self
             print("🔧 Создан settingsItem с target: \(String(describing: settingsItem.target)), action: \(String(describing: settingsItem.action))")
             menu.addItem(settingsItem)
-            
+
             let toolsItem = NSMenuItem(title: L("Утилиты"), action: #selector(openTools), keyEquivalent: "t")
             toolsItem.target = self
             menu.addItem(toolsItem)
-            
+
             let webItem = NSMenuItem(title: L("Веб-консоль"), action: #selector(openWebConsole), keyEquivalent: "w")
             webItem.keyEquivalentModifierMask = [.command, .shift]
             webItem.target = self
             menu.addItem(webItem)
-            
+
             let quitItem = NSMenuItem(title: L("Выйти"), action: #selector(quitApplication), keyEquivalent: "q")
             quitItem.target = self
             menu.addItem(quitItem)
-            
+
             statusBarItem.menu = menu
             print("✅✅✅ СТАТУС БАР ПОЛНОСТЬЮ СОЗДАН И НАСТРОЕН! ✅✅✅")
             print("🔧 Меню установлено: \(String(describing: statusBarItem.menu))")
@@ -123,64 +130,82 @@ class TrayManager: NSObject, ObservableObject {
             print("❌❌❌ ОШИБКА СОЗДАНИЯ STATUS BAR! ❌❌❌")
         }
     }
-    
+
     // MARK: - Объективные методы для меню
-    
+
     @objc func checkStatus() {
+        runAfterTrayMenuDismisses { [weak self] in
+            self?.checkStatusNow()
+        }
+    }
+
+    private func checkStatusNow() {
         print("📊📊📊 МЕТОД checkStatus ВЫЗВАН ИЗ ТРЕЯ! 📊📊📊")
         updateStatusText("📊 Статус обновлен")
         print("📊 Статус обновлен на: 📊 Статус обновлен")
     }
-    
-    
+
+
     @objc public func startDaemon() {
+        runAfterTrayMenuDismisses { [weak self] in
+            self?.startDaemonNow()
+        }
+    }
+
+    private func startDaemonNow() {
         print("🚀 ========== ЗАПУСК DAEMON ИЗ ТРЕЯ! ==========")
         updateStatusText("🚀 Запуск daemon из трея...")
-        
+
         // Делегируем запуск к I2pdManager чтобы избежать дублирования процессов
         NotificationCenter.default.post(name: NSNotification.Name("DaemonStartRequest"), object: nil)
-        
+
         // Даем время на обработку запроса
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
             self.updateStatusText("🎯 Запрос обработан главным окном")
         }
     }
-    
+
     @objc public func stopDaemon() {
+        runAfterTrayMenuDismisses { [weak self] in
+            self?.stopDaemonNow()
+        }
+    }
+
+    private func stopDaemonNow() {
         print("⏹️ ОСТАНОВКА DAEMON из трея!")
         updateStatusText("⏹️ Остановка daemon из трея...")
-        
+
         // Делегируем остановку к I2pdManager чтобы избежать конфликтов
         NotificationCenter.default.post(name: NSNotification.Name("DaemonStopRequest"), object: nil)
-        
+
         // Даем время на обработку запроса
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
             self.updateStatusText("🎯 Остановка обработана главным окном")
         }
     }
-    
+
     private func checkIfStillRunning() {
         print("🔍 Проверяем, остановился ли daemon...")
         // Используем ту же команду проверки, что и в I2pdManager
         let checkCommand = "ps aux | grep \"i2pd.*daemon\" | grep -v \"grep\" | wc -l | tr -d ' '"
-        
+
         let checkProcess = Process()
         checkProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
         checkProcess.arguments = ["-c", checkCommand]
-        
+
         let pipe = Pipe()
         checkProcess.standardOutput = pipe
-        
+
         do {
             try checkProcess.run()
             checkProcess.waitUntilExit()
-            
+
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             let output = String(data: data, encoding: .utf8) ?? "0"
             let count = Int(output.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
-            
+
             if count > 0 {
                 print("⚠️ Daemon всё ещё работает, применяем жёсткую остановку...")
                 forceStopDaemon()
@@ -199,23 +224,23 @@ class TrayManager: NSObject, ObservableObject {
             forceStopDaemon()
         }
     }
-    
+
     private func forceStopDaemon() {
         print("💥 Применяем жёсткую остановку...")
         updateStatusText("💥 Жёсткая остановка...")
-        
+
         // БЕЗОПАСНО: убиваем только процессы с --daemon, не трогаем системные i2pd
         let forceCommand = "pkill -KILL -f 'i2pd.*--daemon' 2>/dev/null || true"
-        
+
         let forceProcess = Process()
         forceProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
         forceProcess.arguments = ["-c", forceCommand]
-        
+
         do {
             try forceProcess.run()
             updateStatusText("✅ Daemon остановлен принудительно")
             print("✅ Жёсткая остановка выполнена")
-            
+
             NotificationCenter.default.post(name: NSNotification.Name("DaemonStopped"), object: nil)
             // Обновляем состояние меню трея
             updateMenuState(isRunning: false)
@@ -228,62 +253,86 @@ class TrayManager: NSObject, ObservableObject {
             NotificationCenter.default.post(name: NSNotification.Name("DaemonError"), object: nil)
         }
     }
-    
+
     @objc public func restartDaemon() {
+        runAfterTrayMenuDismisses { [weak self] in
+            self?.restartDaemonNow()
+        }
+    }
+
+    private func restartDaemonNow() {
         print("🔄 ПЕРЕЗАПУСК DAEMON из трея!")
         updateStatusText("🔄 Перезапуск daemon...")
-        
+
         // Устанавливаем флаг перезапуска
         isRestarting = true
         updateMenuState(isRunning: false) // Обновляем меню с флагом перезапуска (предполагаем что демон остановлен)
-        
+
         // Делегируем перезапуск к I2pdManager через уведомление
         NotificationCenter.default.post(name: NSNotification.Name("DaemonRestartRequest"), object: nil)
-        
+
         // Сбрасываем флаг перезапуска через некоторое время
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             self.isRestarting = false
             self.updateMenuState(isRunning: true) // Предполагаем что демон запустился
         }
     }
-    
+
     @objc func openSettings() {
+        runAfterTrayMenuDismisses { [weak self] in
+            self?.openSettingsNow()
+        }
+    }
+
+    private func openSettingsNow() {
         print("⚙️ ОТКРЫТИЕ НАСТРОЕК из трея!")
         print("📋 Текущее количество окон: \(NSApplication.shared.windows.count)")
-        
+
         // Показываем главное окно
         showMainWindow()
-        
+
         // Отправляем уведомление для открытия настроек в главном окне
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             print("📨 Отправляем уведомление OpenSettings...")
             NotificationCenter.default.post(name: NSNotification.Name("OpenSettings"), object: nil)
             print("✅ Уведомление OpenSettings отправлено")
         }
-        
+
         updateStatusText("⚙️ Открытие настроек...")
         print("✅ Главное окно открыто с настройками")
     }
-    
+
     @objc func openTools() {
+        runAfterTrayMenuDismisses { [weak self] in
+            self?.openToolsNow()
+        }
+    }
+
+    private func openToolsNow() {
         print("🔧 ОТКРЫТИЕ УТИЛИТ из трея!")
         print("📋 Текущее количество окон: \(NSApplication.shared.windows.count)")
-        
+
         // Показываем главное окно
         showMainWindow()
-        
+
         // Отправляем уведомление для открытия утилит в главном окне
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             print("📨 Отправляем уведомление OpenTools...")
             NotificationCenter.default.post(name: NSNotification.Name("OpenTools"), object: nil)
             print("✅ Уведомление OpenTools отправлено")
         }
-        
+
         updateStatusText("🔧 Открытие утилит...")
         print("✅ Главное окно открыто с утилитами")
     }
-    
+
     @objc func openWebConsole() {
+        runAfterTrayMenuDismisses { [weak self] in
+            self?.openWebConsoleNow()
+        }
+    }
+
+    private func openWebConsoleNow() {
         print("🌐 Открываем веб-консоль...")
         if let url = URL(string: "http://127.0.0.1:7070") {
             NSWorkspace.shared.open(url)
@@ -292,15 +341,15 @@ class TrayManager: NSObject, ObservableObject {
             updateStatusText("❌ Ошибка открытия веб-консоли")
         }
     }
-    
+
     @objc func showMainWindow() {
         print("⚙️ ПОКАЗ ОКНА из трея!")
-        
+
         // Убеждаемся, что приложение может показывать окна
         NSApplication.shared.setActivationPolicy(.regular)
-        
+
         // Показываем окна без изменения политики приложения
-        for window in NSApplication.shared.windows {
+        for window in managedApplicationWindows() {
             // Убеждаемся, что окно не блокирует клики
             window.ignoresMouseEvents = false
             window.level = .normal
@@ -315,10 +364,10 @@ class TrayManager: NSObject, ObservableObject {
         self.updateStatusText("⚙️ " + L("Главное окно открыто"))
         print("✅ Главное окно показано")
     }
-    
+
     @objc func hideMainWindow() {
         print("❌ СВОРАЧИВАНИЕ В ТРЕЙ из трея!")
-        for window in NSApplication.shared.windows {
+        for window in managedApplicationWindows() {
             // Полностью скрываем окно и убираем его из списка окон, чтобы оно не блокировало клики
             window.orderOut(nil)
             window.isReleasedWhenClosed = false
@@ -326,31 +375,43 @@ class TrayManager: NSObject, ObservableObject {
             window.ignoresMouseEvents = false
             window.level = .normal
         }
-        
+
         // Возвращаем приложение в accessory режим если настройка включена
         let hideFromDock = UserDefaults.standard.bool(forKey: "hideFromDock")
         if hideFromDock {
             NSApplication.shared.setActivationPolicy(.accessory)
         }
-        
+
         isMainWindowVisible = false
         updateStatusText("📱 " + L("Свернуто в трей"))
         print("✅ Приложение свернуто в трей")
     }
-    
+
     @objc func toggleMainWindow() {
+        runAfterTrayMenuDismisses { [weak self] in
+            self?.toggleMainWindowNow()
+        }
+    }
+
+    private func toggleMainWindowNow() {
         if isMainWindowVisible {
             hideMainWindow()
         } else {
             showMainWindow()
         }
     }
-    
+
     @objc public func quitApplication() {
+        runAfterTrayMenuDismisses { [weak self] in
+            self?.quitApplicationNow()
+        }
+    }
+
+    private func quitApplicationNow() {
         print("🚪🚪🚪 ПЛАВНОЕ ЗАКРЫТИЕ ПРИЛОЖЕНИЯ! ФУНКЦИЯ ВЫЗВАНА! 🚪🚪🚪")
         print("📢 Время вызова: \(Date())")
         updateStatusText("🚪 Остановка демона и выход...")
-        
+
         // СИНХРОННАЯ остановка демона - без async операций
         print("🔍 Ищем демон для остановки...")
         let findAndKillCommand = """
@@ -364,56 +425,116 @@ class TrayManager: NSObject, ObservableObject {
             echo "ℹ️ Демон не найден"
         fi
         """
-        
+
         let killProcess = Process()
         killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
         killProcess.arguments = ["-c", findAndKillCommand]
-        
+
         do {
             print("💀 Выполняем синхронную остановку демона...")
             try killProcess.run()
             killProcess.waitUntilExit()
             print("✅ Синхронная остановка завершена")
-            
+
             // Принудительно закрываем все окна (включая настройки) перед выходом
             print("🚪 Закрываем все окна перед выходом...")
-            for window in NSApplication.shared.windows {
+            for window in managedApplicationWindows() {
                 window.close()
             }
-            
+
             // Сбрасываем флаг настроек
             WindowCloseDelegate.isSettingsOpen = false
-            
+
             // Даём время окнам закрыться, затем завершаем
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 print("🚪 Завершаем приложение...")
                 NSApplication.shared.terminate(nil)
             }
-            
+
         } catch {
             print("❌ Ошибка остановки демона: \(error)")
-            
+
             // Даже при ошибке закрываем все окна
-            for window in NSApplication.shared.windows {
+            for window in managedApplicationWindows() {
                 window.close()
             }
             WindowCloseDelegate.isSettingsOpen = false
-            
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 NSApplication.shared.terminate(nil)
             }
         }
     }
-    
+
+    func menuWillOpen(_ menu: NSMenu) {
+        isTrayMenuTracking = true
+        statusBarItem?.button?.highlight(true)
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        finishTrayMenuTracking()
+    }
+
+    private func runAfterTrayMenuDismisses(_ action: @escaping () -> Void) {
+        guard isTrayMenuTracking else {
+            action()
+            return
+        }
+
+        deferredTrayActions.append(action)
+        trayMenu?.cancelTrackingWithoutAnimation()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            guard let self = self, self.isTrayMenuTracking else { return }
+            self.finishTrayMenuTracking()
+        }
+    }
+
+    private func finishTrayMenuTracking() {
+        isTrayMenuTracking = false
+        statusBarItem?.button?.highlight(false)
+
+        let actions = deferredTrayActions
+        deferredTrayActions.removeAll()
+
+        guard !actions.isEmpty else { return }
+        DispatchQueue.main.async {
+            actions.forEach { $0() }
+        }
+    }
+
+    private func managedApplicationWindows() -> [NSWindow] {
+        NSApplication.shared.windows.filter { window in
+            isManagedApplicationWindow(window)
+        }
+    }
+
+    private func isManagedApplicationWindow(_ window: NSWindow) -> Bool {
+        if let statusWindow = statusBarItem?.button?.window, window === statusWindow {
+            return false
+        }
+
+        let className = String(describing: type(of: window))
+        if className.contains("Menu") || className.contains("StatusBar") || className.contains("Popup") {
+            return false
+        }
+
+        if window.level == .mainMenu || window.level == .statusBar || window.level == .popUpMenu {
+            return false
+        }
+
+        return true
+    }
+
     private func updateStatusText(_ text: String) {
         statusItem?.title = text
         print("📱 Обновлен статус трея: \(text)")
     }
-    
+
     // Обновление иконки трея в зависимости от статуса демона
     private func updateTrayIcon(isRunning: Bool) {
         guard let statusBarItem = statusBarItem else { return }
-        
+
         let symbolName = isRunning ? "theatermasks.fill" : "theatermasks"
         if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "I2P Daemon") {
             image.size = NSSize(width: 18, height: 18)
@@ -426,15 +547,15 @@ class TrayManager: NSObject, ObservableObject {
             print("🎭 Иконка трея обновлена: \(isRunning ? "активна (fill)" : "неактивна")")
         }
     }
-    
+
     // Обновление состояния элементов меню на основе состояния демона
     func updateMenuState(isRunning: Bool) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            
+
             // Обновляем иконку трея
             self.updateTrayIcon(isRunning: isRunning)
-            
+
             if isRunning {
                 // Демон запущен - галочка на "Запустить daemon" (показывает текущее состояние)
                 self.startItem?.title = "✓ " + L("Запустить daemon") // Галочка показывает что запущен
@@ -448,22 +569,22 @@ class TrayManager: NSObject, ObservableObject {
                 self.restartItem?.title = L("Перезапустить daemon") // Без галочки когда не перезапускается
                 self.statusItem?.title = L("Статус: Остановлен")
             }
-            
+
             // Если идет перезапуск - показываем галочку на "Перезапустить daemon"
             if self.isRestarting {
                 self.restartItem?.title = "✓ " + L("Перезапустить daemon") // Галочка во время перезапуска
                 self.statusItem?.title = L("Статус: Перезапуск...")
             }
-            
+
             print("🏷️ Обновлено состояние меню трея: демон \(isRunning ? "запущен" : "остановлен"), перезапуск: \(self.isRestarting)")
         }
     }
-    
+
     // Установка флага перезапуска извне
     func setRestarting(_ restarting: Bool) {
         isRestarting = restarting
     }
-    
+
     // Проверка начального статуса демона при запуске приложения
     func checkInitialDaemonStatus() {
         print("🔍 Проверяем начальный статус демона для трея...")
@@ -471,21 +592,21 @@ class TrayManager: NSObject, ObservableObject {
         checkProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
         // Используем ту же команду, что и в I2pdManager.checkDaemonStatus()
         checkProcess.arguments = ["-c", "ps aux | grep \"i2pd.*daemon\" | grep -v \"grep\" | wc -l | tr -d ' '"]
-        
+
         let pipe = Pipe()
         checkProcess.standardOutput = pipe
-        
+
         do {
             try checkProcess.run()
             checkProcess.waitUntilExit()
-            
+
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             let output = String(data: data, encoding: .utf8) ?? "0"
             let count = Int(output.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
-            
+
             let isRunning = count > 0
             print("🎭 Начальный статус демона: \(isRunning ? "запущен" : "остановлен") (найдено процессов: \(count))")
-            
+
             DispatchQueue.main.async { [weak self] in
                 self?.updateMenuState(isRunning: isRunning)
             }
@@ -494,4 +615,3 @@ class TrayManager: NSObject, ObservableObject {
         }
     }
 }
-

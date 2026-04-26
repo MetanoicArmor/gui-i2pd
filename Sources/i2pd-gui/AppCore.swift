@@ -3006,6 +3006,7 @@ class I2pdManager: ObservableObject {
     private var i2pdPID: Int32?
     private var daemonPID: Int32?
     private var logTimer: Timer?
+    private var logCleanupTimer: Timer?
     
     private let executablePath: String
 
@@ -3582,6 +3583,12 @@ class I2pdManager: ObservableObject {
     }
     
     private func startStatusMonitoring() {
+        guard logTimer == nil else {
+            updateStatus()
+            fetchDaemonVersionIfNeeded()
+            return
+        }
+
         // Обновляем статистику каждые 5 секунд
         logTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             self?.updateStatus()
@@ -3614,13 +3621,17 @@ class I2pdManager: ObservableObject {
     // MARK: - Автоматическая очистка логов
     func enableAutoLogCleanup() {
         addLog(.info, "🧹 Автоочистка логов включена")
+        guard logCleanupTimer == nil else { return }
+
         // Автоматически очищаем логи старше 1 часа каждые 10 минут
-        Timer.scheduledTimer(withTimeInterval: 600.0, repeats: true) { [weak self] _ in
+        logCleanupTimer = Timer.scheduledTimer(withTimeInterval: 600.0, repeats: true) { [weak self] _ in
             self?.performAutoLogCleanup()
         }
     }
-    
+
     func disableAutoLogCleanup() {
+        logCleanupTimer?.invalidate()
+        logCleanupTimer = nil
         addLog(.info, "⏸️ Автоочистка логов отключена")
     }
     
