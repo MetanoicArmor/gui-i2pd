@@ -364,7 +364,7 @@ struct I2pdGUIApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 900, height: 900)
-        .windowResizability(.contentSize)
+        .windowResizability(.contentMinSize)
         
         // Settings убраны - используем NSAlert из трея
         
@@ -399,11 +399,13 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var showingTools = false
     @State private var isLogSectionExpanded = true
-    @State private var expandedLogWindowHeight: CGFloat?
+    @State private var isLogSectionTransitioning = false
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
     @State private var manualStop: Bool? = false // Флаг ручной остановки для предотвращения автозапуска
-    private let collapsedLogWindowHeight: CGFloat = 475
+    private let collapsedLogWindowHeight: CGFloat = 500
+    private let expandedLogWindowHeight: CGFloat = 800
     private let mainWindowVerticalInset: CGFloat = 16
+    private let mainWindowTopInset: CGFloat = 8
     
     private var networkStatColumns: [GridItem] {
         Array(
@@ -527,6 +529,7 @@ struct ContentView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .disabled(isLogSectionTransitioning)
                     .help(isLogSectionExpanded ? L("Свернуть логи") : L("Развернуть логи"))
 
                     Spacer()
@@ -602,12 +605,11 @@ struct ContentView: View {
             .padding(10)
             .frame(maxHeight: isLogSectionExpanded ? CGFloat.infinity : nil)
             .liquidGlassPanel(cornerRadius: 18, material: .regularMaterial)
-            .animation(.easeInOut(duration: 0.18), value: isLogSectionExpanded)
             }
             .frame(maxWidth: .infinity, maxHeight: isLogSectionExpanded ? CGFloat.infinity : nil, alignment: .top)
             .padding(.horizontal, LiquidGlassTheme.windowPadding)
             .padding(.bottom, mainWindowVerticalInset)
-            .padding(.top, isLogSectionExpanded ? mainWindowVerticalInset : 4)
+            .padding(.top, mainWindowTopInset)
         }
         .liquidGlassWindow()
         .frame(
@@ -720,36 +722,36 @@ struct ContentView: View {
     }
     
     private func toggleLogSection() {
+        guard !isLogSectionTransitioning else {
+            return
+        }
+
         let shouldExpand = !isLogSectionExpanded
-
-        if !shouldExpand, let window = mainContentWindow() {
-            expandedLogWindowHeight = window.frame.height
+        guard let window = mainContentWindow() else {
+            return
         }
+        isLogSectionTransitioning = true
+        defer { isLogSectionTransitioning = false }
 
-        withAnimation(.easeInOut(duration: 0.18)) {
+        if shouldExpand {
+            applyMainWindowHeight(expandedLogWindowHeight, to: window)
             isLogSectionExpanded = shouldExpand
+        } else {
+            isLogSectionExpanded = shouldExpand
+            applyMainWindowHeight(collapsedLogWindowHeight, to: window)
         }
-
-        resizeMainWindowForLogSection(expanded: shouldExpand)
     }
 
-    private func resizeMainWindowForLogSection(expanded: Bool) {
-        DispatchQueue.main.async {
-            guard let window = mainContentWindow() else {
-                return
-            }
-
-            let targetHeight = expanded ? (expandedLogWindowHeight ?? 620) : collapsedLogWindowHeight
-            guard abs(window.frame.height - targetHeight) > 1 else {
-                return
-            }
-
-            var frame = window.frame
-            let topEdge = frame.maxY
-            frame.size.height = targetHeight
-            frame.origin.y = topEdge - targetHeight
-            window.setFrame(frame, display: true, animate: true)
+    private func applyMainWindowHeight(_ targetHeight: CGFloat, to window: NSWindow) {
+        guard abs(window.frame.height - targetHeight) > 1 else {
+            return
         }
+
+        var frame = window.frame
+        let topEdge = frame.maxY
+        frame.size.height = targetHeight
+        frame.origin.y = topEdge - targetHeight
+        window.setFrame(frame, display: true, animate: false)
     }
 
     private func mainContentWindow() -> NSWindow? {
@@ -2644,6 +2646,8 @@ struct StatusCard: View {
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity)
+        .frame(height: 76)
         .liquidGlassPanel(cornerRadius: 20, material: .regularMaterial)
     }
 }
