@@ -108,7 +108,7 @@ Upgrade later with `brew upgrade --cask i2pd-gui`.
 
 ### 📸 **Screenshots (English UI):**
 
-![I2P GUI Main Interface](screenshots/screenshot1_en.png)
+<img src="screenshots/screenshot1_en.png" alt="I2P GUI Main Interface" width="978" />
 *Main window: daemon status, stats, and controls*
 
 ![I2P GUI Settings](screenshots/screenshot2_en.png)

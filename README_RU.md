@@ -107,7 +107,7 @@ brew install --cask metanoicarmor/i2pd-gui/i2pd-gui
 
 ### 📸 **Скриншоты (русский интерфейс):**
 
-![I2P GUI Основной интерфейс](screenshots/screenshot1_ru.png)
+<img src="screenshots/screenshot1_ru.png" alt="I2P GUI Основной интерфейс" width="995" />
 *Главное окно: статус демона, статистика и управление*
 
 ![I2P GUI Настройки](screenshots/screenshot2_ru.png)
