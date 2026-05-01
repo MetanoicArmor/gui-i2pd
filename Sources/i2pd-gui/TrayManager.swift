@@ -40,18 +40,10 @@ class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
         print("🔧 StatusBar создан: \(String(describing: statusBarItem))")
 
         if let statusBarItem = statusBarItem {
-            // Используем кастомную иконку трея или системную как fallback
-            var image: NSImage?
-
-            // Театральные маски из SF Symbols 7 - символично для I2P (анонимность/трагедия)
-            // По умолчанию используем контурную иконку (демон остановлен)
-            image = NSImage(systemSymbolName: "theatermasks", accessibilityDescription: "I2P Daemon")
-            print("🎭 Используются театральные маски для трея (контурная иконка по умолчанию)")
-
-            // Устанавливаем оптимальный размер иконки для сбалансированности
-            if let image = image {
-                image.size = NSSize(width: 18, height: 18)
-                print("📏 Оптимальный размер иконки установлен: 18x18 пикселей")
+            // Кастомные PNG из TrayAssets (SPM resources); иначе SF Symbols
+            let image = trayStatusImage(isRunning: false)
+            if image != nil {
+                print("🎭 Иконка трея: theatermasks.png (демон остановлен)")
             }
 
             // Настраиваем кнопку, чтобы она не создавала невидимое окно, блокирующее клики
@@ -532,20 +524,32 @@ class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
         print("📱 Обновлен статус трея: \(text)")
     }
 
+    /// Иконка строки меню: `theatermasks` / `theatermask.fill` из ресурсов пакета или SF Symbols.
+    private func trayStatusImage(isRunning: Bool) -> NSImage? {
+        let assetBase = isRunning ? "theatermask.fill" : "theatermasks"
+        if let url = Bundle.module.url(forResource: assetBase, withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            image.size = NSSize(width: 18, height: 18)
+            return image
+        }
+        let symbolName = isRunning ? "theatermasks.fill" : "theatermasks"
+        guard let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "I2P Daemon") else {
+            return nil
+        }
+        image.size = NSSize(width: 18, height: 18)
+        return image
+    }
+
     // Обновление иконки трея в зависимости от статуса демона
     private func updateTrayIcon(isRunning: Bool) {
         guard let statusBarItem = statusBarItem else { return }
 
-        let symbolName = isRunning ? "theatermasks.fill" : "theatermasks"
-        if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "I2P Daemon") {
-            image.size = NSSize(width: 18, height: 18)
-            // Обновляем иконку безопасно, не создавая невидимых окон
+        if let image = trayStatusImage(isRunning: isRunning) {
             if let button = statusBarItem.button {
                 button.image = image
-                // Убеждаемся, что кнопка не блокирует клики
                 button.wantsLayer = false
             }
-            print("🎭 Иконка трея обновлена: \(isRunning ? "активна (fill)" : "неактивна")")
+            print("🎭 Иконка трея обновлена: \(isRunning ? "theatermask.fill" : "theatermasks")")
         }
     }
 

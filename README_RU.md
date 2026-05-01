@@ -95,6 +95,8 @@ brew install --cask metanoicarmor/i2pd-gui/i2pd-gui
 
 Обновление: `brew upgrade --cask i2pd-gui`.
 
+**Сопровождение:** определение cask для `brew` берётся из репозитория [MetanoicArmor/homebrew-i2pd-gui](https://github.com/MetanoicArmor/homebrew-i2pd-gui), а не из этого репо. После публикации новых ZIP в релизе нужно обновить там `Casks/i2pd-gui.rb` (версия и `sha256` для каждой архитектуры). Файл `Casks/` здесь — только эталонная копия.
+
 ### 📋 **Системные требования:**
 - **macOS**: 14.0 или новее
 - **Процессор**: Intel x64 или Apple Silicon (M1/M2/M3/M4)

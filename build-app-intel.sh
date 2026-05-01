@@ -109,6 +109,15 @@ mkdir -p "${RESOURCES_DIR}"
 # Копируем исполняемый файл GUI
 cp "${SWIFT_BUILD_DIR}/${EXECUTABLE_NAME}" "${MACOS_DIR}/${APP_NAME}"
 
+# Ресурсы SwiftPM (иконки трея)
+if [ -d "${SWIFT_BUILD_DIR}/i2pd-gui_i2pd-gui.bundle" ]; then
+    rm -rf "${MACOS_DIR}/i2pd-gui_i2pd-gui.bundle"
+    cp -R "${SWIFT_BUILD_DIR}/i2pd-gui_i2pd-gui.bundle" "${MACOS_DIR}/"
+    echo "✅ Пакет i2pd-gui_i2pd-gui.bundle (иконки трея) скопирован в MacOS"
+else
+    echo "⚠️  i2pd-gui_i2pd-gui.bundle не найден"
+fi
+
 # Копируем бинарник i2pd из intel/
 cp "${INTEL_DIR}/i2pd" "${RESOURCES_DIR}/i2pd"
 chmod +x "${RESOURCES_DIR}/i2pd"

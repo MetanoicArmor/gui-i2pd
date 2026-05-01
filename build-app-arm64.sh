@@ -95,6 +95,15 @@ mkdir -p "${RESOURCES_DIR}"
 # Копируем исполняемый файл
 cp "${SWIFT_BUILD_DIR}/${EXECUTABLE_NAME}" "${MACOS_DIR}/${APP_NAME}"
 
+# Ресурсы SwiftPM (иконки трея) — рядом с исполняемым файлом
+if [ -d "${SWIFT_BUILD_DIR}/i2pd-gui_i2pd-gui.bundle" ]; then
+    rm -rf "${MACOS_DIR}/i2pd-gui_i2pd-gui.bundle"
+    cp -R "${SWIFT_BUILD_DIR}/i2pd-gui_i2pd-gui.bundle" "${MACOS_DIR}/"
+    echo "✅ Пакет i2pd-gui_i2pd-gui.bundle (иконки трея) скопирован в MacOS"
+else
+    echo "⚠️  i2pd-gui_i2pd-gui.bundle не найден — трей будет без кастомных PNG"
+fi
+
 # Копируем бинарник i2pd
 if [ -f "i2pd" ]; then
     cp "i2pd" "${RESOURCES_DIR}/i2pd"
@@ -156,9 +165,6 @@ if [ -d "tools" ]; then
 else
     echo "ℹ️ Папка tools отсутствует, пропускаем утилиты"
 fi
-
-# Используем системные иконки трея (не нужно копировать кастомные)
-echo "🔧 Используем системные иконки трея по умолчанию - без дополнительных файлов"
 
 # Создаем Info.plist
 echo "📋 Создание Info.plist..."
@@ -239,7 +245,7 @@ echo "   🔧 i2pd - основной демон"
 if [ -f "subscriptions.txt" ]; then echo "   📋 subscriptions.txt - подписки address book"; fi
 if [ -f "i2pd.conf" ]; then echo "   ⚙️ i2pd.conf - конфигурация демона"; fi
 if [ -f "tunnels.conf" ]; then echo "   🚇 tunnels.conf - конфигурация туннелей"; fi
-echo "   🔧 Системная иконка трея по умолчанию"
+echo "   🎭 Иконки трея: theatermasks / theatermask.fill (в i2pd-gui_i2pd-gui.bundle)"
 echo ""
 echo "🚀 Способы запуска:"
 echo "   Двойной клик на: ${APP_DIR}"

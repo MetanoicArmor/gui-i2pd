@@ -96,6 +96,8 @@ brew install --cask metanoicarmor/i2pd-gui/i2pd-gui
 
 Upgrade later with `brew upgrade --cask i2pd-gui`.
 
+**Maintainers:** `brew` reads the cask from [MetanoicArmor/homebrew-i2pd-gui](https://github.com/MetanoicArmor/homebrew-i2pd-gui), not from this repo. After you upload new release ZIPs, update `Casks/i2pd-gui.rb` there (version and `sha256` per architecture). The `Casks/` file here is only a reference copy.
+
 ### 📋 **System Requirements:**
 - **macOS**: 14.0 or newer
 - **Processor**: Intel x64 or Apple Silicon (M1/M2/M3/M4)

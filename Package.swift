@@ -18,7 +18,11 @@ let package = Package(
         .executableTarget(
             name: "i2pd-gui",
             dependencies: [],
-            path: "Sources/i2pd-gui"
+            path: "Sources/i2pd-gui",
+            resources: [
+                .copy("TrayAssets/theatermasks.png"),
+                .copy("TrayAssets/theatermask.fill.png"),
+            ]
         ),
     ]
 )
