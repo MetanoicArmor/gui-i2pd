@@ -23,12 +23,19 @@ cask "i2pd-gui" do
 
   depends_on macos: ">= :sonoma"
 
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/I2P Daemon GUI.app"],
+                   sudo: false
+  end
+
   caveats <<~EOS
     This build is not Developer ID signed or notarized. macOS may report the app as
     "damaged" after install — that is Gatekeeper quarantine on files downloaded via Homebrew.
-    Recent macOS versions may not show an "Open Anyway" option in System Settings for this case.
+    The cask runs `xattr -dr com.apple.quarantine` automatically after install/upgrade,
+    so the app should open without extra steps.
 
-    Homebrew 4.7+ removed --no-quarantine (no replacement). After install or upgrade, run:
+    If macOS still blocks it, run manually:
       xattr -dr com.apple.quarantine "/Applications/I2P Daemon GUI.app"
   EOS
 

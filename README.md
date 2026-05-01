@@ -88,26 +88,22 @@
 
 The cask automatically chooses the matching ZIP for your architecture (Apple Silicon or Intel) from the release assets.
 
-Install:
+Install / upgrade:
 
 ```bash
 brew install --cask metanoicarmor/i2pd-gui/i2pd-gui
-```
-
-**Immediately after install or upgrade**, clear the download quarantine (Homebrew **4.7+ removed** `--no-quarantine`; there is no brew replacement):
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/I2P Daemon GUI.app"
-```
-
-Upgrade:
-
-```bash
 brew upgrade --cask i2pd-gui
+```
+
+The cask has a `postflight` step that automatically runs `xattr -dr com.apple.quarantine` on the installed `.app`, so on most systems the app opens without any extra action.
+
+If macOS still reports the app as **“damaged”** (Gatekeeper / quarantine on a non‑notarized download), run manually:
+
+```bash
 xattr -dr com.apple.quarantine "/Applications/I2P Daemon GUI.app"
 ```
 
-On recent macOS versions, Gatekeeper may show **“damaged”** and **not** offer **“Open Anyway”** under Privacy & Security. That toggle appears for a different case (“unidentified developer”); quarantine + an unsigned download often ends in the stricter “damaged” path instead. **`xattr`** is the practical workaround until the app is signed with a Developer ID certificate and notarized by Apple.
+Recent macOS versions may not offer **“Open Anyway”** in System Settings for this case (that flow targets *unidentified developer*, not *damaged*). The proper long‑term fix is a Developer ID signature + Apple notarization.
 
 **Maintainers:** `brew` reads the cask from [MetanoicArmor/homebrew-i2pd-gui](https://github.com/MetanoicArmor/homebrew-i2pd-gui), not from this repo. After you upload new release ZIPs, update `Casks/i2pd-gui.rb` there (version and `sha256` per architecture). The `Casks/` file here is only a reference copy.
 
