@@ -15,12 +15,16 @@ func getI2pdConfigDirectory() -> URL {
 }
 
 // MARK: - Window Close Delegate для корректного сворачивания в трей
+//
+// **Размер окна** не контролируется вручную — за него отвечает SwiftUI через
+// `.windowResizability(.contentSize)` + интрисик-высота колонки. Делегат окна
+// больше не вмешивается в фрейм.
 class WindowCloseDelegate: NSObject, NSWindowDelegate {
     static let shared = WindowCloseDelegate()
     
     // Глобальное состояние открытого окна настроек
     static var isSettingsOpen = false
-    
+
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         print("🚪 Окно пытается закрыться - делегат вызван для: \(sender.title)")
         
@@ -93,20 +97,30 @@ class WindowCloseDelegate: NSObject, NSWindowDelegate {
 }
 
 // MARK: - App Delegate для обработки завершения приложения
+//
+// **Архитектура размера окна (важно).**
+// Размер окна определяется **только** SwiftUI через `.windowResizability(.contentSize)` —
+// окно автоматически следует за интрисик‑высотой колонки `ContentView`. Никаких ручных
+// `setFrame`, `MainWindowSizer`, очередей с двойным `async`, флагов «программный resize»,
+// клампов в `windowDidResize` — всё это удалено как неработающее на macOS 26.
 private enum MainWindowLayout {
     static let logSectionExpandedDefaultsKey = "mainLogSectionExpanded"
-    /// Фиксированная ширина окна. Окно не ресайзится по горизонтали, чтобы раскладка
-    /// контента (кнопки, сетка статистики) не «прыгала» и снизу не появлялось пустое место.
+    /// Фиксированная ширина окна. С `.windowResizability(.contentSize)` пользователь не может
+    /// его растягивать вообще, а ширина колонки задаётся `.frame(width:)`.
     static let fixedWindowWidth: CGFloat = 540
     /// Высота панели логов в свёрнутом состоянии (только заголовок).
     static let collapsedLogSectionHeight: CGFloat = 56
-    /// Дельта, на которую растёт лог-панель (и, соответственно, окно) при разворачивании.
+    /// Дельта, на которую растёт лог-панель при разворачивании.
     static let logExpansionDelta: CGFloat = 224
-    /// Высота панели логов в развёрнутом состоянии. Связана с `collapsedLogSectionHeight` через `logExpansionDelta`,
-    /// чтобы рассогласований было невозможно создать одной правкой.
+    /// Высота панели логов в развёрнутом состоянии.
     static let expandedLogSectionHeight: CGFloat = collapsedLogSectionHeight + logExpansionDelta
-    /// Вертикальный отступ контента от верх/низ окна — равен боковому, чтобы рамка смотрелась симметрично.
-    static let contentEdgeInset: CGFloat = LiquidGlassTheme.windowPadding
+    /// Горизонтальные поля контента (как у темы окон).
+    static let mainContentHorizontalPadding: CGFloat = LiquidGlassTheme.windowPadding
+    /// Верхний паддинг небольшой — над контентом уже сидит titleBar (~28pt), его не убрать
+    /// без слома интерфейса (кружки светофора), поэтому суммарно сверху получается ~36pt.
+    static let mainContentTopPadding: CGFloat = 8
+    /// Нижний паддинг компенсирует titleBar сверху — окно «дышит» одинаково сверху и снизу.
+    static let mainContentBottomPadding: CGFloat = 13
     /// Расстояние между крупными секциями (статус, сеть, кнопки, логи).
     static let sectionSpacing: CGFloat = 12
     static let logPanelInset: CGFloat = 10
@@ -114,34 +128,10 @@ private enum MainWindowLayout {
     static let logRowHorizontalLeading: CGFloat = 20
     static let logRowHorizontalTrailing: CGFloat = 6
     static let sectionHeaderHeight: CGFloat = 36
-    /// Минимальная высота скролла логов внутри развёрнутой панели.
-    static let expandedLogViewportMinHeight: CGFloat = 160
     static let animationDuration: TimeInterval = 0.28
-    /// Буфер после `animationDuration` при развороте: окно уже финальной высоты,
-    /// SwiftUI дорисовывает секцию — до этого момента держим MainWindowSizer выключенным.
-    static let logExpandSizerResumeDelay: TimeInterval = 0.05
-    /// Прикидка под `.defaultSize` для первого запуска. Дальше окно подгоняется по реальному
-    /// natural-размеру контента через `MainWindowSizer`.
-    static let estimatedCollapsedWindowHeight: CGFloat = 500
-    static var estimatedExpandedWindowHeight: CGFloat { estimatedCollapsedWindowHeight + logExpansionDelta }
 
     static func logSectionHeight(isLogExpanded: Bool) -> CGFloat {
         isLogExpanded ? expandedLogSectionHeight : collapsedLogSectionHeight
-    }
-
-    static func estimatedWindowHeight(isLogExpanded: Bool) -> CGFloat {
-        isLogExpanded ? estimatedExpandedWindowHeight : estimatedCollapsedWindowHeight
-    }
-}
-
-private extension NSWindow {
-    /// Меняет размер окна, оставляя верхнюю кромку на месте (origin.y подстраивается).
-    func setSizeAnchoringTop(_ size: NSSize) {
-        let topY = frame.maxY
-        var newFrame = frame
-        newFrame.size = size
-        newFrame.origin.y = topY - size.height
-        setFrame(newFrame, display: true, animate: false)
     }
 }
 
@@ -156,9 +146,8 @@ private extension NSView {
     }
 }
 
-/// SwiftUI `ScrollView` на macOS по умолчанию использует `NSScrollView` в стиле `.legacy`:
-/// вертикальный скроллер в отдельной колонке — заметный зазор до правой рамки панели.
-/// `.overlay` рисует скроллер поверх контента у края (как в системных списках).
+/// Скроллер логов: SwiftUI на macOS по умолчанию использует `NSScrollView.scrollerStyle = .legacy`
+/// (отдельная колонка под скроллер). Перевод в `.overlay` сажает скроллер поверх контента у края.
 private struct LogPanelScrollViewTrailingFixer: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let v = NSView()
@@ -176,68 +165,6 @@ private struct LogPanelScrollViewTrailingFixer: NSViewRepresentable {
             scroll.contentView.automaticallyAdjustsContentInsets = false
             scroll.contentView.contentInsets = .init()
         }
-    }
-}
-
-/// NSView-зонд, который сидит в `.background` под главным контентом и подгоняет
-/// размер РЕАЛЬНОГО `view.window` под натуральную высоту, измеренную через
-/// `GeometryReader`. Это надёжнее, чем искать окно через `NSApplication.windows`
-/// по title — мы получаем именно тот NSWindow, в который отрендерился ContentView.
-struct MainWindowSizer: NSViewRepresentable {
-    let measuredHeight: CGFloat
-    /// Пока идёт явная анимация окна из `toggleLogSection`, не трогаем frame —
-    /// иначе десятки `setFrame` за свайп конфликтуют с `NSAnimationContext` и
-    /// съедают плавность.
-    var deferResizeToHostAnimation: Bool
-
-    final class Coordinator {
-        /// Актуальное значение с родителя; читается внутри `async`, чтобы не
-        /// применять устаревший кадр после переключения флага.
-        var deferResizeToHostAnimation = false
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    func makeNSView(context: Context) -> NSView {
-        NSView(frame: .zero)
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        context.coordinator.deferResizeToHostAnimation = deferResizeToHostAnimation
-        guard !deferResizeToHostAnimation else { return }
-        let height = max(measuredHeight, 1).rounded(.up)
-        let target = NSSize(width: MainWindowLayout.fixedWindowWidth, height: height)
-        DispatchQueue.main.async { [weak coordinator = context.coordinator, weak host = nsView] in
-            guard let coordinator, let host, let window = host.window else { return }
-            guard !coordinator.deferResizeToHostAnimation else { return }
-            Self.apply(target: target, to: window)
-        }
-    }
-
-    private static func apply(target: NSSize, to window: NSWindow) {
-        window.isRestorable = false
-        window.setFrameAutosaveName("")
-
-        let relaxedMin = NSSize(width: target.width, height: 1)
-        let relaxedMax = NSSize(width: target.width, height: 100_000)
-        let needsRelax =
-            window.minSize.height > target.height
-            || window.maxSize.height < target.height
-            || window.minSize.width != target.width
-            || window.maxSize.width != target.width
-        if needsRelax {
-            if window.minSize != relaxedMin { window.minSize = relaxedMin }
-            if window.maxSize != relaxedMax { window.maxSize = relaxedMax }
-        }
-
-        if window.frame.size != target {
-            window.setSizeAnchoringTop(target)
-        }
-
-        if window.minSize != target { window.minSize = target }
-        if window.maxSize != target { window.maxSize = target }
     }
 }
 
@@ -472,6 +399,12 @@ struct I2pdGUIApp: App {
             where key.hasPrefix("NSWindow Frame ") {
             UserDefaults.standard.removeObject(forKey: key)
         }
+        // Старые ключи из предыдущих архитектур — затирания, чтобы не отравить новый расчёт.
+        UserDefaults.standard.removeObject(forKey: "mainWindowContentHeightHint")
+        UserDefaults.standard.removeObject(forKey: "mainColumnChromeHeight")
+        UserDefaults.standard.removeObject(forKey: "mainLogPanelOuterHeight")
+        UserDefaults.standard.removeObject(forKey: "mainColumnHeightCollapsed")
+        UserDefaults.standard.removeObject(forKey: "mainColumnHeightExpanded")
 
         // Применяем сохраненный язык
         let savedLanguage = UserDefaults.standard.string(forKey: "appLanguage") ?? "ru"
@@ -515,16 +448,12 @@ struct I2pdGUIApp: App {
             ContentView()
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(
-            width: MainWindowLayout.fixedWindowWidth,
-            height: MainWindowLayout.estimatedWindowHeight(
-                isLogExpanded: UserDefaults.standard.bool(forKey: MainWindowLayout.logSectionExpandedDefaultsKey)
-            )
-        )
-        // Намеренно не задаём .windowResizability — оставляем системный default.
-        // Реальные min/max окна и его frame пересчитываются в MainWindowSizer на
-        // основе natural-высоты контента, измеренной через GeometryReader.
-        
+        // Окно строго по размеру SwiftUI‑контента. Пользователь не может его ресайзить
+        // (ресайз и не нужен — внутри фиксированная ширина и две дискретные высоты
+        // под состояние лог‑панели). Анимация смены размера — через `withAnimation`
+        // в `toggleLogSection` (SwiftUI сам синхронно анимирует контент и окно).
+        .windowResizability(.contentSize)
+
         // Settings убраны - используем NSAlert из трея
         
         .commands {
@@ -560,8 +489,6 @@ struct ContentView: View {
     @AppStorage(MainWindowLayout.logSectionExpandedDefaultsKey) private var isLogSectionExpanded = false
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
     @State private var manualStop: Bool? = false // Флаг ручной остановки для предотвращения автозапуска
-    /// Пока окно анимируется вручную (логи), `MainWindowSizer` не вмешивается.
-    @State private var hostWindowAnimatingLogResize = false
 
     /// Даёт перенос длинных путей в логах (мягкий разрыв после «/»).
     private static func logMessageForWrapping(_ message: String) -> String {
@@ -575,7 +502,15 @@ struct ContentView: View {
     private var networkStatColumns: [GridItem] {
         [GridItem(.adaptive(minimum: 84, maximum: 200), spacing: 12, alignment: .leading)]
     }
-    
+
+    /// Высота внешнего `frame` панели логов — **только две константы** (никакого clamp по
+    /// количеству логов: иначе окно «дрожит» при каждом новом сообщении).
+    private var currentLogOuter: CGFloat {
+        isLogSectionExpanded
+            ? MainWindowLayout.expandedLogSectionHeight
+            : MainWindowLayout.collapsedLogSectionHeight
+    }
+
     var body: some View {
         VStack(spacing: MainWindowLayout.sectionSpacing) {
             // Статус сервера
@@ -725,7 +660,7 @@ struct ContentView: View {
                         .padding(.top, MainWindowLayout.sectionHeaderHeight)
                         .padding(.bottom, 8)
                     }
-                    .frame(minHeight: MainWindowLayout.expandedLogViewportMinHeight, maxHeight: .infinity)
+                    .frame(maxHeight: .infinity)
                     // При развороте opacity-insert даёт рассинхрон с ростом окна (визуальный «прыжок»).
                     // Сворачивание оставляем мягким через fade-out.
                     .transition(.asymmetric(insertion: .identity, removal: .opacity))
@@ -779,33 +714,22 @@ struct ContentView: View {
             }
             .compositingGroup()
             .padding(MainWindowLayout.logPanelInset)
-            .frame(height: MainWindowLayout.logSectionHeight(isLogExpanded: isLogSectionExpanded))
+            .frame(height: currentLogOuter)
             .clipped()
             .animation(logSectionAnimation, value: isLogSectionExpanded)
             .liquidGlassPanel(cornerRadius: 18, material: .regularMaterial)
         }
-        .frame(maxWidth: .infinity, alignment: .top)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .padding(.horizontal, LiquidGlassTheme.windowPadding)
-        .padding(.vertical, MainWindowLayout.contentEdgeInset)
+        // Колонка имеет интрисик высоту (без `maxHeight: .infinity`) — `.windowResizability(.contentSize)`
+        // сразу делает окно ровно по этой высоте; чёрные поля сверху/снизу невозможны.
+        .padding(.horizontal, MainWindowLayout.mainContentHorizontalPadding)
+        .padding(.top, MainWindowLayout.mainContentTopPadding)
+        .padding(.bottom, MainWindowLayout.mainContentBottomPadding)
         .frame(width: MainWindowLayout.fixedWindowWidth)
         .background(
             LiquidGlassBackdrop(material: .underWindowBackground)
                 .ignoresSafeArea()
         )
         .liquidGlassWindow()
-        .background(
-            // GeometryReader сообщает natural-высоту контента, MainWindowSizer
-            // напрямую тянет за этим РЕАЛЬНЫЙ NSWindow (через nsView.window),
-            // не полагаясь на поиск окна по title в NSApp.windows.
-            GeometryReader { proxy in
-                MainWindowSizer(
-                    measuredHeight: proxy.size.height,
-                    deferResizeToHostAnimation: hostWindowAnimatingLogResize
-                )
-                    .frame(width: 0, height: 0)
-            }
-        )
         .onAppear {
             // Сначала проверяем начальный статус демона для корректного отображения в трее
             TrayManager.shared.checkInitialDaemonStatus()
@@ -830,10 +754,6 @@ struct ContentView: View {
                 applyTheme()
                 i2pdManager.getExtendedStats()
             }
-
-            syncMainWindowSizeWithLogState()
-            syncMainWindowSizeWithLogState(after: 0.2)
-            syncMainWindowSizeWithLogState(after: 0.7)
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView(i2pdManager: i2pdManager, manualStop: $manualStop)
@@ -854,9 +774,6 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenTools"))) { _ in
             showingTools = true
             print("🔧 Утилиты открыты")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SyncMainWindowLayout"))) { _ in
-            syncMainWindowSizeWithLogState()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonStartRequest"))) { _ in
             // Обрабатываем запрос запуска демона из трея
@@ -916,82 +833,11 @@ struct ContentView: View {
         }
     }
 
-    /// Совместимость со старыми вызовами `SyncMainWindowLayout`-нотификаций.
-    /// Сам resize теперь делает `MainWindowSizer` через `view.window`, поэтому
-    /// здесь только сбрасываем restorable-флаг — на случай если окно появилось
-    /// уже после init и AppDelegate его не зацепил.
-    private func syncMainWindowSizeWithLogState(after delay: TimeInterval = 0) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            for window in NSApplication.shared.windows {
-                window.isRestorable = false
-                window.setFrameAutosaveName("")
-            }
-        }
-    }
-
+    /// Toggle лог-панели. Размер окна меняет сам SwiftUI через `.windowResizability(.contentSize)`,
+    /// поэтому достаточно `withAnimation` — анимация контента и окна синхронны по построению.
     private func toggleLogSection() {
-        guard !hostWindowAnimatingLogResize else { return }
-        let wasExpanded = isLogSectionExpanded
-        guard let window = mainContentWindow() else {
-            withAnimation(logSectionAnimation) {
-                isLogSectionExpanded.toggle()
-            }
-            return
-        }
-
-        let delta = MainWindowLayout.logExpansionDelta
-        let newHeight = (window.frame.height + (wasExpanded ? -delta : delta)).rounded(.up)
-        let targetSize = NSSize(width: MainWindowLayout.fixedWindowWidth, height: max(newHeight, 1))
-
-        hostWindowAnimatingLogResize = true
-        window.isRestorable = false
-        window.setFrameAutosaveName("")
-
-        let relaxedMin = NSSize(width: MainWindowLayout.fixedWindowWidth, height: 1)
-        let relaxedMax = NSSize(width: MainWindowLayout.fixedWindowWidth, height: 100_000)
-        window.minSize = relaxedMin
-        window.maxSize = relaxedMax
-
-        var newFrame = window.frame
-        newFrame.size = targetSize
-        newFrame.origin.y = window.frame.maxY - targetSize.height
-
-        // Анимация секции уже задаётся через `.animation(..., value:)` на блоке логов.
-        // Дополнительный withAnimation здесь создаёт второй транзакционный контур
-        // параллельно с NSAnimationContext окна и даёт подёргивания всего контента.
-        isLogSectionExpanded.toggle()
-
-        if wasExpanded {
-            // Сворачивание: нижняя кромка окна плавно подтягивается вверх.
-            NSAnimationContext.runAnimationGroup({ context in
-                context.duration = MainWindowLayout.animationDuration
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                window.animator().setFrame(newFrame, display: true)
-            }, completionHandler: {
-                DispatchQueue.main.async {
-                    hostWindowAnimatingLogResize = false
-                }
-            })
-        } else {
-            // Разворот: две независимые интерполяции (окно + SwiftUI) постоянно
-            // рассинхронились и давали «прыжок вверх». Окно сразу финальной высоты;
-            // двигается только контент панели логов.
-            window.setFrame(newFrame, display: true, animate: false)
-            let resumeDelay = MainWindowLayout.animationDuration + MainWindowLayout.logExpandSizerResumeDelay
-            DispatchQueue.main.asyncAfter(deadline: .now() + resumeDelay) {
-                hostWindowAnimatingLogResize = false
-            }
-        }
-    }
-
-    private func mainContentWindow() -> NSWindow? {
-        NSApplication.shared.windows.first { window in
-            window.isVisible && window.level == .normal && window.sheetParent == nil
-                && window.title == "I2P Daemon GUI"
-        } ?? NSApplication.shared.windows.first { window in
-            window.isVisible && window.level == .normal && window.sheetParent == nil
-                && !window.title.localizedCaseInsensitiveContains("settings")
-                && !window.title.localizedCaseInsensitiveContains("настрой")
+        withAnimation(logSectionAnimation) {
+            isLogSectionExpanded.toggle()
         }
     }
 

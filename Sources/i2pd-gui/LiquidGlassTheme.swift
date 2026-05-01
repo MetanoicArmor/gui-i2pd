@@ -59,7 +59,10 @@ struct LiquidGlassWindowConfigurator: NSViewRepresentable {
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .visible
             window.titlebarSeparatorStyle = .none
-            window.styleMask.insert(.fullSizeContentView)
+            var mask = window.styleMask
+            mask.insert(.fullSizeContentView)
+            mask.remove(.resizable)
+            window.styleMask = mask
             window.isMovableByWindowBackground = true
         }
         window.hasShadow = true
