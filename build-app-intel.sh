@@ -113,6 +113,31 @@ cp "${SWIFT_BUILD_DIR}/${EXECUTABLE_NAME}" "${MACOS_DIR}/${APP_NAME}"
 if [ -d "${SWIFT_BUILD_DIR}/i2pd-gui_i2pd-gui.bundle" ]; then
     rm -rf "${MACOS_DIR}/i2pd-gui_i2pd-gui.bundle"
     cp -R "${SWIFT_BUILD_DIR}/i2pd-gui_i2pd-gui.bundle" "${MACOS_DIR}/"
+    TRAY_BUNDLE="${MACOS_DIR}/i2pd-gui_i2pd-gui.bundle"
+    TRAY_TMP="${TRAY_BUNDLE}.repack.$$"
+    mkdir -p "${TRAY_TMP}/Contents/Resources"
+    for png in "${TRAY_BUNDLE}"/*.png; do
+        [ -e "$png" ] || continue
+        mv "$png" "${TRAY_TMP}/Contents/Resources/"
+    done
+    cat > "${TRAY_TMP}/Contents/Info.plist" << 'TRAYPLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.i2pd.gui.tray-assets</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+</dict>
+</plist>
+TRAYPLIST
+    rm -rf "${TRAY_BUNDLE}"
+    mv "${TRAY_TMP}" "${TRAY_BUNDLE}"
     echo "✅ Пакет i2pd-gui_i2pd-gui.bundle (иконки трея) скопирован в MacOS"
 else
     echo "⚠️  i2pd-gui_i2pd-gui.bundle не найден"
@@ -211,6 +236,13 @@ echo "✅ Права доступа установлены"
 echo "🧹 Очистка атрибутов macOS..."
 xattr -cr "${APP_DIR}" 2>/dev/null || true
 echo "✅ Атрибуты очищены"
+
+echo "🔐 Ad-hoc codesign (--deep, без hardened runtime)..."
+if codesign --force --deep --sign - "${APP_DIR}"; then
+    echo "✅ Ad-hoc подпись применена"
+else
+    echo "⚠️  codesign не выполнен — установите Xcode Command Line Tools или подпишите вручную"
+fi
 
 echo ""
 echo "🎉 Приложение для Intel (x86_64) создано успешно!"
