@@ -28,10 +28,7 @@ cask "i2pd-gui" do
     "damaged" after install — that is Gatekeeper quarantine on files downloaded via Homebrew.
     Recent macOS versions may not show an "Open Anyway" option in System Settings for this case.
 
-    Recommended install (skips quarantine):
-      brew install --cask --no-quarantine metanoicarmor/i2pd-gui/i2pd-gui
-
-    If you already installed, clear quarantine:
+    Homebrew 4.7+ removed --no-quarantine (no replacement). After install or upgrade, run:
       xattr -dr com.apple.quarantine "/Applications/I2P Daemon GUI.app"
   EOS
 

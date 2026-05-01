@@ -88,27 +88,26 @@
 
 The cask automatically chooses the matching ZIP for your architecture (Apple Silicon or Intel) from the release assets.
 
-Recommended (avoids the “damaged app” Gatekeeper dialog from Homebrew quarantine):
-
-```bash
-brew install --cask --no-quarantine metanoicarmor/i2pd-gui/i2pd-gui
-```
-
-Standard install (macOS may then block the app until you clear quarantine):
+Install:
 
 ```bash
 brew install --cask metanoicarmor/i2pd-gui/i2pd-gui
 ```
 
-Upgrade: `brew upgrade --cask i2pd-gui` (add `--no-quarantine` if you rely on it).
-
-If macOS still says the app is damaged or won’t open, clear the quarantine attribute:
+**Immediately after install or upgrade**, clear the download quarantine (Homebrew **4.7+ removed** `--no-quarantine`; there is no brew replacement):
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/I2P Daemon GUI.app"
 ```
 
-On recent macOS versions, Gatekeeper may show **“damaged”** and **not** offer **“Open Anyway”** under Privacy & Security. That toggle appears for a different case (“unidentified developer”); quarantine + an unsigned download often ends in the stricter “damaged” path instead. **`xattr`** or **`--no-quarantine`** are the practical workarounds until the app is signed with a Developer ID certificate and notarized by Apple.
+Upgrade:
+
+```bash
+brew upgrade --cask i2pd-gui
+xattr -dr com.apple.quarantine "/Applications/I2P Daemon GUI.app"
+```
+
+On recent macOS versions, Gatekeeper may show **“damaged”** and **not** offer **“Open Anyway”** under Privacy & Security. That toggle appears for a different case (“unidentified developer”); quarantine + an unsigned download often ends in the stricter “damaged” path instead. **`xattr`** is the practical workaround until the app is signed with a Developer ID certificate and notarized by Apple.
 
 **Maintainers:** `brew` reads the cask from [MetanoicArmor/homebrew-i2pd-gui](https://github.com/MetanoicArmor/homebrew-i2pd-gui), not from this repo. After you upload new release ZIPs, update `Casks/i2pd-gui.rb` there (version and `sha256` per architecture). The `Casks/` file here is only a reference copy.
 
