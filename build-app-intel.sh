@@ -212,13 +212,6 @@ echo "🧹 Очистка атрибутов macOS..."
 xattr -cr "${APP_DIR}" 2>/dev/null || true
 echo "✅ Атрибуты очищены"
 
-echo "🔐 Подпись приложения..."
-codesign --force --options runtime --sign - "${APP_DIR}" 2>/dev/null || {
-    echo "⚠️  Автоматическая подпись недоступна, используйте ручную подпись"
-    echo "   codesign --sign \"Your Certificate\" \"${APP_DIR}\""
-}
-echo "✅ Подпись завершена"
-
 echo ""
 echo "🎉 Приложение для Intel (x86_64) создано успешно!"
 echo ""

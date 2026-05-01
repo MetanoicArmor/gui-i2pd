@@ -96,6 +96,12 @@ brew install --cask metanoicarmor/i2pd-gui/i2pd-gui
 
 Upgrade later with `brew upgrade --cask i2pd-gui`.
 
+If macOS says the app is damaged or won’t open (Gatekeeper / download quarantine), clear the quarantine attribute:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/I2P Daemon GUI.app"
+```
+
 **Maintainers:** `brew` reads the cask from [MetanoicArmor/homebrew-i2pd-gui](https://github.com/MetanoicArmor/homebrew-i2pd-gui), not from this repo. After you upload new release ZIPs, update `Casks/i2pd-gui.rb` there (version and `sha256` per architecture). The `Casks/` file here is only a reference copy.
 
 ### 📋 **System Requirements:**
