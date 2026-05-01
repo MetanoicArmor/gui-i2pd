@@ -27,3 +27,22 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+---
+
+Third-party binaries (not covered by the copyright notice above)
+
+Prebuilt application bundles may ship executable files that are built from
+upstream PurpleI2P projects:
+
+  • i2pd (I2P daemon) — https://github.com/PurpleI2P/i2pd
+    Licensed under BSD 3-Clause; see LICENSE in that repository.
+
+  • i2pd-tools (command-line utilities bundled under Resources/tools/) —
+    https://github.com/PurpleI2P/i2pd-tools
+    Licensed under the terms stated in LICENSE (or equivalent) in that
+    repository.
+
+Those components remain under their respective licenses and copyrights; this
+repository’s LICENSE applies to the Swift GUI source and assets maintained
+here, not to re-distributed upstream binaries.

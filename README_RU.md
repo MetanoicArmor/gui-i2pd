@@ -397,11 +397,18 @@ Info.plist              # Метаданные приложения (верси�
 
 ## 📄 Лицензия и правовая информация
 
-Проект распространяется под лицензией **BSD-3-Clause License**. Подробности в файле `LICENSE`.
+**Исходный код Swift GUI** в этом репозитории распространяется под **BSD-3-Clause License**. Подробности в файле `LICENSE`.
+
+**Встроенные бинарники** в готовых `.app` из релизов **создаются не здесь** — они собираются из проектов PurpleI2P:
+
+| Компонент | Источник | Лицензия (у upstream) |
+|-----------|----------|------------------------|
+| **`i2pd`** (демон) | [PurpleI2P/i2pd](https://github.com/PurpleI2P/i2pd) | BSD-3-Clause, см. [LICENSE](https://github.com/PurpleI2P/i2pd/blob/openssl/LICENSE) в том репозитории |
+| **Утилиты** (`Contents/Resources/tools/`) | [PurpleI2P/i2pd-tools](https://github.com/PurpleI2P/i2pd-tools) | Условия в файле `LICENSE` (или аналоге) в том репозитории |
 
 ### 🌐 **Использованные технологии:**
 - **I2P сеть**: https://geti2p.net/ - анонимная сеть
-- **i2pd daemon**: https://i2pd.website - официальная реализация протокола I2P
+- **i2pd daemon**: https://i2pd.website — реализация протокола I2P; на GitHub: [PurpleI2P/i2pd](https://github.com/PurpleI2P/i2pd)
 - **Swift**: язык программирования Apple
 - **SwiftUI**: фреймворк интерфейсов Apple
 - **NSLocalizedString**: система локализации Apple

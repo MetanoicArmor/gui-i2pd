@@ -317,11 +317,18 @@ swift --version
 
 ## 📄 License and Legal Information
 
-The project is distributed under **BSD-3-Clause License**. Details in the `LICENSE` file.
+The **Swift GUI source code** in this repository is distributed under the **BSD-3-Clause License**. See the `LICENSE` file.
+
+**Bundled binaries** in release `.app` bundles are **not** authored here; they are built from upstream projects:
+
+| Component | Source | License (upstream) |
+|-----------|--------|-------------------|
+| **`i2pd`** (daemon) | [PurpleI2P/i2pd](https://github.com/PurpleI2P/i2pd) | [BSD-3-Clause](https://github.com/PurpleI2P/i2pd/blob/openssl/LICENSE) (see file in repo) |
+| **Tools** (`Contents/Resources/tools/`) | [PurpleI2P/i2pd-tools](https://github.com/PurpleI2P/i2pd-tools) | Per `LICENSE` in that repository |
 
 ### 🌐 **Technologies Used:**
 - **I2P Network**: https://geti2p.net/ - anonymous network
-- **i2pd daemon**: https://i2pd.website - official I2P protocol implementation
+- **i2pd daemon**: https://i2pd.website - official I2P protocol implementation; [PurpleI2P/i2pd](https://github.com/PurpleI2P/i2pd) on GitHub
 - **Swift**: Apple programming language
 - **SwiftUI**: Apple interface framework
 - **NSLocalizedString**: Apple localization system
