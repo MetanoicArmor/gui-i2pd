@@ -87,15 +87,21 @@
 
 Cask автоматически выбирает ZIP под вашу архитектуру (Apple Silicon или Intel) из ассетов релиза.
 
-Установка одной командой (как у i2pchat):
+**Рекомендуется** (чтобы не получить диалог «приложение повреждено» из‑за карантина Homebrew):
+
+```bash
+brew install --cask --no-quarantine metanoicarmor/i2pd-gui/i2pd-gui
+```
+
+Обычная установка (macOS может заблокировать приложение, пока не снимете карантин):
 
 ```bash
 brew install --cask metanoicarmor/i2pd-gui/i2pd-gui
 ```
 
-Обновление: `brew upgrade --cask i2pd-gui`.
+Обновление: `brew upgrade --cask i2pd-gui` (при необходимости добавьте `--no-quarantine`).
 
-Если macOS сообщает, что приложение повреждено или не открывается (Gatekeeper / карантин загрузок), снимите атрибут карантина:
+Если система всё равно пишет, что приложение повреждено или не открывается:
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/I2P Daemon GUI.app"

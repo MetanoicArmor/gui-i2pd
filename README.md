@@ -88,15 +88,21 @@
 
 The cask automatically chooses the matching ZIP for your architecture (Apple Silicon or Intel) from the release assets.
 
-Install directly:
+Recommended (avoids the “damaged app” Gatekeeper dialog from Homebrew quarantine):
+
+```bash
+brew install --cask --no-quarantine metanoicarmor/i2pd-gui/i2pd-gui
+```
+
+Standard install (macOS may then block the app until you clear quarantine):
 
 ```bash
 brew install --cask metanoicarmor/i2pd-gui/i2pd-gui
 ```
 
-Upgrade later with `brew upgrade --cask i2pd-gui`.
+Upgrade: `brew upgrade --cask i2pd-gui` (add `--no-quarantine` if you rely on it).
 
-If macOS says the app is damaged or won’t open (Gatekeeper / download quarantine), clear the quarantine attribute:
+If macOS still says the app is damaged or won’t open, clear the quarantine attribute:
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/I2P Daemon GUI.app"

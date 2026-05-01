@@ -23,6 +23,17 @@ cask "i2pd-gui" do
 
   depends_on macos: ">= :sonoma"
 
+  caveats <<~EOS
+    This build is not Developer ID signed or notarized. macOS may report the app as
+    "damaged" after install — that is Gatekeeper quarantine on files downloaded via Homebrew.
+
+    Recommended install (skips quarantine):
+      brew install --cask --no-quarantine metanoicarmor/i2pd-gui/i2pd-gui
+
+    If you already installed, clear quarantine:
+      xattr -dr com.apple.quarantine "/Applications/I2P Daemon GUI.app"
+  EOS
+
   zap trash: [
     "~/Library/LaunchAgents/com.i2pd.daemon-gui.plist",
     "~/Library/Preferences/com.i2pd.daemon-gui.plist",
