@@ -26,6 +26,7 @@ cask "i2pd-gui" do
   caveats <<~EOS
     This build is not Developer ID signed or notarized. macOS may report the app as
     "damaged" after install — that is Gatekeeper quarantine on files downloaded via Homebrew.
+    Recent macOS versions may not show an "Open Anyway" option in System Settings for this case.
 
     Recommended install (skips quarantine):
       brew install --cask --no-quarantine metanoicarmor/i2pd-gui/i2pd-gui

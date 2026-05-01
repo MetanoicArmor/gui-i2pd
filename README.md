@@ -108,6 +108,8 @@ If macOS still says the app is damaged or won’t open, clear the quarantine att
 xattr -dr com.apple.quarantine "/Applications/I2P Daemon GUI.app"
 ```
 
+On recent macOS versions, Gatekeeper may show **“damaged”** and **not** offer **“Open Anyway”** under Privacy & Security. That toggle appears for a different case (“unidentified developer”); quarantine + an unsigned download often ends in the stricter “damaged” path instead. **`xattr`** or **`--no-quarantine`** are the practical workarounds until the app is signed with a Developer ID certificate and notarized by Apple.
+
 **Maintainers:** `brew` reads the cask from [MetanoicArmor/homebrew-i2pd-gui](https://github.com/MetanoicArmor/homebrew-i2pd-gui), not from this repo. After you upload new release ZIPs, update `Casks/i2pd-gui.rb` there (version and `sha256` per architecture). The `Casks/` file here is only a reference copy.
 
 ### 📋 **System Requirements:**
