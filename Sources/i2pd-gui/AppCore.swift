@@ -701,14 +701,9 @@ struct ContentView: View {
                 .padding(.vertical, 7)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(height: MainWindowLayout.sectionHeaderHeight, alignment: .center)
-                // Для macOS 26 возвращаем "жидкую линзу" через glassEffect,
-                // как было раньше в этом блоке.
-                .liquidGlassSidebarChrome(
-                    cornerRadius: 14,
-                    tintOpacity: 0.06,
-                    surfaceTintOpacity: 0.025,
-                    shadowOpacity: 0.025
-                )
+                // Тот же приём, что и у заголовка «Сетевая статистика»: regularMaterial + лёгкий
+                // тинт — в светлой теме не уходит в «белую плашку», как sidebar-хром.
+                .liquidGlassHeader()
                 .animation(nil, value: isLogSectionExpanded)
                 .zIndex(1)
             }
@@ -1980,7 +1975,7 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
-            .liquidGlassSidebarChrome(cornerRadius: 22, tintOpacity: 0.025, shadowOpacity: 0.10)
+            .liquidGlassHeader(cornerRadius: 22)
             .padding(.horizontal, 18)
             .padding(.top, 10)
             .zIndex(1)
@@ -2583,8 +2578,10 @@ struct SettingsSection<Content: View>: View {
     }
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Заголовок секции
+        // Как блок «Сетевая статистика» на главном экране: один regularMaterial-карточка,
+        // заголовок — liquidGlassHeader, тело без отдельного thinMaterial (в светлой теме
+        // не «выпадает» в лишний слой).
+        VStack(spacing: 8) {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: 16, weight: .medium))
@@ -2596,18 +2593,18 @@ struct SettingsSection<Content: View>: View {
                     .minimumScaleFactor(0.9)
                 Spacer()
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 20)
             .padding(.vertical, 8)
             .liquidGlassHeader()
-            
-            // Содержимое секции
+
             VStack(spacing: 12) {
                 content
             }
             .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-            .liquidGlassPanel(cornerRadius: 16, material: .thinMaterial, tintOpacity: 0.024, shadowOpacity: 0.06)
+            .padding(.vertical, 12)
         }
+        .padding(10)
+        .liquidGlassPanel(cornerRadius: 18, material: .regularMaterial)
     }
 }
 
