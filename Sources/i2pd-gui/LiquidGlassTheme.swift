@@ -105,11 +105,20 @@ enum LiquidGlassTheme {
 
 private struct LiquidGlassPanelModifier: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorScheme) private var colorScheme
 
     let cornerRadius: CGFloat
     let material: Material
     let tintOpacity: Double
     let shadowOpacity: Double
+    /// Доп. белый слой **только в светлой теме** (в стеке фона, не поверх контента) — чтобы карточка отрывалась от `underWindowBackground`.
+    let lightCardLift: Double
+
+    private var effectiveWhiteTint: Double {
+        let base = reduceTransparency ? tintOpacity * 0.5 : tintOpacity
+        guard !reduceTransparency, colorScheme == .light, lightCardLift > 0 else { return base }
+        return min(0.22, base + lightCardLift)
+    }
 
     func body(content: Content) -> some View {
         content
@@ -122,7 +131,7 @@ private struct LiquidGlassPanelModifier: ViewModifier {
                     )
                     .overlay {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(Color.white.opacity(reduceTransparency ? tintOpacity * 0.5 : tintOpacity))
+                            .fill(Color.white.opacity(effectiveWhiteTint))
                     }
                     .overlay {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -270,14 +279,16 @@ extension View {
         cornerRadius: CGFloat = LiquidGlassTheme.panelRadius,
         material: Material = .regularMaterial,
         tintOpacity: Double = 0.035,
-        shadowOpacity: Double = 0.08
+        shadowOpacity: Double = 0.08,
+        lightCardLift: Double = 0
     ) -> some View {
         modifier(
             LiquidGlassPanelModifier(
                 cornerRadius: cornerRadius,
                 material: material,
                 tintOpacity: tintOpacity,
-                shadowOpacity: shadowOpacity
+                shadowOpacity: shadowOpacity,
+                lightCardLift: lightCardLift
             )
         )
     }
@@ -290,7 +301,8 @@ extension View {
                 cornerRadius: cornerRadius,
                 material: .regularMaterial,
                 tintOpacity: 0.03,
-                shadowOpacity: 0.025
+                shadowOpacity: 0.025,
+                lightCardLift: 0
             )
         )
     }
@@ -301,7 +313,8 @@ extension View {
                 cornerRadius: cornerRadius,
                 material: .bar,
                 tintOpacity: 0.006,
-                shadowOpacity: 0.0
+                shadowOpacity: 0.0,
+                lightCardLift: 0
             )
         )
     }

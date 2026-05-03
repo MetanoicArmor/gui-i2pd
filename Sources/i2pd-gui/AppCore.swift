@@ -483,6 +483,7 @@ struct I2pdGUIApp: App {
 // MARK: - Main Content View
 struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var i2pdManager = I2pdManager()
     @State private var showingSettings = false
     @State private var showingTools = false
@@ -663,7 +664,8 @@ struct ContentView: View {
                     .frame(maxHeight: .infinity)
                     // При развороте opacity-insert даёт рассинхрон с ростом окна (визуальный «прыжок»).
                     // Сворачивание оставляем мягким через fade-out.
-                    .transition(.asymmetric(insertion: .identity, removal: .opacity))
+                    // Без fade при сворачивании: opacity + анимация высоты даёт полоску/артефакт снизу на кадр.
+                    .transition(.identity)
                 }
 
                 HStack {
@@ -705,16 +707,32 @@ struct ContentView: View {
                     cornerRadius: 14,
                     tintOpacity: 0.06,
                     surfaceTintOpacity: 0.012,
-                    shadowOpacity: 0.025
+                    shadowOpacity: 0.01
                 )
+                // Светлая тема: притемнить «плоскость» (раньше усиление tint давало молочность, не затемнение).
+                .overlay {
+                    if colorScheme == .light {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.black.opacity(0.038))
+                            .blendMode(.multiply)
+                            .allowsHitTesting(false)
+                    }
+                }
                 .animation(nil, value: isLogSectionExpanded)
                 .zIndex(1)
             }
             .padding(MainWindowLayout.logPanelInset)
             .frame(height: currentLogOuter)
-            .clipped()
-            .animation(logSectionAnimation, value: isLogSectionExpanded)
-            .liquidGlassPanel(cornerRadius: 18, material: .regularMaterial)
+            // Совпадающий с внешней панелью continuous-скруг — иначе .clipped() даёт прямоугольную маску
+            // и по углам «второго контура» в светлой теме видны ступеньки/артефакты на стыке с material.
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .liquidGlassPanel(
+                cornerRadius: 18,
+                material: .regularMaterial,
+                tintOpacity: 0.035,
+                shadowOpacity: 0.068,
+                lightCardLift: 0.10
+            )
         }
         // Колонка имеет интрисик высоту (без `maxHeight: .infinity`) — `.windowResizability(.contentSize)`
         // сразу делает окно ровно по этой высоте; чёрные поля сверху/снизу невозможны.
