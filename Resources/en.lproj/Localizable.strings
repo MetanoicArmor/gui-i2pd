@@ -133,6 +133,9 @@
 
 /* Logs */
 "Логи системы" = "System Logs";
+"Свернуть логи" = "Collapse logs";
+"Развернуть логи" = "Expand logs";
+"Закрыть настройки" = "Close settings";
 "Очистить" = "Clear";
 
 /* Status labels */
@@ -294,6 +297,46 @@
 "started" = "started";
 "stopped" = "stopped";
 "Daemon" = "Daemon";
+
+/* Activity log — settings & file actions */
+"✅ Настройки сохранены" = "✅ Settings saved";
+"📁 Выбран путь данных: %@" = "📁 Data path selected: %@";
+"🧹 Кэш уже был пуст (очищать нечего)" = "🧹 Cache was already empty (nothing to clear)";
+"🧹 Кэш очищен: удалено %d элементов" = "🧹 Cache cleared: removed %d item(s)";
+"⚠️ Очистка кэша завершена с ошибками: %@" = "⚠️ Cache cleanup finished with errors: %@";
+"📄 Логи экспортированы: %@" = "📄 Logs exported: %@";
+"русский 🇷🇺" = "Russian 🇷🇺";
+"English 🇬🇧" = "English 🇬🇧";
+"📱 Приложение скрыто из Dock. Доступ через трей." = "📱 Application hidden from Dock. Use the menu bar icon.";
+"📱 Приложение возвращено в Dock." = "📱 Application restored to Dock.";
+"📁 Открыт конфигурационный файл" = "📁 Configuration file opened";
+"✅ Полный i2pd.conf скопирован из бандла" = "✅ Full i2pd.conf copied from app bundle";
+"⚠️ Создан упрощенный i2pd.conf" = "⚠️ A simplified i2pd.conf was created";
+"📋 Открыта директория логов" = "📋 Log directory opened";
+"🚇 Открыт менеджер туннелей" = "🚇 Tunnel manager opened";
+"✅ Полный tunnels.conf скопирован из бандла" = "✅ Full tunnels.conf copied from app bundle";
+"⚠️ Создан упрощенный tunnels.conf" = "⚠️ A simplified tunnels.conf was created";
+"📖 Открыт файл подписок address book" = "📖 Address book subscriptions file opened";
+"✅ Полный subscriptions.txt скопирован из бандла" = "✅ Full subscriptions.txt copied from app bundle";
+"⚠️ Создан базовый subscriptions.txt" = "⚠️ A basic subscriptions.txt was created";
+"⚠️ Сначала запустите daemon для открытия веб-консоли" = "⚠️ Start the daemon first to open the web console";
+"🌐 Открыта веб-консоль" = "🌐 Web console opened";
+
+/* Daemon manager — debug / status log */
+"🔍 startDaemon() вызван - начинаем запуск" = "🔍 startDaemon() called — starting launch";
+"🔍 stopDaemon() вызван - начинаем остановку" = "🔍 stopDaemon() called — starting stop";
+"🔍 Команда остановки:" = "🔍 Stop command:";
+"🔍 checkDaemonStatus() вызван - проверяем статус демона" = "🔍 checkDaemonStatus() called — checking daemon state";
+"🔄 Автообновление включено (каждые 5 секунд)" = "🔄 Auto-refresh enabled (every 5 seconds)";
+"⏸️ Автообновление отключено" = "⏸️ Auto-refresh disabled";
+"🧹 Автоочистка логов включена" = "🧹 Automatic log cleanup enabled";
+"⏸️ Автоочистка логов отключена" = "⏸️ Automatic log cleanup disabled";
+"🧹 Автоочистка: удалено %d старых записей логов" = "🧹 Auto-cleanup: removed %d old log entries";
+"Не удалось получить версию из бинарника: %@" = "Could not read version from binary: %@";
+"не найден" = "not found";
+"unknown" = "unknown";
+"🔄 ПЕРЕЗАПУСК ДЕМОНА ИЗ I2pdManager НАЧАТ!" = "🔄 DAEMON RESTART FROM I2pdManager STARTED!";
+"✅ Демон остановлен, начинаем запуск..." = "✅ Daemon stopped, starting again...";
 
 /* Bandwidth settings */
 "Standard" = "Standard";

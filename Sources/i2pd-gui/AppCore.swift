@@ -1977,7 +1977,7 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
-            .liquidGlassSidebarChrome(cornerRadius: 22, tintOpacity: 0.025, shadowOpacity: 0.10)
+            .liquidGlassSidebarChrome(cornerRadius: 22, tintOpacity: 0.014, shadowOpacity: 0.09)
             .padding(.horizontal, 18)
             .padding(.top, 10)
             .zIndex(1)
@@ -2037,7 +2037,7 @@ struct SettingsView: View {
     
     private func saveSettings() {
         // Сохранение настроек в UserDefaults (уже автоматически через @AppStorage)
-        i2pdManager.logExportComplete("✅ Настройки сохранены")
+        i2pdManager.appendActivityLog(L("✅ Настройки сохранены"))
         
         // Применяем тему системы безопасно
         DispatchQueue.main.async {
@@ -2058,7 +2058,7 @@ struct SettingsView: View {
         panel.prompt = "Выбрать папку данных"
         
         if panel.runModal() == .OK, let url = panel.url {
-            i2pdManager.logExportComplete("📁 Выбран путь данных: \(url.path)")
+            i2pdManager.appendActivityLog(String(format: L("📁 Выбран путь данных: %@"), url.path))
         }
     }
     
@@ -2113,11 +2113,11 @@ struct SettingsView: View {
 
             if failedItems.isEmpty {
                 let summary = removedItems.isEmpty
-                    ? "🧹 Кэш уже был пуст (очищать нечего)"
-                    : "🧹 Кэш очищен: удалено \(removedItems.count) элементов"
-                i2pdManager.logExportComplete(summary)
+                    ? L("🧹 Кэш уже был пуст (очищать нечего)")
+                    : String(format: L("🧹 Кэш очищен: удалено %d элементов"), removedItems.count)
+                i2pdManager.appendActivityLog(summary)
             } else {
-                i2pdManager.logExportComplete("⚠️ Очистка кэша завершена с ошибками: \(failedItems.joined(separator: "; "))")
+                i2pdManager.appendActivityLog(String(format: L("⚠️ Очистка кэша завершена с ошибками: %@"), failedItems.joined(separator: "; ")))
             }
         }
     }
@@ -2133,7 +2133,7 @@ struct SettingsView: View {
         
         if panel.runModal() == .OK, let url = panel.url {
             try? logsContent.write(to: url, atomically: true, encoding: .utf8)
-            i2pdManager.logExportComplete("📄 Логи экспортированы: \(url.path)")
+            i2pdManager.appendActivityLog(String(format: L("📄 Логи экспортированы: %@"), url.path))
         }
     }
     
@@ -2144,8 +2144,8 @@ struct SettingsView: View {
         UserDefaults.standard.set(language, forKey: "appLanguage")
         UserDefaults.standard.synchronize()
         
-        let languageName = language == "ru" ? "русский 🇷🇺" : "English 🇬🇧"
-        i2pdManager.logExportComplete("🌐 " + L("Язык изменён на") + " \(languageName). " + L("Перезапуск приложения..."))
+        let languageName = language == "ru" ? L("русский 🇷🇺") : L("English 🇬🇧")
+        i2pdManager.appendActivityLog("🌐 " + L("Язык изменён на") + " \(languageName). " + L("Перезапуск приложения..."))
         
         // Умный перезапуск приложения
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -2227,7 +2227,7 @@ struct SettingsView: View {
         } catch {
             print("❌ Ошибка перезапуска: \(error)")
             AppDelegate.isRestarting = false
-            i2pdManager.logExportComplete("❌ " + L("Ошибка перезапуска:") + " \(error.localizedDescription)")
+            i2pdManager.appendActivityLog("❌ " + L("Ошибка перезапуска:") + " \(error.localizedDescription)")
         }
     }
     
@@ -2243,7 +2243,7 @@ struct SettingsView: View {
                 // Политика применения сохраняется через UserDefaults при перезапуске
                 
                 // Показываем уведомление что приложение теперь в трее
-                i2pdManager.logExportComplete("📱 Приложение скрыто из Dock. Доступ через трей.")
+                i2pdManager.appendActivityLog(L("📱 Приложение скрыто из Dock. Доступ через трей."))
                 
             } else {
                 // Показываем в Dock обратно: меняем политику на regular
@@ -2254,7 +2254,7 @@ struct SettingsView: View {
                 
                 // Политика применения сохраняется через UserDefaults при перезапуске
                 
-                i2pdManager.logExportComplete("📱 Приложение возвращено в Dock.")
+                i2pdManager.appendActivityLog(L("📱 Приложение возвращено в Dock."))
             }
         }
     }
@@ -2269,7 +2269,7 @@ struct SettingsView: View {
             createDefaultConfigFile(at: configPath)
         }
         
-        i2pdManager.logExportComplete("📁 Открыт конфигурационный файл")
+        i2pdManager.appendActivityLog(L("📁 Открыт конфигурационный файл"))
     }
     
     private func createDefaultConfigFile(at path: URL) {
@@ -2282,7 +2282,7 @@ struct SettingsView: View {
                 try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try FileManager.default.copyItem(at: configURL, to: path)
                 NSWorkspace.shared.open(path)
-                i2pdManager.logExportComplete("✅ Полный i2pd.conf скопирован из бандла")
+                i2pdManager.appendActivityLog(L("✅ Полный i2pd.conf скопирован из бандла"))
             } catch {
                 print("Ошибка копирования полного конфига: \(error)")
                 // Fallback к упрощенному конфигу
@@ -2333,7 +2333,7 @@ port = 7650
             try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
             try defaultConfig.write(to: path, atomically: true, encoding: .utf8)
             NSWorkspace.shared.open(path)
-            i2pdManager.logExportComplete("⚠️ Создан упрощенный i2pd.conf")
+            i2pdManager.appendActivityLog(L("⚠️ Создан упрощенный i2pd.conf"))
         } catch {
             print("Ошибка создания конфига: \(error)")
         }
@@ -2351,7 +2351,7 @@ port = 7650
             NSWorkspace.shared.open(homeDir)
         }
         
-        i2pdManager.logExportComplete("📋 Открыта директория логов")
+        i2pdManager.appendActivityLog(L("📋 Открыта директория логов"))
     }
     
     private func openTunnelManager() {
@@ -2363,7 +2363,7 @@ port = 7650
         }
         
         NSWorkspace.shared.open(tunnelsConf)
-        i2pdManager.logExportComplete("🚇 Открыт менеджер туннелей")
+        i2pdManager.appendActivityLog(L("🚇 Открыт менеджер туннелей"))
     }
     
     private func createDefaultTunnelsFile(at path: URL) {
@@ -2375,7 +2375,7 @@ port = 7650
             do {
                 try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try FileManager.default.copyItem(at: tunnelsURL, to: path)
-                i2pdManager.logExportComplete("✅ Полный tunnels.conf скопирован из бандла")
+                i2pdManager.appendActivityLog(L("✅ Полный tunnels.conf скопирован из бандла"))
             } catch {
                 print("Ошибка копирования полного tunnels.conf: \(error)")
                 // Fallback к упрощенному файлу
@@ -2420,7 +2420,7 @@ keys = irc-keys.dat
         do {
             try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
             try defaultTunnels.write(to: path, atomically: true, encoding: .utf8)
-            i2pdManager.logExportComplete("⚠️ Создан упрощенный tunnels.conf")
+            i2pdManager.appendActivityLog(L("⚠️ Создан упрощенный tunnels.conf"))
         } catch {
             print("Ошибка создания упрощенного файла туннелей: \(error)")
         }
@@ -2491,7 +2491,7 @@ outbound.length = 3
             createDefaultSubscriptionsFile(at: subscriptionsPath)
         }
         
-        i2pdManager.logExportComplete("📖 Открыт файл подписок address book")
+        i2pdManager.appendActivityLog(L("📖 Открыт файл подписок address book"))
     }
     
     private func createDefaultSubscriptionsFile(at path: URL) {
@@ -2504,7 +2504,7 @@ outbound.length = 3
                 try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try FileManager.default.copyItem(at: subscriptionsURL, to: path)
                 NSWorkspace.shared.open(path)
-                i2pdManager.logExportComplete("✅ Полный subscriptions.txt скопирован из бандла")
+                i2pdManager.appendActivityLog(L("✅ Полный subscriptions.txt скопирован из бандла"))
             } catch {
                 print("Ошибка копирования полного subscriptions.txt: \(error)")
                 // Fallback к созданию пустого файла
@@ -2529,7 +2529,7 @@ http://i2p-projekt.i2p/hosts.txt
             try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
             try defaultSubscriptions.write(to: path, atomically: true, encoding: .utf8)
             NSWorkspace.shared.open(path)
-            i2pdManager.logExportComplete("⚠️ Создан базовый subscriptions.txt")
+            i2pdManager.appendActivityLog(L("⚠️ Создан базовый subscriptions.txt"))
         } catch {
             print("Ошибка создания файла подписок: \(error)")
         }
@@ -2893,12 +2893,12 @@ struct ControlButtons: View {
     private var webConsoleButton: some View {
         Button {
             guard i2pdManager.isRunning else {
-                i2pdManager.logExportComplete("⚠️ Сначала запустите daemon для открытия веб-консоли")
+                i2pdManager.appendActivityLog(L("⚠️ Сначала запустите daemon для открытия веб-консоли"))
                 return
             }
             if let webURL = URL(string: "http://127.0.0.1:7070") {
                 NSWorkspace.shared.open(webURL)
-                i2pdManager.logExportComplete("🌐 Открыта веб-консоль")
+                i2pdManager.appendActivityLog(L("🌐 Открыта веб-консоль"))
             }
         } label: {
             Label(L("Веб-консоль"), systemImage: "safari")
@@ -3136,8 +3136,8 @@ class I2pdManager: ObservableObject {
             self?.addLog(.debug, L("🔧 Инициализация I2pdManager"))
             self?.addLog(.debug, L("📍 Bundle path:") + "  \(bundlePath)")
             self?.addLog(.debug, L("🎯 Ресурсный путь:") + "  \(resourcePath)")
-            self?.addLog(.debug, L("✅ Финальный путь:") + "  \(self?.executablePath ?? "не найден")")
-            self?.addLog(.debug, "🔍 " + L("Файл существует:") + "  \(FileManager.default.fileExists(atPath: self?.executablePath ?? "") ? "✅ " + L("да") : "❌ " + L("нет"))")
+            self?.addLog(.debug, L("✅ Финальный путь:") + "  \(self?.executablePath ?? L("не найден"))")
+            self?.addLog(.debug, L("🔍 Файл существует:") + "  \(FileManager.default.fileExists(atPath: self?.executablePath ?? "") ? "✅ " + L("да") : "❌ " + L("нет"))")
         }
         
         // Подписываемся на уведомления от трея
@@ -3184,7 +3184,7 @@ class I2pdManager: ObservableObject {
     }
     
     func startDaemon() {
-        addLog(.debug, "🔍 startDaemon() вызван - начинаем запуск")
+        addLog(.debug, L("🔍 startDaemon() вызван - начинаем запуск"))
         
         guard !operationInProgress else {
             addLog(.warn, L("Операция уже выполняется, пропускаем..."))
@@ -3221,10 +3221,10 @@ class I2pdManager: ObservableObject {
     
     func stopDaemon() {
         addLog(.info, L("🚫 ОСТАНОВКА ДЕМОНА ИЗ I2pdManager НАЧАТА!"))
-        addLog(.debug, "🔍 stopDaemon() вызван - начинаем остановку")
+        addLog(.debug, L("🔍 stopDaemon() вызван - начинаем остановку"))
         
         guard !operationInProgress else {
-            addLog(.warn, "⚠️ Операция уже выполняется, пропускаем...")
+            addLog(.warn, L("Операция уже выполняется, пропускаем..."))
             return
         }
         
@@ -3285,12 +3285,12 @@ class I2pdManager: ObservableObject {
         
         // ПРОСТОЙ И НАДЕЖНЫЙ поиск и остановка демона
         let simpleStopCommand = """
-        echo "🔍 Поиск демона i2pd..." &&
+        echo "🔍 Searching for i2pd daemon..." &&
         DEMON_PID=$(ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | head -1) &&
         
         if [ -n "$DEMON_PID" ]; then
-            echo "✅ Найден демон с PID: $DEMON_PID" &&
-            echo "💀 Останавливаем демон через kill -s INT..." &&
+            echo "✅ Found daemon PID: $DEMON_PID" &&
+            echo "💀 Stopping daemon with kill -s INT..." &&
             kill -s INT $DEMON_PID 2>/dev/null &&
         sleep 2 &&
             kill -s TERM $DEMON_PID 2>/dev/null &&
@@ -3300,12 +3300,12 @@ class I2pdManager: ObservableObject {
             # Проверка результата
         sleep 1 &&
             if ps -p $DEMON_PID >/dev/null 2>&1; then
-                echo "❌ Демон всё ещё жив!"
+                echo "❌ Daemon is still running!"
             else
-                echo "✅ Демон успешо остановлен!"
+                echo "✅ Daemon stopped successfully."
             fi
         else
-            echo "⚠️ Демон не найден"
+            echo "⚠️ Daemon not found"
         fi
         """
         
@@ -3315,17 +3315,17 @@ class I2pdManager: ObservableObject {
     private func findDaemonChildProcesses() {
         // РАЗВЕРНУТЫЙ поиск демона с подробной диагностикой
         let findCommand = """
-        echo "🔍 ДЕТАЛЬНЫЙ ПОИСК ДЕМОНА..." &&
-        echo "📋 Все процессы с i2pd:" &&
+        echo "🔍 Detailed daemon search..." &&
+        echo "📋 All i2pd processes:" &&
         ps aux | grep i2pd | grep -v grep &&
         echo "" &&
-        echo "📋 Демоны с --daemon:" &&
+        echo "📋 Daemons with --daemon:" &&
         ps aux | grep "i2pd.*daemon" | grep -v grep &&
         echo "" &&
-        echo "📋 Точный поиск демона:" &&
+        echo "📋 Exact daemon match:" &&
         ps aux | grep "i2pd.*--daemon" | grep -v grep &&
         echo "" &&
-        echo "🎯 ПОЛУЧЕНИЕ PID:" &&
+        echo "🎯 GET_PID_LINE:" &&
         ps aux | grep "i2pd.*--daemon" | grep -v grep | awk '{print $2}' | head -1
         """
         
@@ -3356,8 +3356,8 @@ class I2pdManager: ObservableObject {
                     
                     // Ищем строку с "ПОЛУЧЕНИЕ PID:" и извлекаем число из следующего элемента
                     for (index, line) in lines.enumerated() {
-                        if line.contains("ПОЛУЧЕНИЕ PID:") {
-                            // Берем следующую строку после "ПОЛУЧЕНИЕ PID:"
+                        if line.contains("GET_PID_LINE:") {
+                            // Next line after marker is the PID
                             if index + 1 < lines.count {
                                 let nextLine = lines[index + 1]
                                 if let pid = Int32(nextLine.trimmingCharacters(in: .whitespacesAndNewlines)) {
@@ -3396,43 +3396,38 @@ class I2pdManager: ObservableObject {
     
     private var globalStopCommand: String {
         return """
-        echo "🔍 БЕЗОПАСНАЯ остановка только демона i2pd..." &&
+        echo "🔍 Safe stop: i2pd daemon only..." &&
         
-        # Показываем только процессы демона (не GUI!)
-        echo "📋 Найденные процессы ДЕМОНА i2pd:" &&
+        echo "📋 i2pd daemon processes:" &&
         ps aux | grep "i2pd.*daemon" | grep -v grep &&
         
-        # БЕЗОПАСНЫЙ Метод 1: остановка только демона с --daemon
-        echo "🛑 Метод 1: pkill только демона..." &&
+        echo "🛑 Method 1: pkill INT daemon..." &&
         pkill -INT -f "i2pd.*--daemon" 2>/dev/null || true &&
         sleep 3 &&
         
-        echo "💀 Метод 2: pkill KILL только демона..." &&
+        echo "💀 Method 2: pkill KILL daemon..." &&
         pkill -KILL -f "i2pd.*--daemon" 2>/dev/null || true &&
         sleep 1 &&
         
-        # БЕЗОПАСНЫЙ Метод 3: остановка по точному имени процесса демона
-        echo "⚰️ Метод 3: killall только существующих демонов..." &&
+        echo "⚰️ Method 3: killall existing daemons..." &&
         (ps aux | grep "i2pd.*daemon" | grep -v grep >/dev/null && killall -INT i2pd 2>/dev/null || true) &&
         sleep 1 &&
         (ps aux | grep "i2pd.*daemon" | grep -v grep >/dev/null && killall -KILL i2pd 2>/dev/null || true) &&
         sleep 1 &&
         
-        # БЕЗОПАСНЫЙ Метод 4: поиск и kill ТОЛЬКО демонов
-        echo "🎯 Метод 4: поиск и kill только демонов..." &&
+        echo "🎯 Method 4: find and kill daemons..." &&
         ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs -I {} kill -TERM {} 2>/dev/null || true &&
         sleep 1 &&
         ps aux | grep "i2pd.*daemon" | grep -v grep | awk '{print $2}' | xargs -I {} kill -KILL {} 2>/dev/null || true &&
         sleep 2 &&
         
-        # Финальная проверка ТОЛЬКО демонов
         DEMON_COUNT=$(ps aux | grep "i2pd.*daemon" | grep -v grep | wc -l | tr -d ' ') &&
         if [ "$DEMON_COUNT" -eq 0 ]; then
-            echo "✅ ДЕМОНЫ i2pd ПОЛНОСТЬЮ остановлены!" &&
-            echo "✅ GUI приложение НЕ должно пострадать!"
+            echo "✅ All i2pd daemons stopped." &&
+            echo "✅ GUI app should be unaffected."
         else
-            echo "❌ ДЕМОНЫ не останавливаются! ($DEMON_COUNT шт.)" &&
-            echo "Оставшиеся демоны:" &&
+            echo "❌ Daemons still running ($DEMON_COUNT)." &&
+            echo "Remaining:" &&
             ps aux | grep "i2pd.*daemon" | grep -v grep
         fi
         """
@@ -3440,7 +3435,7 @@ class I2pdManager: ObservableObject {
     
     private func executeStopCommand(_ command: String) {
         addLog(.debug, L("🚀 Запускаем команду остановки демона..."))
-        addLog(.debug, "🔍 Команда остановки: \(command)")
+        addLog(.debug, L("🔍 Команда остановки:") + "\n\(command)")
         
         let killProcess = Process()
         killProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -3505,9 +3500,9 @@ class I2pdManager: ObservableObject {
         }
     }
     
-    func logExportComplete(_ path: String) {
+    func appendActivityLog(_ message: String) {
         DispatchQueue.main.async { [weak self] in
-            self?.addLog(.info, L("📄 Статистика экспортирована:") + " \(path)")
+            self?.addLog(.info, message)
         }
     }
     
@@ -3530,7 +3525,7 @@ class I2pdManager: ObservableObject {
             DispatchQueue.main.async { [weak self] in
                 self?.i2pdProcess = process
                 self?.i2pdPID = process.processIdentifier
-                self?.addLog(.debug, L("🚀 Команда запущена:") + " \(self?.executablePath ?? "unknown") \(arguments.joined(separator: " ")) " + L("с PID:") + " \(process.processIdentifier)")
+                self?.addLog(.debug, L("🚀 Команда запущена:") + " \(self?.executablePath ?? L("unknown")) \(arguments.joined(separator: " ")) " + L("с PID:") + " \(process.processIdentifier)")
                 
                 // Для daemon режима также ищем дочерние процессы
                 if arguments.contains("--daemon") {
@@ -3580,7 +3575,7 @@ class I2pdManager: ObservableObject {
     }
     
     private func checkDaemonStatus() {
-        addLog(.debug, "🔍 checkDaemonStatus() вызван - проверяем статус демона")
+        addLog(.debug, L("🔍 checkDaemonStatus() вызван - проверяем статус демона"))
         
         // Проверяем, запущен ли процесс через pgrep или аналогичную команду
         let checkProcess = Process()
@@ -3673,16 +3668,16 @@ class I2pdManager: ObservableObject {
     
     // MARK: - Автоматическое обновление
     func enableAutoRefresh() {
-        addLog(.info, "🔄 Автообновление включено (каждые 5 секунд)")
+        addLog(.info, L("🔄 Автообновление включено (каждые 5 секунд)"))
     }
     
     func disableAutoRefresh() {
-        addLog(.info, "⏸️ Автообновление отключено")
+        addLog(.info, L("⏸️ Автообновление отключено"))
     }
     
     // MARK: - Автоматическая очистка логов
     func enableAutoLogCleanup() {
-        addLog(.info, "🧹 Автоочистка логов включена")
+        addLog(.info, L("🧹 Автоочистка логов включена"))
         guard logCleanupTimer == nil else { return }
 
         // Автоматически очищаем логи старше 1 часа каждые 10 минут
@@ -3694,7 +3689,7 @@ class I2pdManager: ObservableObject {
     func disableAutoLogCleanup() {
         logCleanupTimer?.invalidate()
         logCleanupTimer = nil
-        addLog(.info, "⏸️ Автоочистка логов отключена")
+        addLog(.info, L("⏸️ Автоочистка логов отключена"))
     }
     
     private func performAutoLogCleanup() {
@@ -3703,7 +3698,7 @@ class I2pdManager: ObservableObject {
         logs = logs.filter { $0.timestamp >= oneHourAgo }
         let removedCount = oldLogsCount - logs.count
         if removedCount > 0 {
-            addLog(.info, "🧹 Автоочистка: удалено \(removedCount) старых записей логов")
+            addLog(.info, String(format: L("🧹 Автоочистка: удалено %d старых записей логов"), removedCount))
         }
     }
     
@@ -4029,7 +4024,7 @@ class I2pdManager: ObservableObject {
             let output = String(data: data, encoding: .utf8) ?? ""
             if let match = firstRegexCapture(in: output, pattern: "i2pd\\s+version\\s+(\\d+\\.\\d+(?:\\.\\d+)?)") { return match }
         } catch {
-            addLog(.error, "Не удалось получить версию из бинарника: \(error.localizedDescription)")
+            addLog(.error, String(format: L("Не удалось получить версию из бинарника: %@"), error.localizedDescription))
         }
         return nil
     }

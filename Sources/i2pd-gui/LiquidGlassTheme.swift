@@ -147,18 +147,18 @@ private struct LiquidGlassSidebarChromeModifier: ViewModifier {
     let surfaceTintOpacity: Double
     let shadowOpacity: Double
 
-    /// До macOS 26: как в тёмной теме — sidebar + вуаль + белые слои; в светлой вуаль чуть сильнее (аналог контраста).
+    /// До macOS 26: как в тёмной теме — sidebar + вуаль + белые слои; в светлой вуаль слабее, чтобы линза читалась прозрачнее.
     private var legacyVeilOpacity: Double {
-        colorScheme == .dark ? 0.16 : 0.062
+        colorScheme == .dark ? 0.16 : 0.044
     }
 
     /// macOS 26+: та же схема, что в dark — только `glassEffect` + тинт + `surfaceTint`, без отдельной чёрной вуали.
-    /// В светлой теме тинт через `primary` (дымчатое стекло), в тёмной — белый, сила задаётся `tintOpacity`.
+    /// В светлой теме тинт через `primary` (дымчатое стекло); базовая непрозрачность ниже, чем раньше, чтобы не «забивать» blur.
     private var glassTintColor: Color {
         if colorScheme == .dark {
             Color.white.opacity(tintOpacity)
         } else {
-            Color.primary.opacity(0.052 + tintOpacity * 0.62)
+            Color.primary.opacity(0.024 + tintOpacity * 0.42)
         }
     }
 
@@ -194,7 +194,7 @@ private struct LiquidGlassSidebarChromeModifier: ViewModifier {
 
                         shape.fill(Color.black.opacity(legacyVeilOpacity))
                             .allowsHitTesting(false)
-                        shape.fill(Color.white.opacity(tintOpacity))
+                        shape.fill(Color.white.opacity(colorScheme == .dark ? tintOpacity : tintOpacity * 0.65))
                             .allowsHitTesting(false)
                         shape.fill(Color.white.opacity(surfaceTintOpacity))
                             .allowsHitTesting(false)
