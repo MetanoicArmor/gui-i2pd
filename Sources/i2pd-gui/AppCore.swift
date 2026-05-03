@@ -8,6 +8,49 @@ func L(_ key: String) -> String {
     return NSLocalizedString(key, comment: "")
 }
 
+// MARK: - Тема оформления (UserDefaults + NSApp)
+
+/// Хранилище предпочтения темы: светлая / тёмная / как в системе (`NSApp.appearance = nil`).
+enum AppearancePreferenceStorage: String, CaseIterable {
+    case light
+    case dark
+    case system
+
+    private static let key = "appearancePreference"
+    private static let legacyDarkModeKey = "darkMode"
+
+    /// Однократная миграция со старого булева `darkMode`.
+    static func migrateIfNeeded() {
+        let d = UserDefaults.standard
+        guard d.string(forKey: key) == nil else { return }
+        if d.object(forKey: legacyDarkModeKey) != nil {
+            d.set(d.bool(forKey: legacyDarkModeKey) ? Self.dark.rawValue : Self.light.rawValue, forKey: key)
+        } else {
+            d.set(Self.system.rawValue, forKey: key)
+        }
+    }
+
+    static func current() -> Self {
+        let raw = UserDefaults.standard.string(forKey: key) ?? Self.system.rawValue
+        return Self(rawValue: raw) ?? .system
+    }
+
+    /// Единая точка применения к `NSApp`. Вызывать только с главного потока, **без**
+    /// `DispatchQueue.main.async`: иначе при быстрых сменах темы отложенные блоки
+    /// могут выполниться не в том порядке и «перетереть» актуальный выбор.
+    static func applyToApplication() {
+        precondition(Thread.isMainThread)
+        switch current() {
+        case .light:
+            NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark:
+            NSApp.appearance = NSAppearance(named: .darkAqua)
+        case .system:
+            NSApp.appearance = nil
+        }
+    }
+}
+
 // MARK: - Configuration Path Helper
 func getI2pdConfigDirectory() -> URL {
     let homeDir = FileManager.default.homeDirectoryForCurrentUser
@@ -379,15 +422,11 @@ class MenuTarget: NSObject {
 @main
 struct I2pdGUIApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @AppStorage("darkMode") private var darkMode = true
     @State private var showingSettings = false
     @State private var showingTools = false
     
     init() {
-        // Устанавливаем только UserDefaults по умолчанию
-        if UserDefaults.standard.object(forKey: "darkMode") == nil {
-            UserDefaults.standard.set(true, forKey: "darkMode")
-        }
+        AppearancePreferenceStorage.migrateIfNeeded()
 
         // Полностью гасим window state restoration — иначе при следующем запуске
         // NSWindow восстанавливается в прежнем (часто гигантском) фрейме до того,
@@ -427,6 +466,8 @@ struct I2pdGUIApp: App {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             I2pdGUIApp.checkAndApplyDockVisibilitySetting()
         }
+
+        AppearancePreferenceStorage.applyToApplication()
     }
     
     static func checkAndApplyDockVisibilitySetting() {
@@ -766,7 +807,7 @@ struct ContentView: View {
             
             // Загружаем статистику и применяем тему после полной инициализации
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                applyTheme()
+                AppearancePreferenceStorage.applyToApplication()
                 i2pdManager.getExtendedStats()
             }
         }
@@ -856,15 +897,6 @@ struct ContentView: View {
         }
     }
 
-    private func applyTheme() {
-        let isDarkMode = UserDefaults.standard.bool(forKey: "darkMode")
-        if isDarkMode {
-            NSApp.appearance = NSAppearance(named: .darkAqua)
-        } else {
-            NSApp.appearance = NSAppearance(named: .aqua)
-        }
-    }
-    
 }
 
 private struct NetworkStatItem: View {
@@ -1476,7 +1508,7 @@ struct SettingsView: View {
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
     @AppStorage("startMinimized") private var startMinimized = false
     @AppStorage("appLanguage") private var appLanguage = "ru"
-    @AppStorage("darkMode") private var darkMode = true
+    @AppStorage("appearancePreference") private var appearancePreference = AppearancePreferenceStorage.system.rawValue
     @AppStorage("autoRefresh") private var autoRefresh = true
     @AppStorage("autoLogCleanup") private var autoLogCleanup = false
     @AppStorage("hideFromDock") private var hideFromDock = false
@@ -1713,21 +1745,18 @@ struct SettingsView: View {
                                     .font(.system(.body, design: .default, weight: .medium))
                                     .foregroundColor(.primary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                Picker("Тема приложения", selection: $darkMode) {
-                                    Text(NSLocalizedString("Светлая", comment: "Light")).tag(false)
-                                    Text(NSLocalizedString("Тёмная", comment: "Dark")).tag(true)
+                                Picker("Тема приложения", selection: $appearancePreference) {
+                                    Text(NSLocalizedString("Светлая", comment: "Light"))
+                                        .tag(AppearancePreferenceStorage.light.rawValue)
+                                    Text(NSLocalizedString("Тёмная", comment: "Dark"))
+                                        .tag(AppearancePreferenceStorage.dark.rawValue)
+                                    Text(NSLocalizedString("Системная", comment: "System appearance"))
+                                        .tag(AppearancePreferenceStorage.system.rawValue)
                                 }
                                 .pickerStyle(.segmented)
                                 .frame(maxWidth: .infinity)
-                                .onChange(of: darkMode) { _, newValue in
-                                    // Применяем тему сразу при изменении
-                                    DispatchQueue.main.async {
-                                        if newValue {
-                                            NSApp.appearance = NSAppearance(named: .darkAqua)
-                                        } else {
-                                            NSApp.appearance = NSAppearance(named: .aqua)
-                                        }
-                                    }
+                                .onChange(of: appearancePreference) { _, _ in
+                                    AppearancePreferenceStorage.applyToApplication()
                                 }
                             }
                             
@@ -2057,14 +2086,7 @@ struct SettingsView: View {
         // Сохранение настроек в UserDefaults (уже автоматически через @AppStorage)
         i2pdManager.appendActivityLog(L("✅ Настройки сохранены"))
         
-        // Применяем тему системы безопасно
-        DispatchQueue.main.async {
-            if darkMode {
-                NSApp.appearance = NSAppearance(named: .darkAqua)
-            } else {
-                NSApp.appearance = NSAppearance(named: .aqua)
-            }
-        }
+        AppearancePreferenceStorage.applyToApplication()
     }
     
     private func selectDataDirectory() {

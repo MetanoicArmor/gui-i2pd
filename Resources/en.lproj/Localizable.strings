@@ -81,6 +81,7 @@
 "Тема приложения" = "App Theme";
 "Светлая" = "Light";
 "Тёмная" = "Dark";
+"Системная" = "System";
 "Отображение приложения" = "Application Display";
 "Скрыть из Dock" = "Hide from Dock";
 "При включении приложение скроется из Dock и станет доступно только через трей. ✅ Настройка восстанавливается при перезапуске." = "When enabled, the application will hide from Dock and be accessible only through the tray. ✅ Setting persists after restart.";
