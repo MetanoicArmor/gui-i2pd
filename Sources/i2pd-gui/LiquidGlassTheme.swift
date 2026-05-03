@@ -147,8 +147,19 @@ private struct LiquidGlassSidebarChromeModifier: ViewModifier {
     let surfaceTintOpacity: Double
     let shadowOpacity: Double
 
-    private var veilOpacity: Double {
-        colorScheme == .dark ? 0.16 : 0.035
+    /// До macOS 26: как в тёмной теме — sidebar + вуаль + белые слои; в светлой вуаль чуть сильнее (аналог контраста).
+    private var legacyVeilOpacity: Double {
+        colorScheme == .dark ? 0.16 : 0.062
+    }
+
+    /// macOS 26+: та же схема, что в dark — только `glassEffect` + тинт + `surfaceTint`, без отдельной чёрной вуали.
+    /// В светлой теме тинт через `primary` (дымчатое стекло), в тёмной — белый, сила задаётся `tintOpacity`.
+    private var glassTintColor: Color {
+        if colorScheme == .dark {
+            Color.white.opacity(tintOpacity)
+        } else {
+            Color.primary.opacity(0.052 + tintOpacity * 0.62)
+        }
     }
 
     @ViewBuilder
@@ -165,7 +176,7 @@ private struct LiquidGlassSidebarChromeModifier: ViewModifier {
         } else if #available(macOS 26.0, *) {
             content
                 .glassEffect(
-                    Glass.regular.tint(Color.white.opacity(tintOpacity)),
+                    Glass.regular.tint(glassTintColor),
                     in: shape
                 )
                 .overlay {
@@ -181,7 +192,7 @@ private struct LiquidGlassSidebarChromeModifier: ViewModifier {
                         LiquidGlassBackdrop(material: .sidebar, blendingMode: .behindWindow)
                             .clipShape(shape)
 
-                        shape.fill(Color.black.opacity(veilOpacity))
+                        shape.fill(Color.black.opacity(legacyVeilOpacity))
                             .allowsHitTesting(false)
                         shape.fill(Color.white.opacity(tintOpacity))
                             .allowsHitTesting(false)
@@ -271,6 +282,8 @@ extension View {
         )
     }
 
+    /// Матовая полоска заголовка (`regularMaterial`), без `glassEffect` — как блок «Сетевая статистика».
+    /// «Жидкая линза» только через `liquidGlassSidebarChrome` (логи, хром настроек и т.п.).
     func liquidGlassHeader(cornerRadius: CGFloat = 14) -> some View {
         modifier(
             LiquidGlassPanelModifier(

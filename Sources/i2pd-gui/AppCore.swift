@@ -701,13 +701,15 @@ struct ContentView: View {
                 .padding(.vertical, 7)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(height: MainWindowLayout.sectionHeaderHeight, alignment: .center)
-                // Тот же приём, что и у заголовка «Сетевая статистика»: regularMaterial + лёгкий
-                // тинт — в светлой теме не уходит в «белую плашку», как sidebar-хром.
-                .liquidGlassHeader()
+                .liquidGlassSidebarChrome(
+                    cornerRadius: 14,
+                    tintOpacity: 0.06,
+                    surfaceTintOpacity: 0.012,
+                    shadowOpacity: 0.025
+                )
                 .animation(nil, value: isLogSectionExpanded)
                 .zIndex(1)
             }
-            .compositingGroup()
             .padding(MainWindowLayout.logPanelInset)
             .frame(height: currentLogOuter)
             .clipped()
@@ -1975,7 +1977,7 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
-            .liquidGlassHeader(cornerRadius: 22)
+            .liquidGlassSidebarChrome(cornerRadius: 22, tintOpacity: 0.025, shadowOpacity: 0.10)
             .padding(.horizontal, 18)
             .padding(.top, 10)
             .zIndex(1)
@@ -2578,9 +2580,7 @@ struct SettingsSection<Content: View>: View {
     }
     
     var body: some View {
-        // Как блок «Сетевая статистика» на главном экране: один regularMaterial-карточка,
-        // заголовок — liquidGlassHeader, тело без отдельного thinMaterial (в светлой теме
-        // не «выпадает» в лишний слой).
+        // Как блок «Сетевая статистика»: одна карточка regularMaterial; заголовок — матовый liquidGlassHeader.
         VStack(spacing: 8) {
             HStack {
                 Image(systemName: icon)
@@ -2743,6 +2743,8 @@ struct StatusCard: View {
 
 // MARK: - Control Buttons
 struct ControlButtons: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     @ObservedObject var i2pdManager: I2pdManager
     @Binding var showingSettings: Bool
     @Binding var showingTools: Bool
@@ -2795,8 +2797,8 @@ struct ControlButtons: View {
                 }
             }
         }
-        .padding(12)
-        .liquidGlassPanel(cornerRadius: 18, material: .thinMaterial)
+        .padding(10)
+        .liquidGlassPanel(cornerRadius: 18, material: colorScheme == .dark ? .thinMaterial : .regularMaterial)
     }
 
     private var restartButton: some View {
