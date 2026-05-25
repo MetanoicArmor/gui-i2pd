@@ -343,19 +343,6 @@ If you like this project and it brings value, you can support its development by
 
 **☕ Buy developer a coffee:**
 
-**💎 Bitcoin (BTC):**
-<div align="center">
-<img src="btc_donation_qr.png" width="200">
-</div>
-
-### 📋 BTC Address:
-
-```
-bc1q3sq35ym2a90ndpqe35ujuzktjrjnr9mz55j8hd
-```
-
----
-
 **⚡ TON:**
 <div align="center">
 <img src="ton_donation_qr.png" width="200">
