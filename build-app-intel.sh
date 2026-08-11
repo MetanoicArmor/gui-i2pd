@@ -9,7 +9,7 @@ APP_DIR_NAME="I2P Daemon GUI-Intel"
 BUNDLE_ID="com.i2pd.daemon-gui"
 INTEL_DIR="intel"
 VERSION_FILE="VERSION"
-DEFAULT_APP_VERSION="2.60"
+DEFAULT_APP_VERSION="2.61"
 
 # Проверяем наличие папки intel с бинарниками
 if [ ! -d "$INTEL_DIR" ]; then
@@ -71,17 +71,31 @@ echo "📱 Версия приложения: $APP_VERSION"
 echo "📦 Сборка под архитектуру: x86_64 (Intel)"
 
 # Сборка Swift под x86_64 (отдельная папка, чтобы не затирать ARM-сборку)
+# На Apple Silicon одного `arch -x86_64` недостаточно — Swift всё ещё может
+# линковать arm64; явно задаём triple и -arch x86_64.
 SWIFT_BUILD_DIR=".build-x86_64/release"
 echo "🔨 Сборка проекта (x86_64)..."
 if [ "$(uname -m)" = "arm64" ]; then
-    arch -x86_64 swift build -c release --scratch-path .build-x86_64
+    arch -x86_64 swift build -c release --scratch-path .build-x86_64 \
+        -Xswiftc -target -Xswiftc x86_64-apple-macosx14.0 \
+        -Xlinker -arch -Xlinker x86_64
 else
-    swift build -c release --scratch-path .build-x86_64
+    swift build -c release --scratch-path .build-x86_64 \
+        -Xswiftc -target -Xswiftc x86_64-apple-macosx14.0
 fi
 
 if [ $? -ne 0 ]; then
     echo "❌ Ошибка сборки"
     exit 1
+fi
+
+if [ -f "${SWIFT_BUILD_DIR}/i2pd-gui" ]; then
+    GUI_ARCH=$(file -b "${SWIFT_BUILD_DIR}/i2pd-gui" | tr ' ' '\n' | grep -E 'x86_64|arm64' | head -1)
+    if [ "$GUI_ARCH" != "x86_64" ]; then
+        echo "❌ Ожидался x86_64, получен: $(file "${SWIFT_BUILD_DIR}/i2pd-gui")"
+        exit 1
+    fi
+    echo "✅ Архитектура GUI: x86_64"
 fi
 
 echo "✅ Проект собран успешно"

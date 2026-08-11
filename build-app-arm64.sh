@@ -7,7 +7,7 @@ echo "================================================"
 APP_NAME="I2P Daemon GUI"
 BUNDLE_ID="com.i2pd.daemon-gui"
 VERSION_FILE="VERSION"
-DEFAULT_APP_VERSION="2.60"
+DEFAULT_APP_VERSION="2.61"
 
 is_valid_version() {
     [[ "$1" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]
