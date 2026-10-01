@@ -95,19 +95,37 @@ mkdir -p "${RESOURCES_DIR}"
 # Копируем исполняемый файл
 cp "${SWIFT_BUILD_DIR}/${EXECUTABLE_NAME}" "${MACOS_DIR}/${APP_NAME}"
 
-# Ресурсы SwiftPM (иконки трея) — рядом с исполняемым файлом
-if [ -d "${SWIFT_BUILD_DIR}/i2pd-gui_i2pd-gui.bundle" ]; then
-    rm -rf "${MACOS_DIR}/i2pd-gui_i2pd-gui.bundle"
-    cp -R "${SWIFT_BUILD_DIR}/i2pd-gui_i2pd-gui.bundle" "${MACOS_DIR}/"
-    # SPM кладёт PNG в корень .bundle без Info.plist — codesign --deep отклоняет такой «бандл».
-    TRAY_BUNDLE="${MACOS_DIR}/i2pd-gui_i2pd-gui.bundle"
-    TRAY_TMP="${TRAY_BUNDLE}.repack.$$"
-    mkdir -p "${TRAY_TMP}/Contents/Resources"
-    for png in "${TRAY_BUNDLE}"/*.png; do
-        [ -e "$png" ] || continue
-        mv "$png" "${TRAY_TMP}/Contents/Resources/"
+# Ресурсы трея в Contents/Resources (не в корне .app — иначе codesign: unsealed contents).
+# TrayManager ищет бандл сам и НЕ использует Bundle.module (тот fatalError'ит вне layout SPM).
+TRAY_BUNDLE_NAME="i2pd-gui_i2pd-gui.bundle"
+TRAY_BUNDLE="${RESOURCES_DIR}/${TRAY_BUNDLE_NAME}"
+rm -rf "${TRAY_BUNDLE}" "${MACOS_DIR}/${TRAY_BUNDLE_NAME}" "${APP_DIR}/${TRAY_BUNDLE_NAME}"
+mkdir -p "${TRAY_BUNDLE}/Contents/Resources"
+PNG_COPIED=0
+for png in \
+    "Sources/i2pd-gui/TrayAssets/theatermasks.png" \
+    "Sources/i2pd-gui/TrayAssets/theatermask.fill.png"
+do
+    if [ -f "$png" ]; then
+        cp "$png" "${TRAY_BUNDLE}/Contents/Resources/"
+        PNG_COPIED=$((PNG_COPIED + 1))
+    fi
+done
+if [ "$PNG_COPIED" -eq 0 ]; then
+    for candidate in \
+        "${SWIFT_BUILD_DIR}/${TRAY_BUNDLE_NAME}" \
+        ".build/arm64-apple-macosx/release/${TRAY_BUNDLE_NAME}"
+    do
+        [ -d "$candidate" ] || continue
+        for png in "${candidate}"/*.png "${candidate}/Contents/Resources"/*.png; do
+            [ -f "$png" ] || continue
+            cp "$png" "${TRAY_BUNDLE}/Contents/Resources/"
+            PNG_COPIED=$((PNG_COPIED + 1))
+        done
+        [ "$PNG_COPIED" -gt 0 ] && break
     done
-    cat > "${TRAY_TMP}/Contents/Info.plist" << 'TRAYPLIST'
+fi
+cat > "${TRAY_BUNDLE}/Contents/Info.plist" << 'TRAYPLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -123,11 +141,10 @@ if [ -d "${SWIFT_BUILD_DIR}/i2pd-gui_i2pd-gui.bundle" ]; then
 </dict>
 </plist>
 TRAYPLIST
-    rm -rf "${TRAY_BUNDLE}"
-    mv "${TRAY_TMP}" "${TRAY_BUNDLE}"
-    echo "✅ Пакет i2pd-gui_i2pd-gui.bundle (иконки трея) скопирован в MacOS"
+if [ "$PNG_COPIED" -gt 0 ]; then
+    echo "✅ ${TRAY_BUNDLE_NAME} в Contents/Resources (${PNG_COPIED} PNG)"
 else
-    echo "⚠️  i2pd-gui_i2pd-gui.bundle не найден — трей будет без кастомных PNG"
+    echo "⚠️  PNG трея не найдены — будут SF Symbols"
 fi
 
 # Копируем бинарник i2pd

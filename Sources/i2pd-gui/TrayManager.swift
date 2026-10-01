@@ -6,7 +6,6 @@ class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
     static let shared = TrayManager()
     private var statusBarItem: NSStatusItem?
     private var trayMenu: NSMenu?
-    private var appDelegate: AppDelegate?
 
     // Ссылки на элементы меню для обновления состояния
     private var statusItem: NSMenuItem?
@@ -27,10 +26,8 @@ class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
     private override init() {
         super.init()
         setupStatusBar()
-
-        // Создаем и сохраняем делегат для обработки завершения приложения
-        appDelegate = AppDelegate()
-        NSApp.delegate = appDelegate
+        // Не подменяем NSApp.delegate: его уже ставит
+        // @NSApplicationDelegateAdaptor(AppDelegate.self) в I2pdGUIApp.
     }
 
     private func setupStatusBar() {
@@ -148,13 +145,16 @@ class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
         print("🚀 ========== ЗАПУСК DAEMON ИЗ ТРЕЯ! ==========")
         updateStatusText("🚀 Запуск daemon из трея...")
 
-        // Делегируем запуск к I2pdManager чтобы избежать дублирования процессов
-        NotificationCenter.default.post(name: NSNotification.Name("DaemonStartRequest"), object: nil)
+        // Вызываем shared-менеджер напрямую: ContentView может быть размонтирован.
+        I2pdManager.shared.manualStop = false
+        if !I2pdManager.shared.isRunning {
+            I2pdManager.shared.startDaemon()
+        }
 
-        // Даем время на обработку запроса
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
-            self.updateStatusText("🎯 Запрос обработан главным окном")
+            self.updateMenuState(isRunning: I2pdManager.shared.isRunning)
+            self.updateStatusText(I2pdManager.shared.isRunning ? L("Статус: Запущен") : L("Статус: Остановлен"))
         }
     }
 
@@ -168,13 +168,15 @@ class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
         print("⏹️ ОСТАНОВКА DAEMON из трея!")
         updateStatusText("⏹️ Остановка daemon из трея...")
 
-        // Делегируем остановку к I2pdManager чтобы избежать конфликтов
-        NotificationCenter.default.post(name: NSNotification.Name("DaemonStopRequest"), object: nil)
+        I2pdManager.shared.manualStop = true
+        if I2pdManager.shared.isRunning {
+            I2pdManager.shared.stopDaemon()
+        }
 
-        // Даем время на обработку запроса
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             NotificationCenter.default.post(name: NSNotification.Name("StatusUpdated"), object: nil)
-            self.updateStatusText("🎯 Остановка обработана главным окном")
+            self.updateMenuState(isRunning: I2pdManager.shared.isRunning)
+            self.updateStatusText(I2pdManager.shared.isRunning ? L("Статус: Запущен") : L("Статус: Остановлен"))
         }
     }
 
@@ -256,17 +258,15 @@ class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
         print("🔄 ПЕРЕЗАПУСК DAEMON из трея!")
         updateStatusText("🔄 Перезапуск daemon...")
 
-        // Устанавливаем флаг перезапуска
         isRestarting = true
-        updateMenuState(isRunning: false) // Обновляем меню с флагом перезапуска (предполагаем что демон остановлен)
+        updateMenuState(isRunning: false)
 
-        // Делегируем перезапуск к I2pdManager через уведомление
-        NotificationCenter.default.post(name: NSNotification.Name("DaemonRestartRequest"), object: nil)
+        I2pdManager.shared.manualStop = false
+        I2pdManager.shared.restartDaemon()
 
-        // Сбрасываем флаг перезапуска через некоторое время
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             self.isRestarting = false
-            self.updateMenuState(isRunning: true) // Предполагаем что демон запустился
+            self.updateMenuState(isRunning: I2pdManager.shared.isRunning)
         }
     }
 
@@ -525,9 +525,12 @@ class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
     }
 
     /// Иконка строки меню: `theatermasks` / `theatermask.fill` из ресурсов пакета или SF Symbols.
+    ///
+    /// Не используем `Bundle.module`: SPM resource accessor делает `fatalError`, если
+    /// `i2pd-gui_i2pd-gui.bundle` не лежит ровно в `Bundle.main.bundleURL` (корень .app).
     private func trayStatusImage(isRunning: Bool) -> NSImage? {
         let assetBase = isRunning ? "theatermask.fill" : "theatermasks"
-        if let url = Bundle.module.url(forResource: assetBase, withExtension: "png"),
+        if let url = Self.trayAssetURL(named: assetBase),
            let image = NSImage(contentsOf: url) {
             image.size = NSSize(width: 18, height: 18)
             return image
@@ -538,6 +541,31 @@ class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
         }
         image.size = NSSize(width: 18, height: 18)
         return image
+    }
+
+    private static func trayAssetURL(named name: String) -> URL? {
+        let bundleName = "i2pd-gui_i2pd-gui.bundle"
+        let candidates: [URL] = [
+            Bundle.main.bundleURL.appendingPathComponent(bundleName),
+            Bundle.main.bundleURL
+                .appendingPathComponent("Contents")
+                .appendingPathComponent("MacOS")
+                .appendingPathComponent(bundleName),
+            Bundle.main.resourceURL?.appendingPathComponent(bundleName),
+        ].compactMap { $0 }
+
+        for bundleURL in candidates {
+            if let bundle = Bundle(url: bundleURL),
+               let url = bundle.url(forResource: name, withExtension: "png") {
+                return url
+            }
+            // Плоский SPM-layout: PNG прямо в корне .bundle
+            let flat = bundleURL.appendingPathComponent("\(name).png")
+            if FileManager.default.fileExists(atPath: flat.path) {
+                return flat
+            }
+        }
+        return nil
     }
 
     // Обновление иконки трея в зависимости от статуса демона

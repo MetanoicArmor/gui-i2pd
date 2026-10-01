@@ -525,12 +525,11 @@ struct I2pdGUIApp: App {
 struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.colorScheme) private var colorScheme
-    @StateObject private var i2pdManager = I2pdManager()
+    @ObservedObject private var i2pdManager = I2pdManager.shared
     @State private var showingSettings = false
     @State private var showingTools = false
     @AppStorage(MainWindowLayout.logSectionExpandedDefaultsKey) private var isLogSectionExpanded = false
     @AppStorage("autoStartDaemon") private var autoStartDaemon = false
-    @State private var manualStop: Bool? = false // Флаг ручной остановки для предотвращения автозапуска
 
     /// Даёт перенос длинных путей в логах (мягкий разрыв после «/»).
     private static func logMessageForWrapping(_ message: String) -> String {
@@ -639,8 +638,7 @@ struct ContentView: View {
             ControlButtons(
                 i2pdManager: i2pdManager,
                 showingSettings: $showingSettings,
-                showingTools: $showingTools,
-                manualStop: $manualStop
+                showingTools: $showingTools
             )
             
             // Секция логов
@@ -798,7 +796,7 @@ struct ContentView: View {
             }
             
             // Проверяем и автоматически запускаем демон если включено и не было ручной остановки
-            if autoStartDaemon && !i2pdManager.isRunning && !(manualStop ?? false) {
+            if autoStartDaemon && !i2pdManager.isRunning && !i2pdManager.manualStop {
                 print("🚀 Автоматический запуск демона включен - запускаем i2pd")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     i2pdManager.startDaemon()
@@ -812,7 +810,7 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsView(i2pdManager: i2pdManager, manualStop: $manualStop)
+            SettingsView(i2pdManager: i2pdManager)
         }
         .sheet(isPresented: $showingTools) {
             ToolsView()
@@ -830,28 +828,6 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenTools"))) { _ in
             showingTools = true
             print("🔧 Утилиты открыты")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonStartRequest"))) { _ in
-            // Обрабатываем запрос запуска демона из трея
-            print("🚀 Получен запрос запуска демона из трея")
-            if !i2pdManager.isRunning {
-                manualStop = false // Сбрасываем флаг при ручном запуске
-                i2pdManager.startDaemon()
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonStopRequest"))) { _ in
-            // Обрабатываем запрос остановки демона из трея
-            print("⏹️ Получен запрос остановки демона из трея")
-            if i2pdManager.isRunning {
-                manualStop = true // Устанавливаем флаг ручной остановки
-                i2pdManager.stopDaemon()
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonRestartRequest"))) { _ in
-            // Обрабатываем запрос перезапуска демона из трея
-            print("🔄 Получен запрос перезапуска демона из трея")
-            manualStop = false // Сбрасываем флаг при перезапуске
-            i2pdManager.restartDaemon()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DaemonRestarting"))) { _ in
             // Уведомляем трей о начале перезапуска
@@ -1001,12 +977,10 @@ struct AboutView: View {
 // MARK: - Settings View
 struct SettingsView: View {
     @ObservedObject var i2pdManager: I2pdManager
-    @Binding var manualStop: Bool?
     @Environment(\.dismiss) private var dismiss
     
-    init(i2pdManager: I2pdManager, manualStop: Binding<Bool?>? = nil) {
+    init(i2pdManager: I2pdManager) {
         self.i2pdManager = i2pdManager
-        self._manualStop = manualStop ?? .constant(nil)
         
         // Инициализируем значения из конфига при создании view
         let daemonPort = Self.loadDaemonPortFromConfig()
@@ -1678,7 +1652,7 @@ struct SettingsView: View {
                                     .onChange(of: autoStartDaemon) { _, newValue in
                                         print("🔄 Настройка автозапуска демона изменена: \(newValue)")
                                         if newValue {
-                                            manualStop? = false // Сбрасываем флаг при включении автозапуска
+                                            i2pdManager.manualStop = false
                                         }
                                     }
                             }
@@ -2788,7 +2762,6 @@ struct ControlButtons: View {
     @ObservedObject var i2pdManager: I2pdManager
     @Binding var showingSettings: Bool
     @Binding var showingTools: Bool
-    @Binding var manualStop: Bool?
 
     var body: some View {
         VStack(spacing: 10) {
@@ -2843,7 +2816,7 @@ struct ControlButtons: View {
 
     private var restartButton: some View {
         Button {
-            manualStop = false
+            i2pdManager.manualStop = false
             i2pdManager.restartDaemon()
         } label: {
             Label(NSLocalizedString("Перезапустить", comment: "Restart button"), systemImage: "arrow.clockwise")
@@ -2858,10 +2831,10 @@ struct ControlButtons: View {
     private var startStopButton: some View {
         Button {
             if i2pdManager.isRunning {
-                manualStop = true
+                i2pdManager.manualStop = true
                 i2pdManager.stopDaemon()
             } else {
-                manualStop = false
+                i2pdManager.manualStop = false
                 i2pdManager.startDaemon()
             }
         } label: {
@@ -3067,9 +3040,16 @@ struct StatCard: View {
 
 // MARK: - I2PD Manager
 class I2pdManager: ObservableObject {
+    /// Единый менеджер: трей и главное окно должны управлять одним экземпляром.
+    /// Иначе команды из NSStatusItem (NotificationCenter → ContentView.onReceive)
+    /// теряются, когда окно скрыто / View не в иерархии.
+    static let shared = I2pdManager()
+
     @Published var isRunning = false
     @Published var isLoading = false
     @Published var operationInProgress = false
+    /// Ручная остановка из UI/трея — блокирует автозапуск демона.
+    @Published var manualStop = false
     @Published var uptime = "00:00:00"
     @Published var peerCount = 0
     @Published var logs: [LogEntry] = []
@@ -3220,6 +3200,45 @@ class I2pdManager: ObservableObject {
             self?.addLog(.info, L("📱 Статус обновлен из трея"))
             self?.checkStatus()
             self?.fetchDaemonVersionIfNeeded()
+        }
+
+        // Команды из трея (и любых других источников) обрабатываем здесь,
+        // а не в ContentView.onReceive — View может быть размонтирован.
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("DaemonStartRequest"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.addLog(.info, L("🚀 Получен запрос запуска демона из трея"))
+            self.manualStop = false
+            if !self.isRunning {
+                self.startDaemon()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("DaemonStopRequest"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.addLog(.info, L("⏹️ Получен запрос остановки демона из трея"))
+            self.manualStop = true
+            if self.isRunning {
+                self.stopDaemon()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("DaemonRestartRequest"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.addLog(.info, L("🔄 Получен запрос перезапуска демона из трея"))
+            self.manualStop = false
+            self.restartDaemon()
         }
     }
     
