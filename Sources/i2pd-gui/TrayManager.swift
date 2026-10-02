@@ -532,15 +532,32 @@ class TrayManager: NSObject, ObservableObject, NSMenuDelegate {
         let assetBase = isRunning ? "theatermask.fill" : "theatermasks"
         if let url = Self.trayAssetURL(named: assetBase),
            let image = NSImage(contentsOf: url) {
-            image.size = NSSize(width: 18, height: 18)
-            return image
+            return Self.prepareTrayStatusBarImage(from: image)
         }
         let symbolName = isRunning ? "theatermasks.fill" : "theatermasks"
         guard let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "I2P Daemon") else {
             return nil
         }
-        image.size = NSSize(width: 18, height: 18)
-        return image
+        return Self.prepareTrayStatusBarImage(from: image)
+    }
+
+    /// Иконка строки меню: чёрный силуэт + `isTemplate` → системный цвет (как у SF Symbols).
+    private static func prepareTrayStatusBarImage(from source: NSImage) -> NSImage {
+        let dimension: CGFloat = 18
+        let targetSize = NSSize(width: dimension, height: dimension)
+        let sourceRect = NSRect(origin: .zero, size: source.size)
+
+        let template = NSImage(size: targetSize, flipped: false) { rect in
+            source.draw(in: rect, from: sourceRect, operation: .sourceOver, fraction: 1.0)
+            if let ctx = NSGraphicsContext.current?.cgContext {
+                ctx.setBlendMode(.sourceIn)
+                NSColor.black.setFill()
+                rect.fill()
+            }
+            return true
+        }
+        template.isTemplate = true
+        return template
     }
 
     private static func trayAssetURL(named name: String) -> URL? {
