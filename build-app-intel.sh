@@ -9,7 +9,7 @@ APP_DIR_NAME="I2P Daemon GUI-Intel"
 BUNDLE_ID="com.i2pd.daemon-gui"
 INTEL_DIR="intel"
 VERSION_FILE="VERSION"
-DEFAULT_APP_VERSION="2.61"
+DEFAULT_APP_VERSION="3.0"
 
 # Проверяем наличие папки intel с бинарниками
 if [ ! -d "$INTEL_DIR" ]; then
