@@ -427,15 +427,15 @@ Info.plist              # Метаданные приложения (верси�
 
 **☕ Купить кофе разработчику:**
 
-**⚡ TON:**
+**₿ Bitcoin:**
 <div align="center">
-<img src="ton_donation_qr.png" width="200">
+<img src="btc_donation_qr.png" width="200">
 </div>
 
-### 📋 TON адрес:
+### 📋 Bitcoin адрес:
 
 ```
-UQCsX_UVKylmlxb4dWZlXdmlyRzNm-kzUx7Ld1VQHk1ob0MY
+bc1qfenneg8pt7g42f94uww3l3d7gtw6rl9dd3uslg
 ```
 
 *Спасибо за поддержку! Это мотивирует продолжать работу над проектом* 🙏
